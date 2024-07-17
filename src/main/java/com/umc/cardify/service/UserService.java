@@ -36,6 +36,7 @@ public class UserService {
         return result.getName();
     }
 
+    // 로그인
     @Transactional
     public UserResponse.tokenInfo login(UserRequest.login request) {
         String email = request.getEmail();
