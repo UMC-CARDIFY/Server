@@ -1,8 +1,11 @@
 package com.umc.cardify.controller;
 
+import com.umc.cardify.converter.FolderConverter;
 import com.umc.cardify.converter.NoteConverter;
 import com.umc.cardify.domain.Folder;
 import com.umc.cardify.domain.Note;
+import com.umc.cardify.dto.folder.FolderRequest;
+import com.umc.cardify.dto.folder.FolderResponse;
 import com.umc.cardify.dto.note.NoteRequest;
 import com.umc.cardify.dto.note.NoteResponse;
 import com.umc.cardify.service.FolderService;
@@ -26,9 +29,21 @@ public class FolderController {
     private final FolderService folderService;
     private final NoteService noteService;
 
+    @GetMapping
+    @Operation(summary = "모든 폴더 조회 API")
+    public ResponseEntity<FolderResponse.GetAllFolderResultDTO> getAllFolders(
+            @RequestParam(required = false) Long folderId,
+            @RequestParam(defaultValue = "0") int page) {
+        Pageable pageable = PageRequest.of(page, 5); // 페이지 크기를 5로 고정, 페이지는 0부터 시작
+        Page<Folder> folders = folderService.getAllFolders(folderId, pageable);
+        return ResponseEntity.ok(FolderConverter.toGetAllResult(folders));
+    }
+
+
     @PostMapping("/notes")
     @Operation(summary = "모든 노트 조회 API")
-    public ResponseEntity<NoteResponse.GetAllResultDTO> getAllNotes(@RequestBody @Valid NoteRequest.getAllDto request, @RequestParam(defaultValue = "0") int page){
+    public ResponseEntity<NoteResponse.GetAllResultDTO> getAllNotes(
+            @RequestBody @Valid NoteRequest.getAllDto request, @RequestParam(defaultValue = "0") int page){
         Pageable pageable = PageRequest.of(page, 5);
         Page<Note> notes = noteService.getAllNotes(request, pageable);
         return ResponseEntity.ok(NoteConverter.toGetAllResult(notes));

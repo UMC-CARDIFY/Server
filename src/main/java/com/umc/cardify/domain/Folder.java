@@ -19,7 +19,7 @@ public class Folder extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "folderid")
-    private Long folderId;
+    private Integer folderId;
 
     @Column(name = "name", columnDefinition = "varchar(30) NOT NULL")
     private String name;
