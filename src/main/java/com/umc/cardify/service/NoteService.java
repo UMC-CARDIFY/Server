@@ -18,7 +18,8 @@ public class NoteService {
     public Note getNote(long noteId){
         return noteRepository.getById(noteId);
     }
-    public Note writeNote(NoteRequest.writeDto request, Folder folder){
+    public Note getNote(UUID uuid){ return noteRepository.findByNoteUUID(uuid); }
+    public Note writeNote(NoteRequest.WriteDto request, Folder folder){
         Note newNote = NoteConverter.toWrite(request, folder);
         return noteRepository.save(newNote);
     }

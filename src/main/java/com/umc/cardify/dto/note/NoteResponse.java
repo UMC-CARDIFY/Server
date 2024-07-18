@@ -23,4 +23,14 @@ public class NoteResponse {
     public static class ShareResultDTO{
         String uuid;
     }
+    @Builder
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SearchUUIDResultDTO{
+        Long noteId;
+        String name;
+        String contents;
+        Boolean isEdit;
+    }
 }
