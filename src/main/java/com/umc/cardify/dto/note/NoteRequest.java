@@ -14,4 +14,12 @@ public class NoteRequest {
         @NotBlank
         String contents;
     }
+
+    @Getter
+    public static class getAllDto{
+        @NotNull
+        Integer folderId;
+        @NotNull
+        Integer noteId;
+    }
 }
