@@ -10,6 +10,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Getter
@@ -41,4 +42,10 @@ public class Note extends BaseEntity {
 
     @UpdateTimestamp
     private Timestamp editDate;
+
+    @Setter
+    private UUID noteUUID;
+
+    @Setter
+    private Boolean isEdit;
 }

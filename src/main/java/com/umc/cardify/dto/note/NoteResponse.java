@@ -16,4 +16,11 @@ public class NoteResponse {
         Long noteId;
         LocalDateTime createdAt;
     }
+    @Builder
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ShareResultDTO{
+        String uuid;
+    }
 }

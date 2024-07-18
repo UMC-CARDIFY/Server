@@ -22,4 +22,9 @@ public class NoteConverter {
                 .createdAt(LocalDateTime.now())
                 .build();
     }
+    public static NoteResponse.ShareResultDTO toShareResult(Note note){
+        return NoteResponse.ShareResultDTO.builder()
+                .uuid(note.getNoteUUID().toString())
+                .build();
+    }
 }

@@ -29,4 +29,11 @@ public class NoteController {
         Note note = noteService.writeNote(request, folder);
         return ResponseEntity.ok(NoteConverter.toWriteResult(note));
     }
+    @PostMapping("/share")
+    @Operation(summary = "노트 공유 API" , description = "노트 아이디와 편집 여부 입력, 성공 시 uuid 반환(해당 uuid로 노트 특정)")
+    public ResponseEntity<NoteResponse.ShareResultDTO> shareNote(@RequestBody @Valid NoteRequest.shareDto request){
+        Note note = noteService.getNote(request.getNoteId());
+        note = noteService.shareNote(note, request.getIsEdit());
+        return ResponseEntity.ok(NoteConverter.toShareResult(note));
+    }
 }

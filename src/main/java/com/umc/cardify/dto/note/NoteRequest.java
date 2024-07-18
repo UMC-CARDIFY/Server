@@ -14,4 +14,11 @@ public class NoteRequest {
         @NotBlank
         String contents;
     }
+    @Getter
+    public static class shareDto{
+        @NotNull
+        Integer noteId;
+        @NotNull
+        Boolean isEdit;
+    }
 }

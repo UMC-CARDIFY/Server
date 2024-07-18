@@ -9,12 +9,24 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 public class NoteService {
     private final NoteRepository noteRepository;
+    public Note getNote(long noteId){
+        return noteRepository.getById(noteId);
+    }
     public Note writeNote(NoteRequest.writeDto request, Folder folder){
         Note newNote = NoteConverter.toWrite(request, folder);
         return noteRepository.save(newNote);
+    }
+    public Note shareNote(Note note, Boolean isEdit){
+        if(note.getNoteUUID().equals(null)){
+            note.setNoteUUID(UUID.randomUUID());
+        }
+        note.setIsEdit(isEdit);
+        return noteRepository.save(note);
     }
 }
