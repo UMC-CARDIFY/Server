@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class NoteConverter {
-    public static Note toWrite(NoteRequest.writeDto request, Folder folder){
+    public static Note toWrite(NoteRequest.WriteDto request, Folder folder){
         return Note.builder()
                 .folder(folder)
                 .name(request.getName())
@@ -23,6 +23,19 @@ public class NoteConverter {
         return NoteResponse.WriteResultDTO.builder()
                 .noteId(note.getNoteId())
                 .createdAt(LocalDateTime.now())
+                .build();
+    }
+    public static NoteResponse.ShareResultDTO toShareResult(Note note){
+        return NoteResponse.ShareResultDTO.builder()
+                .uuid(note.getNoteUUID().toString())
+                .build();
+    }
+    public static NoteResponse.SearchUUIDResultDTO toSearchUUIDResult(Note note){
+        return NoteResponse.SearchUUIDResultDTO.builder()
+                .noteId(note.getNoteId())
+                .name(note.getName())
+                .contents(note.getContents())
+                .isEdit(note.getIsEdit())
                 .build();
     }
 

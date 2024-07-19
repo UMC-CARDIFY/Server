@@ -24,9 +24,22 @@ public class NoteController {
     private final NoteService noteService;
     @PostMapping("/write")
     @Operation(summary = "노트 추가 API")
-    public ResponseEntity<NoteResponse.WriteResultDTO> writeNote(@RequestBody @Valid NoteRequest.writeDto request){
+    public ResponseEntity<NoteResponse.WriteResultDTO> writeNote(@RequestBody @Valid NoteRequest.WriteDto request){
         Folder folder = folderService.getFolder(request.getFolderId());
         Note note = noteService.writeNote(request, folder);
         return ResponseEntity.ok(NoteConverter.toWriteResult(note));
+    }
+    @PostMapping("/share")
+    @Operation(summary = "노트 공유 API" , description = "노트 아이디와 편집 여부 입력, 성공 시 uuid 반환(해당 uuid로 노트 특정)")
+    public ResponseEntity<NoteResponse.ShareResultDTO> shareNote(@RequestBody @Valid NoteRequest.ShareDto request){
+        Note note = noteService.getNoteToID(request.getNoteId());
+        note = noteService.shareNote(note, request.getIsEdit());
+        return ResponseEntity.ok(NoteConverter.toShareResult(note));
+    }
+    @PostMapping("/searchUUID")
+    @Operation(summary = "공유한 노트 UUID로 탐색 API" , description = "노트 UUID 입력, 성공 시 노트 내용 반환")
+    public ResponseEntity<NoteResponse.SearchUUIDResultDTO> searchUUIDNote(@RequestBody @Valid NoteRequest.SearchUUIDDto request){
+        Note note = noteService.getNoteToUUID(request.getUuid());
+        return ResponseEntity.ok(NoteConverter.toSearchUUIDResult(note));
     }
 }

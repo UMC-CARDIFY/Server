@@ -35,4 +35,21 @@ public class NoteResponse {
         private int totalPages;
         private long totalElements;
     }
+    @Builder
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ShareResultDTO{
+        String uuid;
+    }
+    @Builder
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SearchUUIDResultDTO{
+        Long noteId;
+        String name;
+        String contents;
+        Boolean isEdit;
+    }
 }
