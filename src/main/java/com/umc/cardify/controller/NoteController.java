@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "NoteController", description = "노트 관련 API")
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/notes")
+@RequestMapping("api/v1/notes")
 public class NoteController {
 
     private final FolderService folderService;

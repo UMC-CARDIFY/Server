@@ -20,10 +20,9 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "FolderController", description = "폴더 관련 API")
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/folders")
+@RequestMapping("api/v1/folders")
 public class FolderController {
 
-    private final FolderService folderService;
     private final NoteService noteService;
 
     @PostMapping("/notes")

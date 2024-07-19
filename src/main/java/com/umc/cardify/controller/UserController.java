@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "UserController", description = "회원가입, 로그인, 유저 프로필 관련 API")
 @RestController
-@RequestMapping("/users")
+@RequestMapping("api/v1/users")
 @RequiredArgsConstructor
 public class UserController {
 
@@ -37,9 +37,4 @@ public class UserController {
         return ResponseEntity.ok(tokenInfo);
     }
 
-    @GetMapping("/test")
-    @Operation(summary = "토큰 인증 테스트용")
-    public ResponseEntity<String> test() {
-        return ResponseEntity.ok("test success");
-    }
 }
