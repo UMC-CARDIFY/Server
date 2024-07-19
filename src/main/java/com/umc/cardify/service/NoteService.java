@@ -1,11 +1,15 @@
 package com.umc.cardify.service;
 
+import com.umc.cardify.config.exception.BadRequestException;
+import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.converter.NoteConverter;
 import com.umc.cardify.domain.Folder;
 import com.umc.cardify.domain.Note;
 import com.umc.cardify.dto.note.NoteRequest;
 import com.umc.cardify.repository.NoteRepository;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,10 +19,20 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class NoteService {
     private final NoteRepository noteRepository;
-    public Note getNote(long noteId){
-        return noteRepository.getById(noteId);
+    public Note getNoteToID(long noteId){
+        return noteRepository.findById(noteId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
     }
-    public Note getNote(UUID uuid){ return noteRepository.findByNoteUUID(uuid); }
+    public Note getNoteToUUID(String uuid_str){
+        try{
+            UUID uuid = UUID.fromString(uuid_str);
+            Note note = noteRepository.findByNoteUUID(uuid);
+            if(note == null)
+                throw new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR);
+            return note;
+        }catch (IllegalArgumentException e){
+            throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+        }
+    }
     public Note writeNote(NoteRequest.WriteDto request, Folder folder){
         Note newNote = NoteConverter.toWrite(request, folder);
         return noteRepository.save(newNote);

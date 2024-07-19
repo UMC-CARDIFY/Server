@@ -34,14 +34,14 @@ public class NoteController {
     @PostMapping("/share")
     @Operation(summary = "노트 공유 API" , description = "노트 아이디와 편집 여부 입력, 성공 시 uuid 반환(해당 uuid로 노트 특정)")
     public ResponseEntity<NoteResponse.ShareResultDTO> shareNote(@RequestBody @Valid NoteRequest.ShareDto request){
-        Note note = noteService.getNote(request.getNoteId());
+        Note note = noteService.getNoteToID(request.getNoteId());
         note = noteService.shareNote(note, request.getIsEdit());
         return ResponseEntity.ok(NoteConverter.toShareResult(note));
     }
     @PostMapping("/searchUUID")
     @Operation(summary = "공유한 노트 UUID로 탐색 API" , description = "노트 UUID 입력, 성공 시 노트 내용 반환")
     public ResponseEntity<NoteResponse.SearchUUIDResultDTO> searchUUIDNote(@RequestBody @Valid NoteRequest.SearchUUIDDto request){
-        Note note = noteService.getNote(UUID.fromString(request.getUuid()));
+        Note note = noteService.getNoteToUUID(request.getUuid());
         return ResponseEntity.ok(NoteConverter.toSearchUUIDResult(note));
     }
 }
