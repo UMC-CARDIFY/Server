@@ -39,7 +39,7 @@ public class FolderService {
         return FolderResponse.FolderListDTO.builder()
                 .foldersList(folders)
                 .listSize(folderPage.getSize())
-                .currentPage(folderPage.getNumber())
+                .currentPage(folderPage.getNumber()+1)
                 .totalPages(folderPage.getTotalPages())
                 .totalElements(folderPage.getTotalElements())
                 .isFirst(folderPage.isFirst())
