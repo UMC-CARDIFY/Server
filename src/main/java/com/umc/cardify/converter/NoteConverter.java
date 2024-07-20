@@ -44,6 +44,8 @@ public class NoteConverter {
         return NoteResponse.NoteInfoDTO.builder()
                 .noteId(note.getNoteId())
                 .name(note.getName())
+                .folderName(note.getFolder().getName())
+                .markState(note.getMarkState())
                 .editDate(note.getEditDate())
                 .createdAt(note.getCreatedAt())
                 .build();

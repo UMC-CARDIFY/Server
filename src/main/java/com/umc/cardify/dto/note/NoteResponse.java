@@ -1,5 +1,6 @@
 package com.umc.cardify.dto.note;
 
+import com.umc.cardify.domain.enums.MarkStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -10,7 +11,6 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Schema(description = "노트 응답 데이터")
 public class NoteResponse {
 
     @Builder
@@ -51,6 +51,10 @@ public class NoteResponse {
         Long noteId;
         @Schema(description = "노트 이름", example = "Sample Note")
         String name;
+        @Schema(description = "폴더 이름", example = "Sample Folder")
+        String folderName;
+        @Schema(description = "노트 즐겨찾기", example = "ACTIVE")
+        MarkStatus markState;
         @Schema(description = "노트 수정일", example = "2023-07-18T01:40:13")
         Timestamp editDate;
         @Schema(description = "노트 생성 날짜", example = "2023-07-10T12:34:56")

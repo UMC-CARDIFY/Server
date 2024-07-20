@@ -6,7 +6,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 
-@Schema(description = "노트 요청 데이터")
 public class NoteRequest {
     @Getter
     public static class WriteDto{
