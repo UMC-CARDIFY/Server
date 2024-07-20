@@ -19,7 +19,11 @@ public class Folder extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "folderid")
-    private Integer folderId;
+    private Long folderId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
 
     @Column(name = "name", columnDefinition = "varchar(30) NOT NULL")
     private String name;

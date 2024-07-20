@@ -2,27 +2,20 @@ package com.umc.cardify.converter;
 
 import com.umc.cardify.domain.Folder;
 import com.umc.cardify.dto.folder.FolderResponse;
-import org.springframework.data.domain.Page;
+import org.springframework.stereotype.Component;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
+@Component
 public class FolderConverter {
 
-    public static FolderResponse.GetAllFolderResultDTO toGetAllResult(Page<Folder> folderPage) {
-        List<FolderResponse.FolderDTO> folderDTOs = folderPage.getContent().stream()
-                .map(folder -> FolderResponse.FolderDTO.builder()
-                        .folderId(folder.getFolderId())
-                        .name(folder.getName())
-                        .createdAt(folder.getCreatedAt())
-                        .build())
-                .collect(Collectors.toList());
-
-        return FolderResponse.GetAllFolderResultDTO.builder()
-                .folders(folderDTOs)
-                .currentPage(folderPage.getNumber())
-                .totalPages(folderPage.getTotalPages())
-                .totalElements(folderPage.getTotalElements())
+    public FolderResponse.FolderInfoDTO toFolderInfoDTO(Folder folder) {
+        return FolderResponse.FolderInfoDTO.builder()
+                .folderId(folder.getFolderId())
+                .name(folder.getName())
+                .color(folder.getColor())
+                .markState(folder.getMarkState())
+                .getNoteCount(folder.getNoteCount())
+                .editDate(folder.getEditDate())
+                .createdAt(folder.getCreatedAt())
                 .build();
     }
 }
