@@ -4,15 +4,16 @@ import com.umc.cardify.domain.Folder;
 import com.umc.cardify.domain.Note;
 import com.umc.cardify.dto.note.NoteRequest;
 import com.umc.cardify.dto.note.NoteResponse;
-import org.aspectj.weaver.ast.Not;
-import org.springframework.data.domain.Page;
+import org.springframework.stereotype.Component;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Component
 public class NoteConverter {
-    public static Note toWrite(NoteRequest.writeDto request, Folder folder){
+    public static Note toWrite(NoteRequest.WriteDto request, Folder folder){
         return Note.builder()
                 .folder(folder)
                 .name(request.getName())
@@ -25,22 +26,28 @@ public class NoteConverter {
                 .createdAt(LocalDateTime.now())
                 .build();
     }
+    public static NoteResponse.ShareResultDTO toShareResult(Note note){
+        return NoteResponse.ShareResultDTO.builder()
+                .uuid(note.getNoteUUID().toString())
+                .build();
+    }
+    public static NoteResponse.SearchUUIDResultDTO toSearchUUIDResult(Note note){
+        return NoteResponse.SearchUUIDResultDTO.builder()
+                .noteId(note.getNoteId())
+                .name(note.getName())
+                .contents(note.getContents())
+                .isEdit(note.getIsEdit())
+                .build();
+    }
 
-    public static NoteResponse.GetAllResultDTO toGetAllResult(Page<Note> notePage) {
-        List<NoteResponse.NoteDTO> noteDTOs = notePage.getContent().stream()
-                .map(note -> NoteResponse.NoteDTO.builder()
-                        .noteId(note.getNoteId())
-                        .name(note.getName())
-                        .contents(note.getContents())
-                        .createdAt(note.getCreatedAt())
-                        .build())
-                .collect(Collectors.toList());
-
-        return NoteResponse.GetAllResultDTO.builder()
-                .notes(noteDTOs)
-                .currentPage(notePage.getNumber())
-                .totalPages(notePage.getTotalPages())
-                .totalElements(notePage.getTotalElements())
+    public NoteResponse.NoteInfoDTO toNoteInfoDTO(Note note) {
+        return NoteResponse.NoteInfoDTO.builder()
+                .noteId(note.getNoteId())
+                .name(note.getName())
+                .folderName(note.getFolder().getName())
+                .markState(note.getMarkState())
+                .editDate(note.getEditDate())
+                .createdAt(note.getCreatedAt())
                 .build();
     }
 }
