@@ -56,4 +56,9 @@ public class NoteConverter {
                 .totalElements(notePage.getTotalElements())
                 .build();
     }
+    public static NoteResponse.deleteNoteResultDTO toDeleteNoteResult(Boolean isSuccess){
+        return NoteResponse.deleteNoteResultDTO.builder()
+                .isSuccess(isSuccess)
+                .build();
+    }
 }

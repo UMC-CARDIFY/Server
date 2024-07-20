@@ -35,7 +35,7 @@ public class Note extends BaseEntity {
     private String contents;
 
     @Enumerated(EnumType.STRING)
-    @Column(columnDefinition = "VARCHAR(15) DEFAULT 'ACTIVE'")
+    @Column(columnDefinition = "VARCHAR(15) DEFAULT 'INACTIVE'")
     private MarkStatus markState;
 
     private LocalDateTime viewAt;
