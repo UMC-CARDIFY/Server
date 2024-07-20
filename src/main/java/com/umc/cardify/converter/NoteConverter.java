@@ -4,13 +4,14 @@ import com.umc.cardify.domain.Folder;
 import com.umc.cardify.domain.Note;
 import com.umc.cardify.dto.note.NoteRequest;
 import com.umc.cardify.dto.note.NoteResponse;
-import org.aspectj.weaver.ast.Not;
-import org.springframework.data.domain.Page;
+import org.springframework.stereotype.Component;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Component
 public class NoteConverter {
     public static Note toWrite(NoteRequest.WriteDto request, Folder folder){
         return Note.builder()
@@ -39,21 +40,12 @@ public class NoteConverter {
                 .build();
     }
 
-    public static NoteResponse.GetAllResultDTO toGetAllResult(Page<Note> notePage) {
-        List<NoteResponse.NoteDTO> noteDTOs = notePage.getContent().stream()
-                .map(note -> NoteResponse.NoteDTO.builder()
-                        .noteId(note.getNoteId())
-                        .name(note.getName())
-                        .contents(note.getContents())
-                        .createdAt(note.getCreatedAt())
-                        .build())
-                .collect(Collectors.toList());
-
-        return NoteResponse.GetAllResultDTO.builder()
-                .notes(noteDTOs)
-                .currentPage(notePage.getNumber())
-                .totalPages(notePage.getTotalPages())
-                .totalElements(notePage.getTotalElements())
+    public NoteResponse.NoteInfoDTO toNoteInfoDTO(Note note) {
+        return NoteResponse.NoteInfoDTO.builder()
+                .noteId(note.getNoteId())
+                .name(note.getName())
+                .editDate(note.getEditDate())
+                .createdAt(note.getCreatedAt())
                 .build();
     }
 }
