@@ -7,6 +7,9 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
@@ -17,6 +20,9 @@ public class User extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")
     private Long userId;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<Folder> userFolderList = new ArrayList<>();
 
     @Column(name = "name", columnDefinition = "varchar(30) NOT NULL")
     private String name;
