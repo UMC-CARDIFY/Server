@@ -12,7 +12,7 @@ public enum ErrorResponseStatus {
 	// 3000 : Response 오류
 	RESPONSE_ERROR(3000, "값을 불러오는데 실패하였습니다."),
 
-	//4000 : Database, Server 오류
+	// 4000 : Database, Server 오류
 	DATABASE_ERROR(4000, "데이터 베이스 접근 오류."),
 	QUERY_TIMEOUT_ERROR(4001, "쿼리 타임 아웃 에러."),
 	DB_INSERT_ERROR(4002, "DB에 값을 삽입 하는데 실패 했습니다."),
@@ -20,10 +20,11 @@ public enum ErrorResponseStatus {
 	IMAGE_DELETE_ERROR(4004, "이미지 삭제 실패"),
 	IMAGE_UPLOAD_ERROR(4005, "이미지 업로드 실패"),
 	DB_UPDATE_ERROR(4006, "DB에 값을 수정 하는데 실패 했습니다."),
+	FILE_FORMAT_ERROR(4007, "파일 형식 검증 실패"),
+	FILE_VALID_ERROR(4008,"파일 유효성 검증 실패" ),
 
-	//5000 : Server connection 오류
+	// 5000 : Server connection 오류
 	SERVER_ERROR(5000, "서버와의 연결에 실패하였습니다."),
-
 	;
 
 	private final int code;
