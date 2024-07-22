@@ -46,6 +46,7 @@ public class NoteRequest {
     public static class SearchNoteDto{
         @NotNull
         Long folderId;
+        @NotNull
         String searchTxt;
     }
 }

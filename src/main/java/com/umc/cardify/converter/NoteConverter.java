@@ -55,23 +55,21 @@ public class NoteConverter {
                 .isSuccess(isSuccess)
                 .build();
     }
-    public static NoteResponse.NoteInfoDTO SearchNoteDTO(Note note) {
-        return NoteResponse.NoteInfoDTO.builder()
+    public static NoteResponse.SearchNoteInfoDTO SearchNoteDTO(Note note) {
+        return NoteResponse.SearchNoteInfoDTO.builder()
                 .noteId(note.getNoteId())
                 .name(note.getName())
-                .folderName(note.getFolder().getName())
                 .markState(note.getMarkState())
-                .editDate(note.getEditDate())
-                .createdAt(note.getCreatedAt())
                 .build();
     }
-    public static NoteResponse.SearchNoteResultDTO toSearchNoteResult(String searchTxt, List<Note> notesMark, List<Note> notesNotMark){
-        List<NoteResponse.NoteInfoDTO> noteListMark = notesMark.stream()
+    public static NoteResponse.SearchNoteResultDTO toSearchNoteResult(Folder folder, List<Note> notesMark, List<Note> notesNotMark){
+        List<NoteResponse.SearchNoteInfoDTO> noteListMark = notesMark.stream()
                 .map(NoteConverter::SearchNoteDTO).collect(Collectors.toList());
-        List<NoteResponse.NoteInfoDTO> noteListNotMark = notesNotMark.stream()
+        List<NoteResponse.SearchNoteInfoDTO> noteListNotMark = notesNotMark.stream()
                 .map(NoteConverter::SearchNoteDTO).collect(Collectors.toList());
         return NoteResponse.SearchNoteResultDTO.builder()
-                .searchTxt(searchTxt)
+                .folderName(folder.getName())
+                .folderColor(folder.getColor())
                 .noteListMark(noteListMark)
                 .noteListNotMark(noteListNotMark)
                 .build();

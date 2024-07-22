@@ -57,6 +57,6 @@ public class NoteController {
         Folder folder = folderService.getFolder(request.getFolderId());
         List<Note> noteListMark = noteService.searchNoteMark(searchTxt, folder);
         List<Note> noteListNotMark = noteService.searchNoteNotMark(searchTxt, folder);
-        return ResponseEntity.ok(NoteConverter.toSearchNoteResult(searchTxt, noteListMark, noteListNotMark));
+        return ResponseEntity.ok(NoteConverter.toSearchNoteResult(folder, noteListMark, noteListNotMark));
     }
 }

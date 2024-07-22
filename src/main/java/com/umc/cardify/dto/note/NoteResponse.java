@@ -98,12 +98,26 @@ public class NoteResponse {
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
+    @Schema(title = "NOTE_RES_07_01 : 노트 검색시 노트 응답 DTO")
+    public static class SearchNoteInfoDTO{
+        @Schema(description = "노트 아이디", example = "1")
+        Long noteId;
+        @Schema(description = "노트 이름", example = "Sample Note")
+        String name;
+        @Schema(description = "노트 즐겨찾기", example = "ACTIVE")
+        MarkStatus markState;
+    }
+    @Builder
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
     @Schema(title = "NOTE_RES_07 : 노트 검색 응답 DTO")
     public static class SearchNoteResultDTO{
-        String searchTxt;
+        String folderName;
+        String folderColor;
         @Schema(description = "북마크된 노트 목록")
-        List<NoteInfoDTO> noteListMark;
+        List<SearchNoteInfoDTO> noteListMark;
         @Schema(description = "북마크 안된 노트 목록")
-        List<NoteInfoDTO> noteListNotMark;
+        List<SearchNoteInfoDTO> noteListNotMark;
     }
 }
