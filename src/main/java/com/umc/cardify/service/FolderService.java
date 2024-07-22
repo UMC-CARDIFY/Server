@@ -33,7 +33,15 @@ public class FolderService {
         Page<Folder> folderPage = folderRepository.findByUser(user, pageable);
 
         List<FolderResponse.FolderInfoDTO> folders = folderPage.getContent().stream()
-                .map(folderConverter::toFolderInfoDTO)
+                .map(folder -> FolderResponse.FolderInfoDTO.builder()
+                        .folderId(folder.getFolderId())
+                        .name(folder.getName())
+                        .color(folder.getColor())
+                        .markState(folder.getMarkState())
+                        .getNoteCount(folder.getNoteCount())
+                        .editDate(folder.getEditDate())
+                        .createdAt(folder.getCreatedAt())
+                        .build())
                 .collect(Collectors.toList());
 
         return FolderResponse.FolderListDTO.builder()
@@ -46,5 +54,4 @@ public class FolderService {
                 .isLast(folderPage.isLast())
                 .build();
     }
-
 }

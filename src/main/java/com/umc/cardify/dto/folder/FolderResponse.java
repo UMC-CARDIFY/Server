@@ -40,7 +40,7 @@ public class FolderResponse {
     @AllArgsConstructor
     @Schema(title = "FOLDER_RES_02 : 폴더 목록 응답 DTO")
     public static class FolderListDTO {
-        @Schema(description = "폴더 목록", example = "5")
+        @Schema(description = "폴더 목록")
         List<FolderInfoDTO> foldersList;
         @Schema(description = "리스트 사이즈", example = "10")
         Integer listSize;
