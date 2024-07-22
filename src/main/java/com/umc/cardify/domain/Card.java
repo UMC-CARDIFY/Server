@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
 public class Card extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "card_id")
     private Long cardId;
 
     @ManyToOne(fetch = FetchType.LAZY)

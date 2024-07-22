@@ -50,9 +50,30 @@ public class NoteConverter {
                 .createdAt(note.getCreatedAt())
                 .build();
     }
-    public static NoteResponse.deleteNoteResultDTO toDeleteNoteResult(Boolean isSuccess){
-        return NoteResponse.deleteNoteResultDTO.builder()
+    public static NoteResponse.DeleteNoteResultDTO toDeleteNoteResult(Boolean isSuccess){
+        return NoteResponse.DeleteNoteResultDTO.builder()
                 .isSuccess(isSuccess)
+                .build();
+    }
+    public static NoteResponse.NoteInfoDTO SearchNoteDTO(Note note) {
+        return NoteResponse.NoteInfoDTO.builder()
+                .noteId(note.getNoteId())
+                .name(note.getName())
+                .folderName(note.getFolder().getName())
+                .markState(note.getMarkState())
+                .editDate(note.getEditDate())
+                .createdAt(note.getCreatedAt())
+                .build();
+    }
+    public static NoteResponse.SearchNoteResultDTO toSearchNoteResult(String searchTxt, List<Note> notesMark, List<Note> notesNotMark){
+        List<NoteResponse.NoteInfoDTO> noteListMark = notesMark.stream()
+                .map(NoteConverter::SearchNoteDTO).collect(Collectors.toList());
+        List<NoteResponse.NoteInfoDTO> noteListNotMark = notesNotMark.stream()
+                .map(NoteConverter::SearchNoteDTO).collect(Collectors.toList());
+        return NoteResponse.SearchNoteResultDTO.builder()
+                .searchTxt(searchTxt)
+                .noteListMark(noteListMark)
+                .noteListNotMark(noteListNotMark)
                 .build();
     }
 }

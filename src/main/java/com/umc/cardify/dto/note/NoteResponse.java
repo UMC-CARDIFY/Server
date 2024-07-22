@@ -91,7 +91,19 @@ public class NoteResponse {
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(title = "NOTE_RES_06 : 노트 삭제 응답 DTO")
-    public static class deleteNoteResultDTO{
+    public static class DeleteNoteResultDTO{
         Boolean isSuccess;
+    }
+    @Builder
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "NOTE_RES_07 : 노트 검색 응답 DTO")
+    public static class SearchNoteResultDTO{
+        String searchTxt;
+        @Schema(description = "북마크된 노트 목록")
+        List<NoteInfoDTO> noteListMark;
+        @Schema(description = "북마크 안된 노트 목록")
+        List<NoteInfoDTO> noteListNotMark;
     }
 }

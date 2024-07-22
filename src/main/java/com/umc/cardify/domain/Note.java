@@ -23,6 +23,7 @@ import java.util.UUID;
 public class Note extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "note_id")
     private Long noteId;
 
     @ManyToOne(fetch = FetchType.LAZY)

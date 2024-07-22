@@ -25,7 +25,7 @@ public class NoteRequest {
     public static class ShareDto{
         @NotNull
         Integer noteId;
-        @NotNull
+
         Boolean isEdit;
     }
     @Getter
@@ -40,5 +40,12 @@ public class NoteRequest {
     public static class DeleteNoteDto{
         @NotNull
         Long noteId;
+    }
+    @Getter
+    @Schema(title = "NOTE_REQ_05 : 노트 검색 요청 DTO")
+    public static class SearchNoteDto{
+        @NotNull
+        Long folderId;
+        String searchTxt;
     }
 }
