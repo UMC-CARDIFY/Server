@@ -1,6 +1,5 @@
 package com.umc.cardify.service;
 
-import com.umc.cardify.converter.FolderConverter;
 import com.umc.cardify.domain.Folder;
 import com.umc.cardify.domain.User;
 import com.umc.cardify.dto.folder.FolderResponse;
@@ -20,7 +19,6 @@ import java.util.stream.Collectors;
 public class FolderService {
     private final FolderRepository folderRepository;
     private final UserRepository userRepository;
-    private final FolderConverter folderConverter;
 
     public Folder getFolder(long folderId){
         return folderRepository.getById(folderId);
