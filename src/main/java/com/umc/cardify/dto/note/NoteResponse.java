@@ -2,6 +2,7 @@ package com.umc.cardify.dto.note;
 
 import com.umc.cardify.domain.enums.MarkStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -17,6 +18,7 @@ public class NoteResponse {
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
+    @Schema(title = "NOTE_RES_01 : 노트 작성 응답 DTO")
     public static class WriteResultDTO{
         Long noteId;
         LocalDateTime createdAt;
@@ -26,6 +28,7 @@ public class NoteResponse {
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
+    @Schema(title = "NOTE_RES_02 : 노트 공유 응답 DTO")
     public static class ShareResultDTO{
         String uuid;
     }
@@ -34,6 +37,7 @@ public class NoteResponse {
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
+    @Schema(title = "NOTE_RES_03 : 노트 UUID 검색 응답 DTO")
     public static class SearchUUIDResultDTO{
         Long noteId;
         String name;
@@ -81,5 +85,13 @@ public class NoteResponse {
         Boolean isFirst;
         @Schema(description = "마지막 페이지인지 확인", example = "false")
         Boolean isLast;
+    }
+    @Builder
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "NOTE_RES_06 : 노트 삭제 응답 DTO")
+    public static class deleteNoteResultDTO{
+        Boolean isSuccess;
     }
 }

@@ -42,4 +42,10 @@ public class NoteController {
         Note note = noteService.getNoteToUUID(request.getUuid());
         return ResponseEntity.ok(NoteConverter.toSearchUUIDResult(note));
     }
+    @PostMapping("/deleteNote")
+    @Operation(summary = "노트 삭제 API" , description = "노트 ID 입력, 성공 시 삭제 성공 여부 반환")
+    public ResponseEntity<NoteResponse.deleteNoteResultDTO> deleteNote(@RequestBody @Valid NoteRequest.DeleteNoteDto request){
+        Boolean isSuccess = noteService.deleteNote(request);
+        return ResponseEntity.ok(NoteConverter.toDeleteNoteResult(isSuccess));
+    }
 }

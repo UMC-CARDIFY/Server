@@ -11,6 +11,7 @@ import com.umc.cardify.dto.note.NoteResponse;
 import com.umc.cardify.repository.NoteRepository;
 import com.umc.cardify.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.aspectj.weaver.ast.Not;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -75,5 +76,10 @@ public class NoteService {
         }
         note.setIsEdit(isEdit);
         return noteRepository.save(note);
+    }
+    public Boolean deleteNote(NoteRequest.DeleteNoteDto request){
+        Note note_del = noteRepository.findById(request.getNoteId()).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+        noteRepository.delete(note_del);
+        return true;
     }
 }
