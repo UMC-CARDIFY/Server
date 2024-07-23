@@ -14,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @Tag(name = "NoteController", description = "노트 관련 API")
 @RestController
 @RequiredArgsConstructor
@@ -44,8 +46,17 @@ public class NoteController {
     }
     @PostMapping("/deleteNote")
     @Operation(summary = "노트 삭제 API" , description = "노트 ID 입력, 성공 시 삭제 성공 여부 반환")
-    public ResponseEntity<NoteResponse.deleteNoteResultDTO> deleteNote(@RequestBody @Valid NoteRequest.DeleteNoteDto request){
+    public ResponseEntity<NoteResponse.DeleteNoteResultDTO> deleteNote(@RequestBody @Valid NoteRequest.DeleteNoteDto request){
         Boolean isSuccess = noteService.deleteNote(request);
         return ResponseEntity.ok(NoteConverter.toDeleteNoteResult(isSuccess));
+    }
+    @PostMapping("/searchNote")
+    @Operation(summary = "노트 검색 API" , description = "폴더 ID와 검색어 입력, 성공 시 노트 리스트 반환")
+    public ResponseEntity<NoteResponse.SearchNoteResultDTO> searchNote(@RequestBody @Valid NoteRequest.SearchNoteDto request){
+        String searchTxt = request.getSearchTxt();
+        Folder folder = folderService.getFolder(request.getFolderId());
+        List<Note> noteListMark = noteService.searchNoteMark(searchTxt, folder);
+        List<Note> noteListNotMark = noteService.searchNoteNotMark(searchTxt, folder);
+        return ResponseEntity.ok(NoteConverter.toSearchNoteResult(folder, noteListMark, noteListNotMark));
     }
 }

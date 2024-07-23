@@ -9,11 +9,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface NoteRepository extends JpaRepository<Note, Long> {
     Note findByNoteUUID(UUID uuid);
-
+    List<Note> findByFolder(Folder folder);
     @Query("SELECT n FROM Note n WHERE n.folder.user = :user")
     Page<Note> findByUser(@Param("user") User user, Pageable pageable);
 }

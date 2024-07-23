@@ -6,6 +6,7 @@ import com.umc.cardify.converter.NoteConverter;
 import com.umc.cardify.domain.Folder;
 import com.umc.cardify.domain.Note;
 import com.umc.cardify.domain.User;
+import com.umc.cardify.domain.enums.MarkStatus;
 import com.umc.cardify.dto.note.NoteRequest;
 import com.umc.cardify.dto.note.NoteResponse;
 import com.umc.cardify.repository.NoteRepository;
@@ -69,7 +70,6 @@ public class NoteService {
                 .isLast(notePage.isLast())
                 .build();
     }
-
     public Note shareNote(Note note, Boolean isEdit){
         if(note.getNoteUUID().equals(null)){
             note.setNoteUUID(UUID.randomUUID());
@@ -81,5 +81,19 @@ public class NoteService {
         Note note_del = noteRepository.findById(request.getNoteId()).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
         noteRepository.delete(note_del);
         return true;
+    }
+    public List<Note> searchNoteMark(String searchTxt, Folder folder){
+        List<Note> notes = noteRepository.findByFolder(folder);
+        List<Note> notes_result = notes.stream()
+                .filter(note -> note.getName().contains(searchTxt) && note.getMarkState().equals(MarkStatus.ACTIVE))
+                .toList();
+        return notes_result;
+    }
+    public List<Note> searchNoteNotMark(String searchTxt, Folder folder){
+        List<Note> notes = noteRepository.findByFolder(folder);
+        List<Note> notes_result = notes.stream()
+                .filter(note -> note.getName().contains(searchTxt) && note.getMarkState().equals(MarkStatus.INACTIVE))
+                .toList();
+        return notes_result;
     }
 }

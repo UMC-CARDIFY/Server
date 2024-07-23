@@ -1,8 +1,8 @@
 package com.umc.cardify.service;
 
 import com.umc.cardify.config.exception.BadRequestException;
-import com.umc.cardify.config.exception.DatabaseException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
+import com.umc.cardify.config.exception.DatabaseException;
 import com.umc.cardify.domain.Folder;
 import com.umc.cardify.domain.User;
 import com.umc.cardify.dto.folder.FolderResponse;
@@ -26,7 +26,7 @@ public class FolderService {
     private final UserRepository userRepository;
 
     public Folder getFolder(long folderId){
-        return folderRepository.getById(folderId);
+        return folderRepository.findById(folderId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
     }
 
     public FolderResponse.FolderListDTO getFoldersByUserId(Long userId, int page, int size){
