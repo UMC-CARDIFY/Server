@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -46,6 +47,38 @@ public class FolderService {
 
         return FolderResponse.FolderListDTO.builder()
                 .foldersList(folders)
+                .listSize(folderPage.getSize())
+                .currentPage(folderPage.getNumber()+1)
+                .totalPages(folderPage.getTotalPages())
+                .totalElements(folderPage.getTotalElements())
+                .isFirst(folderPage.isFirst())
+                .isLast(folderPage.isLast())
+                .build();
+    }
+
+    public FolderResponse.sortFolderListDTO sortFoldersByUserId(Long userId, int page, int size, String order){
+        User user = userRepository.findById(userId)
+                .orElseThrow(()-> new IllegalArgumentException("User not found with id: " + userId));
+        Pageable pageable = switch (order.toLowerCase()) {
+            case "asc" -> PageRequest.of(page, size, Sort.by("name").ascending());
+            case "desc" -> PageRequest.of(page, size, Sort.by("name").descending());
+            case "edit-newest" -> PageRequest.of(page, size, Sort.by("editDate").ascending());
+            case "edit-oldest" -> PageRequest.of(page, size, Sort.by("editDate").descending());
+            default -> throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+        };
+
+        Page<Folder> folderPage = folderRepository.findByUser(user, pageable);
+        List<FolderResponse.sortFolderInfoDTO> folders = folderPage.getContent().stream()
+                .map(folder -> FolderResponse.sortFolderInfoDTO.builder()
+                        .folderId(folder.getFolderId())
+                        .name(folder.getName())
+                        .editDate(folder.getEditDate())
+                        .createdAt(folder.getCreatedAt())
+                        .build())
+                .collect(Collectors.toList());
+
+        return FolderResponse.sortFolderListDTO.builder()
+                .sortFoldersList(folders)
                 .listSize(folderPage.getSize())
                 .currentPage(folderPage.getNumber()+1)
                 .totalPages(folderPage.getTotalPages())

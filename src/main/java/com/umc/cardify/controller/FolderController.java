@@ -1,15 +1,11 @@
 package com.umc.cardify.controller;
 
-import com.umc.cardify.converter.NoteConverter;
-import com.umc.cardify.domain.Note;
 import com.umc.cardify.dto.folder.FolderResponse;
-import com.umc.cardify.dto.note.NoteRequest;
 import com.umc.cardify.dto.note.NoteResponse;
 import com.umc.cardify.service.FolderService;
 import com.umc.cardify.service.NoteService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import com.umc.cardify.jwt.JwtUtil;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +29,18 @@ public class FolderController {
             @RequestParam int size) {
         Long userId = jwtUtil.extractUserId(token);
         FolderResponse.FolderListDTO folders = folderService.getFoldersByUserId(userId, page, size);
+        return ResponseEntity.ok(folders);
+    }
+
+    @GetMapping("/sort")
+    @Operation(summary = "폴더 정렬 기능 API", description = "해당 유저의 폴더를 정렬해서 반환, 페이징을 포함 query string으로 페이지 번호를 주세요. | order = asc, desc, edit-newest, edit-oldest")
+    public ResponseEntity<FolderResponse.sortFolderListDTO> sortFolders(
+            @RequestHeader("Authorization") String token,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam int size,
+            @RequestParam String order){
+        Long userId = jwtUtil.extractUserId(token);
+        FolderResponse.sortFolderListDTO folders = folderService.sortFoldersByUserId(userId, page, size, order);
         return ResponseEntity.ok(folders);
     }
 
