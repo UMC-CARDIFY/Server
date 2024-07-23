@@ -10,6 +10,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -35,7 +36,7 @@ public class Note extends BaseEntity {
     private String contents;
 
     @Enumerated(EnumType.STRING)
-    @Column(columnDefinition = "VARCHAR(15) DEFAULT 'ACTIVE'")
+    @Column(columnDefinition = "VARCHAR(15) DEFAULT 'INACTIVE'")
     private MarkStatus markState;
 
     private LocalDateTime viewAt;
@@ -48,4 +49,7 @@ public class Note extends BaseEntity {
 
     @Setter
     private Boolean isEdit;
+
+    @OneToMany(mappedBy = "note", cascade = CascadeType.ALL)
+    private List<Card> cards;
 }

@@ -50,4 +50,9 @@ public class NoteConverter {
                 .createdAt(note.getCreatedAt())
                 .build();
     }
+    public static NoteResponse.deleteNoteResultDTO toDeleteNoteResult(Boolean isSuccess){
+        return NoteResponse.deleteNoteResultDTO.builder()
+                .isSuccess(isSuccess)
+                .build();
+    }
 }
