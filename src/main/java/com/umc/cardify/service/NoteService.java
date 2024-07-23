@@ -71,7 +71,7 @@ public class NoteService {
                 .build();
     }
     public Note shareNote(Note note, Boolean isEdit){
-        if(note.getNoteUUID().equals(null)){
+        if(note.getNoteUUID() == null){
             note.setNoteUUID(UUID.randomUUID());
         }
         note.setIsEdit(isEdit);
