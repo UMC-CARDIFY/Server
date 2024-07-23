@@ -59,4 +59,10 @@ public class NoteController {
         List<Note> noteListNotMark = noteService.searchNoteNotMark(searchTxt, folder);
         return ResponseEntity.ok(NoteConverter.toSearchNoteResult(folder, noteListMark, noteListNotMark));
     }
+    @PostMapping("/markNote")
+    @Operation(summary = "노트 즐겨찾기 API" , description = "노트 ID와 즐겨찾기 여부 입력, 성공 시 즐겨찾기 성공 여부 반환")
+    public ResponseEntity<NoteResponse.DeleteNoteResultDTO> markNote(@RequestBody @Valid NoteRequest.MarkNoteDto request){
+        Boolean isSuccess = noteService.markNote(request);
+        return ResponseEntity.ok(NoteConverter.toDeleteNoteResult(isSuccess));
+    }
 }
