@@ -3,9 +3,11 @@ package com.umc.cardify.service;
 import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.domain.Folder;
+import com.umc.cardify.domain.Note;
 import com.umc.cardify.domain.User;
 import com.umc.cardify.dto.folder.FolderResponse;
 import com.umc.cardify.repository.FolderRepository;
+import com.umc.cardify.repository.NoteRepository;
 import com.umc.cardify.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -13,6 +15,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -21,6 +24,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class FolderService {
     private final FolderRepository folderRepository;
+    private final NoteRepository noteRepository;
     private final UserRepository userRepository;
 
     public Folder getFolder(long folderId){
@@ -86,5 +90,14 @@ public class FolderService {
                 .isFirst(folderPage.isFirst())
                 .isLast(folderPage.isLast())
                 .build();
+    }
+
+    @Transactional
+    public void deleteFolderById(Long userId, Long folderId) {
+        User user = userRepository.findById(userId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.REQUEST_ERROR));
+        Folder folder = folderRepository.findByFolderIdAndUser(folderId, user).orElseThrow(() -> new BadRequestException(ErrorResponseStatus.REQUEST_ERROR));
+
+        noteRepository.deleteByFolder(folder);
+        folderRepository.delete(folder);
     }
 }
