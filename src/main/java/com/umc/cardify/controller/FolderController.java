@@ -1,13 +1,16 @@
 package com.umc.cardify.controller;
 
+import com.umc.cardify.dto.folder.FolderRequest;
 import com.umc.cardify.dto.folder.FolderResponse;
 import com.umc.cardify.dto.note.NoteResponse;
 import com.umc.cardify.service.FolderService;
 import com.umc.cardify.service.NoteService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import com.umc.cardify.jwt.JwtUtil;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -64,5 +67,16 @@ public class FolderController {
         Long userId = jwtUtil.extractUserId(token);
         folderService.deleteFolderById(userId, folderId);
         return ResponseEntity.ok(FolderResponse.deleteFolderResultDTO.builder().isSuccess(true).build());
+    }
+
+
+    @PostMapping("/addFolder")
+    @Operation(summary = "폴더 추가 기능 API", description = "해당 유저의 폴더를 생성")
+    public ResponseEntity<FolderResponse.addFolderResultDTO> addFolder(
+            @RequestHeader("Authorization") String token,
+            @RequestBody @Valid FolderRequest.addFolderDto folderRequest) {
+        Long userId = jwtUtil.extractUserId(token);
+        FolderResponse.addFolderResultDTO response = folderService.addFolder(userId, folderRequest);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }

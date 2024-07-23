@@ -5,6 +5,7 @@ import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.domain.Folder;
 import com.umc.cardify.domain.Note;
 import com.umc.cardify.domain.User;
+import com.umc.cardify.dto.folder.FolderRequest;
 import com.umc.cardify.dto.folder.FolderResponse;
 import com.umc.cardify.repository.FolderRepository;
 import com.umc.cardify.repository.NoteRepository;
@@ -99,5 +100,26 @@ public class FolderService {
 
         noteRepository.deleteByFolder(folder);
         folderRepository.delete(folder);
+    }
+
+    @Transactional
+    public FolderResponse.addFolderResultDTO addFolder(Long userId, FolderRequest.addFolderDto folderRequest) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
+
+        Folder folder = Folder.builder()
+                .name(folderRequest.getName())
+                .color(folderRequest.getColor())
+                .user(user)
+                .build();
+
+        folder = folderRepository.save(folder);
+
+        return FolderResponse.addFolderResultDTO.builder()
+                .folderId(folder.getFolderId())
+                .name(folder.getName())
+                .color(folder.getColor())
+                .createdAt(folder.getCreatedAt())
+                .build();
     }
 }

@@ -101,4 +101,20 @@ public class FolderResponse {
         @Schema(description = "삭제 성공 여부", example = "true")
         Boolean isSuccess;
     }
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "FOLDER_RES_06 : 폴더 추가 DTO")
+    public static class addFolderResultDTO{
+        @Schema(description = "폴더 아이디", example = "1")
+        Long folderId;
+        @Schema(description = "폴더 이름", example = "sample")
+        String name;
+        @Schema(description = "폴더 색상", example = "red")
+        String color;
+        @Schema(description = "폴더 생성 날짜", example = "2023-12-05 12:34:56")
+        private LocalDateTime createdAt;
+    }
 }
