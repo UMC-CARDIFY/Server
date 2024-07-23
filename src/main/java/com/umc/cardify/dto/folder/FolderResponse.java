@@ -91,4 +91,14 @@ public class FolderResponse {
         @Schema(description = "마지막 페이지인지 확인", example = "false")
         private Boolean isLast;
     }
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "FOLDER_RES_05 : 폴더 삭제 응답 DTO")
+    public static class deleteFolderResultDTO{
+        @Schema(description = "삭제 성공 여부", example = "true")
+        Boolean isSuccess;
+    }
 }
