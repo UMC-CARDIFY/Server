@@ -49,4 +49,12 @@ public class NoteRequest {
         @NotNull
         String searchTxt;
     }
+    @Getter
+    @Schema(title = "NOTE_REQ_06 : 노트 즐겨찾기 요청 DTO")
+    public static class MarkNoteDto{
+        @NotNull
+        Long noteId;
+        @NotNull
+        Boolean isMark;
+    }
 }

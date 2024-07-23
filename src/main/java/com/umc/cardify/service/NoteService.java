@@ -96,4 +96,16 @@ public class NoteService {
                 .toList();
         return notes_result;
     }
+
+    public Boolean markNote(NoteRequest.MarkNoteDto request){
+        Note note_mark = noteRepository.findById(request.getNoteId()).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+        if(request.getIsMark())
+            note_mark.setMarkState(MarkStatus.ACTIVE);
+        else if (!request.getIsMark())
+            note_mark.setMarkState(MarkStatus.INACTIVE);
+        else
+            throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+        noteRepository.save(note_mark);
+        return true;
+    }
 }

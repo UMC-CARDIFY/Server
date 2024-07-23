@@ -36,6 +36,7 @@ public class Note extends BaseEntity {
     @Column(nullable = false)
     private String contents;
 
+    @Setter
     @Enumerated(EnumType.STRING)
     @Column(columnDefinition = "VARCHAR(15) DEFAULT 'INACTIVE'")
     private MarkStatus markState;
