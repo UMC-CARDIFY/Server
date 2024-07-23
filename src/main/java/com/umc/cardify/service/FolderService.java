@@ -2,14 +2,12 @@ package com.umc.cardify.service;
 
 import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
-import com.umc.cardify.config.exception.DatabaseException;
 import com.umc.cardify.domain.Folder;
 import com.umc.cardify.domain.User;
 import com.umc.cardify.dto.folder.FolderResponse;
 import com.umc.cardify.repository.FolderRepository;
 import com.umc.cardify.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.hibernate.service.spi.ServiceException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
