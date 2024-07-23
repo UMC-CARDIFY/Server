@@ -71,7 +71,7 @@ public class FolderController {
 
 
     @PostMapping("/addFolder")
-    @Operation(summary = "폴더 추가 기능 API", description = "해당 유저의 폴더를 생성")
+    @Operation(summary = "폴더 추가 기능 API", description = "해당 유저의 폴더를 생성 시, 폴더 아이디, 이름, 색상, 생성일 반환 | 이름,색상 입력")
     public ResponseEntity<FolderResponse.addFolderResultDTO> addFolder(
             @RequestHeader("Authorization") String token,
             @RequestBody @Valid FolderRequest.addFolderDto folderRequest) {
