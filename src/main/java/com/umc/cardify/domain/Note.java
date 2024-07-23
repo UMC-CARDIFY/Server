@@ -4,6 +4,7 @@ import com.umc.cardify.config.BaseEntity;
 import com.umc.cardify.domain.enums.MarkStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -50,6 +51,7 @@ public class Note extends BaseEntity {
     private UUID noteUUID;
 
     @Setter
+    @Column(columnDefinition = "Boolean DEFAULT false")
     private Boolean isEdit;
 
     @OneToMany(mappedBy = "note", cascade = CascadeType.ALL)

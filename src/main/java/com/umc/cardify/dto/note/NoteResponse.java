@@ -2,7 +2,6 @@ package com.umc.cardify.dto.note;
 
 import com.umc.cardify.domain.enums.MarkStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -18,8 +17,8 @@ public class NoteResponse {
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
-    @Schema(title = "NOTE_RES_01 : 노트 작성 응답 DTO")
-    public static class WriteResultDTO{
+    @Schema(title = "NOTE_RES_01 : 노트 추가 응답 DTO")
+    public static class AddNoteResultDTO{
         Long noteId;
         LocalDateTime createdAt;
     }

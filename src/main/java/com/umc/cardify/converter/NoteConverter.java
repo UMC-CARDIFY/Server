@@ -13,15 +13,16 @@ import java.util.stream.Collectors;
 
 @Component
 public class NoteConverter {
-    public static Note toWrite(NoteRequest.WriteDto request, Folder folder){
+    public static Note toAddNote(Folder folder){
         return Note.builder()
                 .folder(folder)
-                .name(request.getName())
-                .contents(request.getContents())
+                .name("제목없음")
+                .contents("빈 노트")
+                .isEdit(false)
                 .build();
     }
-    public static NoteResponse.WriteResultDTO toWriteResult(Note note){
-        return NoteResponse.WriteResultDTO.builder()
+    public static NoteResponse.AddNoteResultDTO toAddNoteResult(Note note){
+        return NoteResponse.AddNoteResultDTO.builder()
                 .noteId(note.getNoteId())
                 .createdAt(LocalDateTime.now())
                 .build();

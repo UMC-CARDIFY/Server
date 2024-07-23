@@ -44,8 +44,10 @@ public class NoteService {
         }
     }
 
-    public Note writeNote(NoteRequest.WriteDto request, Folder folder){
-        Note newNote = NoteConverter.toWrite(request, folder);
+    public Note addNote(Folder folder, Long userId){
+        if(!userId.equals(folder.getUser().getUserId()))
+            throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
+        Note newNote = NoteConverter.toAddNote(folder);
         return noteRepository.save(newNote);
     }
 

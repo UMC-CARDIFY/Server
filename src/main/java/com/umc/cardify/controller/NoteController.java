@@ -5,6 +5,7 @@ import com.umc.cardify.domain.Folder;
 import com.umc.cardify.domain.Note;
 import com.umc.cardify.dto.note.NoteRequest;
 import com.umc.cardify.dto.note.NoteResponse;
+import com.umc.cardify.jwt.JwtUtil;
 import com.umc.cardify.service.FolderService;
 import com.umc.cardify.service.NoteService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,12 +25,14 @@ public class NoteController {
 
     private final FolderService folderService;
     private final NoteService noteService;
-    @PostMapping("/write")
+    private final JwtUtil jwtUtil;
+    @GetMapping("/addNote")
     @Operation(summary = "노트 추가 API")
-    public ResponseEntity<NoteResponse.WriteResultDTO> writeNote(@RequestBody @Valid NoteRequest.WriteDto request){
-        Folder folder = folderService.getFolder(request.getFolderId());
-        Note note = noteService.writeNote(request, folder);
-        return ResponseEntity.ok(NoteConverter.toWriteResult(note));
+    public ResponseEntity<NoteResponse.AddNoteResultDTO> addNote(@RequestHeader("Authorization") String token, @RequestParam Long folderId){
+        Long userId = jwtUtil.extractUserId(token);
+        Folder folder = folderService.getFolder(folderId);
+        Note note = noteService.addNote(folder, userId);
+        return ResponseEntity.ok(NoteConverter.toAddNoteResult(note));
     }
     @PostMapping("/share")
     @Operation(summary = "노트 공유 API" , description = "노트 아이디와 편집 여부 입력, 성공 시 uuid 반환(해당 uuid로 노트 특정)")
