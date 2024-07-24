@@ -48,10 +48,11 @@ public class NoteController {
         Note note = noteService.getNoteToUUID(request.getUuid());
         return ResponseEntity.ok(NoteConverter.toSearchUUIDResult(note));
     }
-    @PostMapping("/deleteNote")
+    @GetMapping("/deleteNote")
     @Operation(summary = "노트 삭제 API" , description = "노트 ID 입력, 성공 시 삭제 성공 여부 반환")
-    public ResponseEntity<NoteResponse.DeleteNoteResultDTO> deleteNote(@RequestBody @Valid NoteRequest.DeleteNoteDto request){
-        Boolean isSuccess = noteService.deleteNote(request);
+    public ResponseEntity<NoteResponse.DeleteNoteResultDTO> deleteNote(@RequestHeader("Authorization") String token, @RequestParam @Valid Long noteId){
+        Long userId = jwtUtil.extractUserId(token);
+        Boolean isSuccess = noteService.deleteNote(noteId, userId);
         return ResponseEntity.ok(NoteConverter.toDeleteNoteResult(isSuccess));
     }
     @PostMapping("/searchNote")

@@ -85,10 +85,14 @@ public class NoteService {
             return noteRepository.save(note);
         }
     }
-    public Boolean deleteNote(NoteRequest.DeleteNoteDto request){
-        Note note_del = noteRepository.findById(request.getNoteId()).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
-        noteRepository.delete(note_del);
-        return true;
+    public Boolean deleteNote(Long noteId, Long userId){
+        Note note_del = noteRepository.findById(noteId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+        if(!userId.equals(note_del.getFolder().getUser().getUserId()))
+            throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
+        else {
+            noteRepository.delete(note_del);
+            return true;
+        }
     }
     public List<Note> searchNoteMark(String searchTxt, Folder folder){
         List<Note> notes = noteRepository.findByFolder(folder);
