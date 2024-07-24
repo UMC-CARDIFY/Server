@@ -3,6 +3,8 @@ package com.umc.cardify.jwt;
 import java.util.Base64;
 import java.util.Date;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.cardify.dto.user.UserResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -11,7 +13,9 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Component
 public class JwtUtil {
     @Value("${jwt.accessTokenValidity}")
@@ -22,6 +26,8 @@ public class JwtUtil {
 
     @Value("${jwt.secret}")
     private String secretKey;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public UserResponse.tokenInfo generateTokens(Long userId) {
         String accessToken = createAccessToken(userId);
@@ -83,13 +89,27 @@ public class JwtUtil {
     public Long extractUserId(String token) {
         Base64.Decoder decoder = Base64.getDecoder();
         String[] splitJwt = token.split("\\.");
+
+        if (splitJwt.length < 2) {
+            log.error("Invalid JWT token structure.");
+            throw new IllegalArgumentException("Invalid JWT token structure.");
+        }
+
         String payload = new String(decoder.decode(splitJwt[1]
-                .replace("-", "+")
-                .replace("_", "/")));
+            .replace("-", "+")
+            .replace("_", "/")));
 
-        String result = payload.substring(payload.indexOf("userId") + 8, payload.indexOf("userId") + 9);
+        log.debug("Decoded JWT payload: {}", payload);
 
-        return Long.parseLong(result);
+        try {
+            JsonNode jsonNode = objectMapper.readTree(payload);
+            Long userId = jsonNode.get("userId").asLong();
+            log.info("Extracted userId: {}", userId);
+            return userId;
+        } catch (Exception e) {
+            log.error("Failed to extract userId from JWT payload.", e);
+            throw new RuntimeException("Failed to extract userId from JWT payload.", e);
+        }
     }
 
 }
