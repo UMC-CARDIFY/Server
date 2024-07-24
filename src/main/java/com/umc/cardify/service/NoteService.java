@@ -47,8 +47,10 @@ public class NoteService {
     public Note addNote(Folder folder, Long userId){
         if(!userId.equals(folder.getUser().getUserId()))
             throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
-        Note newNote = NoteConverter.toAddNote(folder);
-        return noteRepository.save(newNote);
+        else {
+            Note newNote = NoteConverter.toAddNote(folder);
+            return noteRepository.save(newNote);
+        }
     }
 
     public NoteResponse.NoteListDTO getNotesByUserId(Long userId, int page, int size) {
@@ -72,12 +74,16 @@ public class NoteService {
                 .isLast(notePage.isLast())
                 .build();
     }
-    public Note shareNote(Note note, Boolean isEdit){
-        if(note.getNoteUUID() == null){
-            note.setNoteUUID(UUID.randomUUID());
+    public Note shareNote(Note note, Boolean isEdit, Long userId){
+        if(!userId.equals(note.getFolder().getUser().getUserId()))
+            throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
+        else {
+            if (note.getNoteUUID() == null) {
+                note.setNoteUUID(UUID.randomUUID());
+            }
+            note.setIsEdit(isEdit);
+            return noteRepository.save(note);
         }
-        note.setIsEdit(isEdit);
-        return noteRepository.save(note);
     }
     public Boolean deleteNote(NoteRequest.DeleteNoteDto request){
         Note note_del = noteRepository.findById(request.getNoteId()).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
