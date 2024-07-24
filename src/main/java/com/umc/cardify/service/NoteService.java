@@ -94,17 +94,17 @@ public class NoteService {
             return true;
         }
     }
-    public List<Note> searchNoteMark(String searchTxt, Folder folder){
+    public List<Note> searchNoteMark(Folder folder){
         List<Note> notes = noteRepository.findByFolder(folder);
         List<Note> notes_result = notes.stream()
-                .filter(note -> note.getName().contains(searchTxt) && note.getMarkState().equals(MarkStatus.ACTIVE))
+                .filter(note -> note.getMarkState().equals(MarkStatus.ACTIVE))
                 .toList();
         return notes_result;
     }
-    public List<Note> searchNoteNotMark(String searchTxt, Folder folder){
+    public List<Note> searchNoteNotMark(Folder folder){
         List<Note> notes = noteRepository.findByFolder(folder);
         List<Note> notes_result = notes.stream()
-                .filter(note -> note.getName().contains(searchTxt) && note.getMarkState().equals(MarkStatus.INACTIVE))
+                .filter(note -> note.getMarkState().equals(MarkStatus.INACTIVE))
                 .toList();
         return notes_result;
     }

@@ -97,7 +97,7 @@ public class NoteResponse {
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
-    @Schema(title = "NOTE_RES_07_01 : 노트 검색시 노트 응답 DTO")
+    @Schema(title = "NOTE_RES_07_01 : 노트 조회시 노트 응답 DTO")
     public static class SearchNoteInfoDTO{
         @Schema(description = "노트 아이디", example = "1")
         Long noteId;
@@ -110,8 +110,8 @@ public class NoteResponse {
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
-    @Schema(title = "NOTE_RES_07 : 노트 검색 응답 DTO")
-    public static class SearchNoteResultDTO{
+    @Schema(title = "NOTE_RES_07 : 특정 폴더 내 노트 조회 응답 DTO")
+    public static class GetNoteToFolderResultDTO{
         String folderName;
         String folderColor;
         @Schema(description = "북마크된 노트 목록")

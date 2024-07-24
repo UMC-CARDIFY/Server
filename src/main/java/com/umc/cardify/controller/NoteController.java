@@ -48,21 +48,20 @@ public class NoteController {
         Note note = noteService.getNoteToUUID(request.getUuid());
         return ResponseEntity.ok(NoteConverter.toSearchUUIDResult(note));
     }
-    @GetMapping("/deleteNote")
+    @DeleteMapping("/deleteNote")
     @Operation(summary = "노트 삭제 API" , description = "노트 ID 입력, 성공 시 삭제 성공 여부 반환")
     public ResponseEntity<NoteResponse.IsSuccessNoteDTO> deleteNote(@RequestHeader("Authorization") String token, @RequestParam @Valid Long noteId){
         Long userId = jwtUtil.extractUserId(token);
         Boolean isSuccess = noteService.deleteNote(noteId, userId);
         return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(isSuccess));
     }
-    @PostMapping("/searchNote")
-    @Operation(summary = "노트 검색 API" , description = "폴더 ID와 검색어 입력, 성공 시 노트 리스트 반환")
-    public ResponseEntity<NoteResponse.SearchNoteResultDTO> searchNote(@RequestBody @Valid NoteRequest.SearchNoteDto request){
-        String searchTxt = request.getSearchTxt();
-        Folder folder = folderService.getFolder(request.getFolderId());
-        List<Note> noteListMark = noteService.searchNoteMark(searchTxt, folder);
-        List<Note> noteListNotMark = noteService.searchNoteNotMark(searchTxt, folder);
-        return ResponseEntity.ok(NoteConverter.toSearchNoteResult(folder, noteListMark, noteListNotMark));
+    @GetMapping("/getNoteToFolder")
+    @Operation(summary = "특정 폴더 내 노트 조회 API" , description = "폴더 ID 입력, 성공 시 노트 리스트 반환")
+    public ResponseEntity<NoteResponse.GetNoteToFolderResultDTO> getNoteToFolder(@RequestParam @Valid Long folderId){
+        Folder folder = folderService.getFolder(folderId);
+        List<Note> noteListMark = noteService.searchNoteMark(folder);
+        List<Note> noteListNotMark = noteService.searchNoteNotMark(folder);
+        return ResponseEntity.ok(NoteConverter.toGetNoteToFolderResult(folder, noteListMark, noteListNotMark));
     }
     @GetMapping("/markNote")
     @Operation(summary = "노트 즐겨찾기 API" , description = "노트 ID와 즐겨찾기 여부 입력, 성공 시 즐겨찾기 성공 여부 반환")

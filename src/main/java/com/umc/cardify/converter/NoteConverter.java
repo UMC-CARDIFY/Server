@@ -63,12 +63,12 @@ public class NoteConverter {
                 .markState(note.getMarkState())
                 .build();
     }
-    public static NoteResponse.SearchNoteResultDTO toSearchNoteResult(Folder folder, List<Note> notesMark, List<Note> notesNotMark){
+    public static NoteResponse.GetNoteToFolderResultDTO toGetNoteToFolderResult(Folder folder, List<Note> notesMark, List<Note> notesNotMark){
         List<NoteResponse.SearchNoteInfoDTO> noteListMark = notesMark.stream()
                 .map(NoteConverter::SearchNoteDTO).collect(Collectors.toList());
         List<NoteResponse.SearchNoteInfoDTO> noteListNotMark = notesNotMark.stream()
                 .map(NoteConverter::SearchNoteDTO).collect(Collectors.toList());
-        return NoteResponse.SearchNoteResultDTO.builder()
+        return NoteResponse.GetNoteToFolderResultDTO.builder()
                 .folderName(folder.getName())
                 .folderColor(folder.getColor())
                 .noteListMark(noteListMark)

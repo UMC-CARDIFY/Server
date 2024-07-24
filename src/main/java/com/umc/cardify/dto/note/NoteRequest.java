@@ -14,12 +14,4 @@ public class NoteRequest {
         @UUID
         String uuid;
     }
-    @Getter
-    @Schema(title = "NOTE_REQ_02 : 노트 검색 요청 DTO")
-    public static class SearchNoteDto{
-        @NotNull
-        Long folderId;
-        @NotNull
-        String searchTxt;
-    }
 }
