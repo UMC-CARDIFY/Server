@@ -107,6 +107,10 @@ public class FolderService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
 
+        if (folderRepository.existsByUserAndName(user, folderRequest.getName())) {
+            throw new BadRequestException(ErrorResponseStatus.DUPLICATE_ERROR);
+        }
+
         Folder folder = Folder.builder()
                 .name(folderRequest.getName())
                 .color(folderRequest.getColor())

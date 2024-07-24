@@ -13,4 +13,6 @@ public interface FolderRepository extends JpaRepository<Folder, Long> {
     Page<Folder> findByUser(User userId, Pageable pageable);
 
     Optional<Folder> findByFolderIdAndUser(Long folderId, User userId);
+
+    boolean existsByUserAndName(User user, String name);
 }
