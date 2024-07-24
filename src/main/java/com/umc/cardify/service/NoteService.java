@@ -3,14 +3,18 @@ package com.umc.cardify.service;
 import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.converter.NoteConverter;
+import com.umc.cardify.domain.Card;
 import com.umc.cardify.domain.Folder;
 import com.umc.cardify.domain.Note;
 import com.umc.cardify.domain.User;
 import com.umc.cardify.domain.enums.MarkStatus;
+import com.umc.cardify.domain.enums.Side;
 import com.umc.cardify.dto.note.NoteRequest;
 import com.umc.cardify.dto.note.NoteResponse;
+import com.umc.cardify.repository.CardRepository;
 import com.umc.cardify.repository.NoteRepository;
 import com.umc.cardify.repository.UserRepository;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.aspectj.weaver.ast.Not;
 import org.springframework.data.domain.Page;
@@ -28,7 +32,7 @@ public class NoteService {
     private final NoteRepository noteRepository;
     private final UserRepository userRepository;
     private final NoteConverter noteConverter;
-
+    private final CardRepository cardRepository;
     public Note getNoteToID(long noteId){
         return noteRepository.findById(noteId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
     }
@@ -123,5 +127,52 @@ public class NoteService {
             noteRepository.save(note_mark);
             return true;
         }
+    }
+    public Boolean writeNote(NoteRequest.WriteNoteDto request, Long userId){
+        Note note = noteRepository.findById(request.getNoteId()).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+        if(!(userId.equals(note.getFolder().getUser().getUserId()) || note.getIsEdit()))
+            throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
+        else {
+            note.setName(request.getName());
+            note.setContents(request.getContents());
+            noteRepository.save(note);
+
+            List<NoteRequest.WriteCardDto> cardsDto = request.getCards();
+            if(note.getCards() != null) {
+                List<Card> cardList = cardRepository.findByNote(note);
+                cardRepository.deleteAll(cardList);
+            }
+            if (cardsDto != null) {
+                cardsDto.forEach((card) -> addCard(card, note));
+            }
+            return true;
+        }
+    }
+    public void addCard(NoteRequest.WriteCardDto cardDto, Note note){
+        String contents_front = cardDto.getText();
+        String contents_back = contents_front
+                .replace(">>", "")
+                .replace("<<", "")
+                .replace("{{", "")
+                .replace("}}", "")
+                .replace("==", "");
+
+        Card card_front = Card.builder()
+                .note(note)
+                .name(cardDto.getName())
+                .contents(contents_front)
+                .side(Side.FRONT)
+                .countLearn(0L)
+                .build();
+        Card card_back = Card.builder()
+                .note(note)
+                .name(cardDto.getName())
+                .contents(contents_back)
+                .side(Side.BACK)
+                .countLearn(0L)
+                .build();
+
+        cardRepository.save(card_front);
+        cardRepository.save(card_back);
     }
 }
