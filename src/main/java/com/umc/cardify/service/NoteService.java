@@ -44,9 +44,13 @@ public class NoteService {
         }
     }
 
-    public Note writeNote(NoteRequest.WriteDto request, Folder folder){
-        Note newNote = NoteConverter.toWrite(request, folder);
-        return noteRepository.save(newNote);
+    public Note addNote(Folder folder, Long userId){
+        if(!userId.equals(folder.getUser().getUserId()))
+            throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
+        else {
+            Note newNote = NoteConverter.toAddNote(folder);
+            return noteRepository.save(newNote);
+        }
     }
 
     public NoteResponse.NoteListDTO getNotesByUserId(Long userId, int page, int size) {
@@ -70,17 +74,25 @@ public class NoteService {
                 .isLast(notePage.isLast())
                 .build();
     }
-    public Note shareNote(Note note, Boolean isEdit){
-        if(note.getNoteUUID() == null){
-            note.setNoteUUID(UUID.randomUUID());
+    public Note shareNote(Note note, Boolean isEdit, Long userId){
+        if(!userId.equals(note.getFolder().getUser().getUserId()))
+            throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
+        else {
+            if (note.getNoteUUID() == null) {
+                note.setNoteUUID(UUID.randomUUID());
+            }
+            note.setIsEdit(isEdit);
+            return noteRepository.save(note);
         }
-        note.setIsEdit(isEdit);
-        return noteRepository.save(note);
     }
-    public Boolean deleteNote(NoteRequest.DeleteNoteDto request){
-        Note note_del = noteRepository.findById(request.getNoteId()).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
-        noteRepository.delete(note_del);
-        return true;
+    public Boolean deleteNote(Long noteId, Long userId){
+        Note note_del = noteRepository.findById(noteId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+        if(!userId.equals(note_del.getFolder().getUser().getUserId()))
+            throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
+        else {
+            noteRepository.delete(note_del);
+            return true;
+        }
     }
     public List<Note> searchNoteMark(String searchTxt, Folder folder){
         List<Note> notes = noteRepository.findByFolder(folder);
@@ -97,15 +109,19 @@ public class NoteService {
         return notes_result;
     }
 
-    public Boolean markNote(NoteRequest.MarkNoteDto request){
-        Note note_mark = noteRepository.findById(request.getNoteId()).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
-        if(request.getIsMark())
-            note_mark.setMarkState(MarkStatus.ACTIVE);
-        else if (!request.getIsMark())
-            note_mark.setMarkState(MarkStatus.INACTIVE);
-        else
-            throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
-        noteRepository.save(note_mark);
-        return true;
+    public Boolean markNote(Long noteId, Boolean isMark, Long userId){
+        Note note_mark = noteRepository.findById(noteId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+        if(!userId.equals(note_mark.getFolder().getUser().getUserId()))
+            throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
+        else {
+            if (isMark)
+                note_mark.setMarkState(MarkStatus.ACTIVE);
+            else if (!isMark)
+                note_mark.setMarkState(MarkStatus.INACTIVE);
+            else
+                throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+            noteRepository.save(note_mark);
+            return true;
+        }
     }
 }
