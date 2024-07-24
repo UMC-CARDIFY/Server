@@ -117,4 +117,20 @@ public class FolderResponse {
         @Schema(description = "폴더 생성 날짜", example = "2023-12-05 12:34:56")
         private LocalDateTime createdAt;
     }
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "FOLDER_RES_07 : 폴더 수정 응답 DTO")
+    public static class editFolderResultDTO {
+        @Schema(description = "폴더 아이디", example = "1")
+        Long folderId;
+        @Schema(description = "폴더 이름", example = "sample")
+        String name;
+        @Schema(description = "폴더 색상", example = "red")
+        String color;
+        @Schema(description = "폴더 수정 날짜", example = "2023-12-05 12:34:56")
+        Timestamp editDate;
+    }
 }

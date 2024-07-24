@@ -79,4 +79,15 @@ public class FolderController {
         FolderResponse.addFolderResultDTO response = folderService.addFolder(userId, folderRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
+
+    @PatchMapping("/{folderId}")
+    @Operation(summary = "폴더 수정 기능 API", description = "해당 유저의 폴더를 수정 시, 수정된 이름과 색상, 수정일을 반환")
+    public ResponseEntity<FolderResponse.editFolderResultDTO> editFolder(
+            @RequestHeader("Authorization") String token,
+            @PathVariable Long folderId,
+            @RequestBody @Valid FolderRequest.editFolderDto folderRequest) {
+        Long userId = jwtUtil.extractUserId(token);
+        FolderResponse.editFolderResultDTO response = folderService.editFolder(userId, folderId, folderRequest);
+        return ResponseEntity.ok(response);
+    }
 }

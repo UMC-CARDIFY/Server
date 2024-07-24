@@ -126,4 +126,29 @@ public class FolderService {
                 .createdAt(folder.getCreatedAt())
                 .build();
     }
+
+    @Transactional
+    public FolderResponse.editFolderResultDTO editFolder(Long userId, Long folderId, FolderRequest.editFolderDto folderRequest) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
+
+        Folder folder = folderRepository.findByFolderIdAndUser(folderId, user)
+                .orElseThrow(() -> new IllegalArgumentException("Folder not found with id: " + folderId));
+
+        if (folderRepository.existsByUserAndName(user, folderRequest.getName())) {
+            throw new BadRequestException(ErrorResponseStatus.DUPLICATE_ERROR);
+        }
+
+        folder.setName(folderRequest.getName());
+        folder.setColor(folderRequest.getColor());
+
+        folder = folderRepository.save(folder);
+
+        return FolderResponse.editFolderResultDTO.builder()
+                .folderId(folder.getFolderId())
+                .name(folder.getName())
+                .color(folder.getColor())
+                .editDate(folder.getEditDate())
+                .build();
+    }
 }
