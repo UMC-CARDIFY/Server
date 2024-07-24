@@ -4,6 +4,7 @@ import java.util.List;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 
 public class CardRequest {
@@ -42,5 +43,13 @@ public class CardRequest {
 		@NotBlank(message = "가림판 높이 입력 필요")
 		@Schema(description = "가림판 높이", example = "50")
 		private Long height;
+	}
+	@Getter
+	@Schema(title = "CARD_REQ_03 : 노트 작성시 카드 양식 DTO")
+	public static class WriteCardDto{
+		@NotNull
+		String name;
+		@NotNull
+		String text;
 	}
 }

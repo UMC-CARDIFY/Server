@@ -1,5 +1,6 @@
 package com.umc.cardify.dto.note;
 
+import com.umc.cardify.dto.card.CardRequest;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -17,14 +18,6 @@ public class NoteRequest {
         String uuid;
     }
     @Getter
-    @Schema(title = "NOTE_REQ_02_01 : 노트 작성시 카드 양식 DTO")
-    public static class WriteCardDto{
-        @NotNull
-        String name;
-        @NotNull
-        String text;
-    }
-    @Getter
     @Schema(title = "NOTE_REQ_02 : 노트 작성 요청 DTO")
     public static class WriteNoteDto{
         @NotNull
@@ -33,6 +26,6 @@ public class NoteRequest {
         String name;
         @NotNull
         String contents;
-        List<WriteCardDto> cards;
+        List<CardRequest.WriteCardDto> cards;
     }
 }
