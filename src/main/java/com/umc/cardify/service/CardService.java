@@ -2,8 +2,6 @@ package com.umc.cardify.service;
 
 import com.umc.cardify.domain.Card;
 import com.umc.cardify.domain.Note;
-import com.umc.cardify.domain.enums.Side;
-import com.umc.cardify.dto.note.NoteRequest;
 import com.umc.cardify.repository.CardRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -66,22 +64,15 @@ public class CardService {
 				.replace("}}", "")
 				.replace("==", "");
 
-		Card card_front = Card.builder()
+		Card card = Card.builder()
 				.note(note)
 				.name(cardDto.getName())
-				.contents(contents_front)
-				.side(Side.FRONT)
-				.countLearn(0L)
-				.build();
-		Card card_back = Card.builder()
-				.note(note)
-				.name(cardDto.getName())
-				.contents(contents_back)
-				.side(Side.BACK)
+				.contentsFront(contents_front)
+				.contentsBack(contents_back)
 				.countLearn(0L)
 				.build();
 
-		cardRepository.save(card_front);
-		cardRepository.save(card_back);
+		cardRepository.save(card);
+
 	}
 }
