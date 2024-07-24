@@ -1,6 +1,5 @@
 package com.umc.cardify.domain;
 
-import com.umc.cardify.config.BaseEntity;
 import com.umc.cardify.domain.enums.MarkStatus;
 import jakarta.persistence.*;
 import lombok.*;
