@@ -28,18 +28,18 @@ public class NoteController {
     private final JwtUtil jwtUtil;
     @GetMapping("/addNote")
     @Operation(summary = "노트 추가 API")
-    public ResponseEntity<NoteResponse.AddNoteResultDTO> addNote(@RequestHeader("Authorization") String token, @RequestParam Long folderId){
+    public ResponseEntity<NoteResponse.AddNoteResultDTO> addNote(@RequestHeader("Authorization") String token, @RequestParam @Valid Long folderId){
         Long userId = jwtUtil.extractUserId(token);
         Folder folder = folderService.getFolder(folderId);
         Note note = noteService.addNote(folder, userId);
         return ResponseEntity.ok(NoteConverter.toAddNoteResult(note));
     }
-    @PostMapping("/share")
+    @GetMapping("/share")
     @Operation(summary = "노트 공유 API" , description = "노트 아이디와 편집 여부 입력, 성공 시 uuid 반환(해당 uuid로 노트 특정)")
-    public ResponseEntity<NoteResponse.ShareResultDTO> shareNote(@RequestHeader("Authorization") String token, @RequestBody @Valid NoteRequest.ShareDto request){
+    public ResponseEntity<NoteResponse.ShareResultDTO> shareNote(@RequestHeader("Authorization") String token, @RequestParam @Valid Long noteId, @RequestParam @Valid Boolean isEdit){
         Long userId = jwtUtil.extractUserId(token);
-        Note note = noteService.getNoteToID(request.getNoteId());
-        note = noteService.shareNote(note, request.getIsEdit(), userId);
+        Note note = noteService.getNoteToID(noteId);
+        note = noteService.shareNote(note, isEdit, userId);
         return ResponseEntity.ok(NoteConverter.toShareResult(note));
     }
     @PostMapping("/searchUUID")
@@ -50,10 +50,10 @@ public class NoteController {
     }
     @GetMapping("/deleteNote")
     @Operation(summary = "노트 삭제 API" , description = "노트 ID 입력, 성공 시 삭제 성공 여부 반환")
-    public ResponseEntity<NoteResponse.DeleteNoteResultDTO> deleteNote(@RequestHeader("Authorization") String token, @RequestParam @Valid Long noteId){
+    public ResponseEntity<NoteResponse.IsSuccessNoteDTO> deleteNote(@RequestHeader("Authorization") String token, @RequestParam @Valid Long noteId){
         Long userId = jwtUtil.extractUserId(token);
         Boolean isSuccess = noteService.deleteNote(noteId, userId);
-        return ResponseEntity.ok(NoteConverter.toDeleteNoteResult(isSuccess));
+        return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(isSuccess));
     }
     @PostMapping("/searchNote")
     @Operation(summary = "노트 검색 API" , description = "폴더 ID와 검색어 입력, 성공 시 노트 리스트 반환")
@@ -64,10 +64,11 @@ public class NoteController {
         List<Note> noteListNotMark = noteService.searchNoteNotMark(searchTxt, folder);
         return ResponseEntity.ok(NoteConverter.toSearchNoteResult(folder, noteListMark, noteListNotMark));
     }
-    @PostMapping("/markNote")
+    @GetMapping("/markNote")
     @Operation(summary = "노트 즐겨찾기 API" , description = "노트 ID와 즐겨찾기 여부 입력, 성공 시 즐겨찾기 성공 여부 반환")
-    public ResponseEntity<NoteResponse.DeleteNoteResultDTO> markNote(@RequestBody @Valid NoteRequest.MarkNoteDto request){
-        Boolean isSuccess = noteService.markNote(request);
-        return ResponseEntity.ok(NoteConverter.toDeleteNoteResult(isSuccess));
+    public ResponseEntity<NoteResponse.IsSuccessNoteDTO> markNote(@RequestHeader("Authorization") String token, @RequestParam @Valid Long noteId, @RequestParam @Valid Boolean isMark){
+        Long userId = jwtUtil.extractUserId(token);
+        Boolean isSuccess = noteService.markNote(noteId, isMark, userId);
+        return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(isSuccess));
     }
 }

@@ -109,15 +109,19 @@ public class NoteService {
         return notes_result;
     }
 
-    public Boolean markNote(NoteRequest.MarkNoteDto request){
-        Note note_mark = noteRepository.findById(request.getNoteId()).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
-        if(request.getIsMark())
-            note_mark.setMarkState(MarkStatus.ACTIVE);
-        else if (!request.getIsMark())
-            note_mark.setMarkState(MarkStatus.INACTIVE);
-        else
-            throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
-        noteRepository.save(note_mark);
-        return true;
+    public Boolean markNote(Long noteId, Boolean isMark, Long userId){
+        Note note_mark = noteRepository.findById(noteId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+        if(!userId.equals(note_mark.getFolder().getUser().getUserId()))
+            throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
+        else {
+            if (isMark)
+                note_mark.setMarkState(MarkStatus.ACTIVE);
+            else if (!isMark)
+                note_mark.setMarkState(MarkStatus.INACTIVE);
+            else
+                throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+            noteRepository.save(note_mark);
+            return true;
+        }
     }
 }

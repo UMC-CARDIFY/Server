@@ -89,8 +89,8 @@ public class NoteResponse {
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
-    @Schema(title = "NOTE_RES_06 : 노트 삭제 응답 DTO")
-    public static class DeleteNoteResultDTO{
+    @Schema(title = "NOTE_RES_06 : API 실행 성공 여부 응답 DTO")
+    public static class IsSuccessNoteDTO{
         Boolean isSuccess;
     }
     @Builder
