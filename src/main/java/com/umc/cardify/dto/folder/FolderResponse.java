@@ -106,7 +106,7 @@ public class FolderResponse {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    @Schema(title = "FOLDER_RES_06 : 폴더 추가 DTO")
+    @Schema(title = "FOLDER_RES_06 : 폴더 추가 응답 DTO")
     public static class addFolderResultDTO{
         @Schema(description = "폴더 아이디", example = "1")
         Long folderId;
