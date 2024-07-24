@@ -1,6 +1,5 @@
 package com.umc.cardify.domain;
 
-import com.umc.cardify.config.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
