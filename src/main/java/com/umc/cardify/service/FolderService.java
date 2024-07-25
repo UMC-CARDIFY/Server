@@ -154,7 +154,7 @@ public class FolderService {
     }
 
     @Transactional
-    public void markFolderById(Long userId, Long folderId) {
+    public FolderResponse.markFolderResultDTO markFolderById(Long userId, Long folderId) {
         User user = userRepository.findById(userId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.REQUEST_ERROR));
         Folder folder = folderRepository.findByFolderIdAndUser(folderId, user).orElseThrow(() -> new BadRequestException(ErrorResponseStatus.REQUEST_ERROR));
 
@@ -165,5 +165,10 @@ public class FolderService {
         }
 
         folderRepository.save(folder);
+
+        return FolderResponse.markFolderResultDTO.builder()
+                .markState(folder.getMarkState().toString())
+                .isSuccess(true)
+                .build();
     }
 }

@@ -142,6 +142,8 @@ public class FolderResponse {
     public static class markFolderResultDTO{
         @Schema(description = "즐겨찾기 성공 여부", example = "true")
         Boolean isSuccess;
+        @Schema(description = "즐겨찾기 상태", example = "ACTIVE")
+        String markState;
     }
 
 }

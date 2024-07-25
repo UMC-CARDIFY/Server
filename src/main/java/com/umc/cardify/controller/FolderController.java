@@ -98,7 +98,7 @@ public class FolderController {
             @RequestHeader("Authorization") String token,
             @PathVariable Long folderId) {
         Long userId = jwtUtil.extractUserId(token);
-        folderService.markFolderById(userId, folderId);
-        return ResponseEntity.ok(FolderResponse.markFolderResultDTO.builder().isSuccess(true).build());
+        FolderResponse.markFolderResultDTO response = folderService.markFolderById(userId, folderId);
+        return ResponseEntity.ok(response);
     }
 }
