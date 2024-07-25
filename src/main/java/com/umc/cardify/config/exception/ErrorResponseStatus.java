@@ -9,6 +9,7 @@ public enum ErrorResponseStatus {
 	DUPLICATE_ERROR(2001, "중복된 레코드 입니다."),
 	INVALID_PWD(2002, "비밀번호가 올바르지 않습니다."),
 	INVALID_USERID(2003, "유효하지 않는 USERID 입니다."),
+	INVALID_NOTE_TEXT(2004, "입력된 노트 정보에 존재하지 않는 카드 정보입니다."),
 
 	// 3000 : Response 오류
 	RESPONSE_ERROR(3000, "값을 불러오는데 실패하였습니다."),

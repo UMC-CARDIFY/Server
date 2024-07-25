@@ -133,17 +133,21 @@ public class NoteService {
             throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
         else {
             note.setName(request.getName());
-            note.setContents(request.getContents());
+
+            //저장되어 있는 노트 내용과 입력된 내용이 같을 시 카드를 저장하지 않음
+            if(!note.getContents().equals(request.getContents())) {
+                note.setContents(request.getContents());
+                List<CardRequest.WriteCardDto> cardsDto = request.getCards();
+                if (note.getCards() != null) {
+                    List<Card> cardList = cardRepository.findByNote(note);
+                    cardRepository.deleteAll(cardList);
+                }
+                if (cardsDto != null) {
+                    cardsDto.forEach((card) -> {cardService.addCard(card, note);});
+                }
+            }
             noteRepository.save(note);
 
-            List<CardRequest.WriteCardDto> cardsDto = request.getCards();
-            if(note.getCards() != null) {
-                List<Card> cardList = cardRepository.findByNote(note);
-                cardRepository.deleteAll(cardList);
-            }
-            if (cardsDto != null) {
-                cardsDto.forEach((card) -> cardService.addCard(card, note));
-            }
             return true;
         }
     }
