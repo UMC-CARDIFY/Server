@@ -24,4 +24,18 @@ public class FolderRequest {
         @Schema(description = "폴더 색상", example = "red")
         String color;
     }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "FOLDER_REQ_02 : 폴더 수정 요청 DTO")
+    public static class editFolderDto {
+        @NotBlank(message = "수정할 폴더의 이름을 입력해주세요.")
+        @Schema(description = "폴더 이름", example = "sample1")
+        String name;
+        @NotNull
+        @Schema(description = "폴더 색상", example = "green")
+        String color;
+    }
 }
