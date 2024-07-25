@@ -30,9 +30,11 @@ public class Note extends BaseEntity {
     @JoinColumn(name = "folder_id")
     private Folder folder;
 
+    @Setter
     @Column(nullable = false)
     private String name;
 
+    @Setter
     @Column(nullable = false)
     private String contents;
 
