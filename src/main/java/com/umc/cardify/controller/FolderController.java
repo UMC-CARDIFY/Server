@@ -1,5 +1,6 @@
 package com.umc.cardify.controller;
 
+import com.umc.cardify.domain.Folder;
 import com.umc.cardify.dto.folder.FolderRequest;
 import com.umc.cardify.dto.folder.FolderResponse;
 import com.umc.cardify.dto.note.NoteResponse;
@@ -89,5 +90,15 @@ public class FolderController {
         Long userId = jwtUtil.extractUserId(token);
         FolderResponse.editFolderResultDTO response = folderService.editFolder(userId, folderId, folderRequest);
         return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{folderId}/mark-folders")
+    @Operation(summary = "특정 폴더 즐겨찾기 기능 API", description = "해당 유저의 특정 폴더를 즐겨찾기 시, 폴더의 markState 값에 따라서 ACTIVE/INACTIVE로 변경")
+    public ResponseEntity<FolderResponse.markFolderResultDTO> markFolder(
+            @RequestHeader("Authorization") String token,
+            @PathVariable Long folderId) {
+        Long userId = jwtUtil.extractUserId(token);
+        folderService.markFolderById(userId, folderId);
+        return ResponseEntity.ok(FolderResponse.markFolderResultDTO.builder().isSuccess(true).build());
     }
 }

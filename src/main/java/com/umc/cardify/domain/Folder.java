@@ -32,7 +32,7 @@ public class Folder extends BaseEntity {
     private String color;
 
     @Enumerated(EnumType.STRING)
-    @Column(columnDefinition = "VARCHAR(15) DEFAULT 'ACTIVE'")
+    @Column(columnDefinition = "VARCHAR(15) DEFAULT 'INACTIVE'")
     private MarkStatus markState;
 
     @UpdateTimestamp
