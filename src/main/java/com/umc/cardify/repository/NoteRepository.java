@@ -14,7 +14,7 @@ import java.util.UUID;
 
 public interface NoteRepository extends JpaRepository<Note, Long> {
     Note findByNoteUUID(UUID uuid);
-    List<Note> findByFolder(Folder folder);
+    Page<Note> findByFolder(Folder folder, Pageable pageable);
     @Query("SELECT n FROM Note n WHERE n.folder.user = :user")
     Page<Note> findByUser(@Param("user") User user, Pageable pageable);
     void deleteByFolder(Folder folder);

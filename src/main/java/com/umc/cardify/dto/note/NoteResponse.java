@@ -58,10 +58,10 @@ public class NoteResponse {
         String folderName;
         @Schema(description = "노트 즐겨찾기", example = "ACTIVE")
         MarkStatus markState;
-        @Schema(description = "노트 수정일", example = "2023-07-18T01:40:13")
-        Timestamp editDate;
-        @Schema(description = "노트 생성 날짜", example = "2023-07-10T12:34:56")
-        LocalDateTime createdAt;
+        @Schema(description = "노트 수정일", example = "2023-07-18")
+        String editDate;
+        @Schema(description = "노트 생성 날짜", example = "2023-07-10")
+        String createdAt;
     }
 
     @Getter
@@ -97,26 +97,23 @@ public class NoteResponse {
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
-    @Schema(title = "NOTE_RES_07_01 : 노트 조회시 노트 응답 DTO")
-    public static class SearchNoteInfoDTO{
-        @Schema(description = "노트 아이디", example = "1")
-        Long noteId;
-        @Schema(description = "노트 이름", example = "Sample Note")
-        String name;
-        @Schema(description = "노트 즐겨찾기", example = "ACTIVE")
-        MarkStatus markState;
-    }
-    @Builder
-    @Getter
-    @NoArgsConstructor
-    @AllArgsConstructor
     @Schema(title = "NOTE_RES_07 : 특정 폴더 내 노트 조회 응답 DTO")
     public static class GetNoteToFolderResultDTO{
         String folderName;
         String folderColor;
-        @Schema(description = "북마크된 노트 목록")
-        List<SearchNoteInfoDTO> noteListMark;
-        @Schema(description = "북마크 안된 노트 목록")
-        List<SearchNoteInfoDTO> noteListNotMark;
+        @Schema(description = "노트 목록")
+        List<NoteInfoDTO> noteList;
+        @Schema(description = "리스트 사이즈", example = "10")
+        Integer listSize;
+        @Schema(description = "현재 페이지 번호", example = "1")
+        Integer currentPage;
+        @Schema(description = "총 페이지 수", example = "5")
+        Integer totalPage;
+        @Schema(description = "총 노트 수", example = "10")
+        Long totalElements;
+        @Schema(description = "첫 페이지인지 확인", example = "true")
+        Boolean isFirst;
+        @Schema(description = "마지막 페이지인지 확인", example = "false")
+        Boolean isLast;
     }
 }

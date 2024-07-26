@@ -15,11 +15,10 @@ import com.umc.cardify.repository.CardRepository;
 import com.umc.cardify.repository.NoteRepository;
 import com.umc.cardify.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -97,21 +96,39 @@ public class NoteService {
             return true;
         }
     }
-    public List<Note> searchNoteMark(Folder folder){
-        List<Note> notes = noteRepository.findByFolder(folder);
-        List<Note> notes_result = notes.stream()
-                .filter(note -> note.getMarkState().equals(MarkStatus.ACTIVE))
-                .toList();
-        return notes_result;
-    }
-    public List<Note> searchNoteNotMark(Folder folder){
-        List<Note> notes = noteRepository.findByFolder(folder);
-        List<Note> notes_result = notes.stream()
-                .filter(note -> note.getMarkState().equals(MarkStatus.INACTIVE))
-                .toList();
-        return notes_result;
-    }
 
+    public Page<Note> getNoteToFolder(Folder folder, NoteRequest.GetNoteToFolderDto request){
+        Pageable pageable;
+
+        Integer page = request.getPage();
+        if(page == null) page = 0;
+
+        Integer size = request.getSize();
+        if(size == null) size = folder.getNotes().size();
+
+        String order = request.getOrder();
+        if(order == null) order = "asc";
+
+        switch (order.toLowerCase()) {
+            case "asc":
+                pageable = PageRequest.of(page, size, Sort.by(Sort.Order.asc("name"), Sort.Order.asc("markState")));
+                break;
+            case "desc":
+                pageable = PageRequest.of(page, size, Sort.by(Sort.Order.desc("name"), Sort.Order.asc("markState")));
+                break;
+            case "edit-newest":
+                pageable = PageRequest.of(page, size, Sort.by(Sort.Order.asc("editDate"), Sort.Order.asc("markState")));
+                break;
+            case "edit-oldest":
+                pageable = PageRequest.of(page, size, Sort.by(Sort.Order.asc("markState"), Sort.Order.desc("editDate")));
+                break;
+            default:
+                throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+        }
+        Page<Note> notes_all = noteRepository.findByFolder(folder, pageable);
+
+        return notes_all;
+    }
     public Boolean markNote(Long noteId, Boolean isMark, Long userId){
         Note note_mark = noteRepository.findById(noteId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
         if(!userId.equals(note_mark.getFolder().getUser().getUserId()))
