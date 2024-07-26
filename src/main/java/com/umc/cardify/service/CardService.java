@@ -1,5 +1,8 @@
 package com.umc.cardify.service;
 
+import com.umc.cardify.domain.Card;
+import com.umc.cardify.domain.Note;
+import com.umc.cardify.repository.CardRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -23,6 +26,7 @@ public class CardService {
 
 	private final OverlayRepository overlayRepository;
 
+	private final CardRepository cardRepository;
 	public String addImageCard(Long userId, MultipartFile image, CardRequest.addImageCard request) {
 		String imgUrl = s3Service.upload(image, "imageCards");
 
@@ -50,5 +54,25 @@ public class CardService {
 		}
 
 		return savedImageCard.getImageUrl();
+	}
+	public void addCard(CardRequest.WriteCardDto cardDto, Note note){
+		String contents_front = cardDto.getText();
+		String contents_back = contents_front
+				.replace(">>", "")
+				.replace("<<", "")
+				.replace("{{", "")
+				.replace("}}", "")
+				.replace("==", "");
+
+		Card card = Card.builder()
+				.note(note)
+				.name(cardDto.getName())
+				.contentsFront(contents_front)
+				.contentsBack(contents_back)
+				.countLearn(0L)
+				.build();
+
+		cardRepository.save(card);
+
 	}
 }

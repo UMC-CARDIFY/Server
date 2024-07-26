@@ -1,14 +1,20 @@
 package com.umc.cardify.domain;
 
+import com.umc.cardify.domain.enums.Difficulty;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import org.hibernate.annotations.DynamicInsert;
+import org.hibernate.annotations.DynamicUpdate;
 
-@Getter
-@NoArgsConstructor
-@AllArgsConstructor
+import java.sql.Timestamp;
+
 @Entity
+@Getter
+@DynamicUpdate
+@DynamicInsert
+@Builder
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class Card extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -18,4 +24,23 @@ public class Card extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "note_id")
     private Note note;
+
+    @Column(nullable = false)
+    private String name;
+
+    @Column(nullable = false)
+    private String contentsFront;
+
+    private String contentsBack;
+
+    @Column(columnDefinition = "Boolean DEFAULT false")
+    private Boolean isLearn;
+
+    private Difficulty difficulty;
+
+    private Long countLearn;
+
+    private Timestamp learnNextTime;
+
+    private Timestamp learnLastTime;
 }

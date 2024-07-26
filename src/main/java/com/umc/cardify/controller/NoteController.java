@@ -70,4 +70,11 @@ public class NoteController {
         Boolean isSuccess = noteService.markNote(noteId, isMark, userId);
         return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(isSuccess));
     }
+    @PostMapping("/write")
+    @Operation(summary = "노트 작성 API" , description = "노트 UUID 입력, 성공 시 작성 성공 여부 반환")
+    public ResponseEntity<NoteResponse.IsSuccessNoteDTO> writeNote(@RequestHeader("Authorization") String token, @RequestBody @Valid NoteRequest.WriteNoteDto request){
+        Long userId = jwtUtil.extractUserId(token);
+        Boolean isSuccess = noteService.writeNote(request, userId);
+        return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(isSuccess));
+    }
 }

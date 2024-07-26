@@ -3,16 +3,18 @@ package com.umc.cardify.service;
 import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.converter.NoteConverter;
+import com.umc.cardify.domain.Card;
 import com.umc.cardify.domain.Folder;
 import com.umc.cardify.domain.Note;
 import com.umc.cardify.domain.User;
 import com.umc.cardify.domain.enums.MarkStatus;
+import com.umc.cardify.dto.card.CardRequest;
 import com.umc.cardify.dto.note.NoteRequest;
 import com.umc.cardify.dto.note.NoteResponse;
+import com.umc.cardify.repository.CardRepository;
 import com.umc.cardify.repository.NoteRepository;
 import com.umc.cardify.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.aspectj.weaver.ast.Not;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -28,7 +30,8 @@ public class NoteService {
     private final NoteRepository noteRepository;
     private final UserRepository userRepository;
     private final NoteConverter noteConverter;
-
+    private final CardRepository cardRepository;
+    private final CardService cardService;
     public Note getNoteToID(long noteId){
         return noteRepository.findById(noteId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
     }
@@ -121,6 +124,30 @@ public class NoteService {
             else
                 throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
             noteRepository.save(note_mark);
+            return true;
+        }
+    }
+    public Boolean writeNote(NoteRequest.WriteNoteDto request, Long userId){
+        Note note = noteRepository.findById(request.getNoteId()).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+        if(!(userId.equals(note.getFolder().getUser().getUserId()) || note.getIsEdit()))
+            throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
+        else {
+            note.setName(request.getName());
+
+            //저장되어 있는 노트 내용과 입력된 내용이 같을 시 카드를 저장하지 않음
+            if(!note.getContents().equals(request.getContents())) {
+                note.setContents(request.getContents());
+                List<CardRequest.WriteCardDto> cardsDto = request.getCards();
+                if (note.getCards() != null) {
+                    List<Card> cardList = cardRepository.findByNote(note);
+                    cardRepository.deleteAll(cardList);
+                }
+                if (cardsDto != null) {
+                    cardsDto.forEach((card) -> {cardService.addCard(card, note);});
+                }
+            }
+            noteRepository.save(note);
+
             return true;
         }
     }
