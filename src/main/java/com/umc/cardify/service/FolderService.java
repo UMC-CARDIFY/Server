@@ -1,9 +1,9 @@
 package com.umc.cardify.service;
 
 import com.umc.cardify.config.exception.BadRequestException;
+import com.umc.cardify.config.exception.DatabaseException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.domain.Folder;
-import com.umc.cardify.domain.Note;
 import com.umc.cardify.domain.User;
 import com.umc.cardify.domain.enums.MarkStatus;
 import com.umc.cardify.dto.folder.FolderRequest;
@@ -169,6 +169,44 @@ public class FolderService {
         return FolderResponse.markFolderResultDTO.builder()
                 .markState(folder.getMarkState().toString())
                 .isSuccess(true)
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public FolderResponse.FolderListDTO filterColorsByUserId(Long userId, int page, int size, String colors){
+        User user = userRepository.findById(userId)
+                .orElseThrow(()-> new BadRequestException(ErrorResponseStatus.REQUEST_ERROR));
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Folder> folderPage;
+
+        if (colors != null && !colors.isEmpty()) {
+            folderPage = folderRepository.findByUserAndColor(user, colors, pageable);
+            if (folderPage.isEmpty()) {
+                throw new BadRequestException(ErrorResponseStatus.NOT_EXIST_FOLDER);
+            }
+        } else {
+            throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+        }
+
+
+        List<FolderResponse.FolderInfoDTO> folders = folderPage.getContent().stream()
+                .map(folder -> FolderResponse.FolderInfoDTO.builder()
+                        .folderId(folder.getFolderId())
+                        .name(folder.getName())
+                        .color(folder.getColor())
+                        .markState(folder.getMarkState())
+                        .createdAt(folder.getCreatedAt())
+                        .build())
+                .collect(Collectors.toList());
+
+        return FolderResponse.FolderListDTO.builder()
+                .foldersList(folders)
+                .listSize(folderPage.getSize())
+                .currentPage(folderPage.getNumber()+1)
+                .totalPages(folderPage.getTotalPages())
+                .totalElements(folderPage.getTotalElements())
+                .isFirst(folderPage.isFirst())
+                .isLast(folderPage.isLast())
                 .build();
     }
 }
