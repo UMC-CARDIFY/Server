@@ -28,4 +28,16 @@ public class NoteRequest {
         String contents;
         List<CardRequest.WriteCardDto> cards;
     }
+    @Getter
+    @Schema(title = "NOTE_REQ_03 : 특정 폴더 내 노트 조회 요청 DTO")
+    public static class GetNoteToFolderDto{
+        @NotNull
+        Long folderId;
+        @Schema(description = "페이지 번호", example = "0")
+        Integer page;
+        @Schema(description = "한 페이지 당 사이즈", example = "5")
+        Integer size;
+        @Schema(description = "정렬 방식", example = "asc")
+        String order;
+    }
 }

@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -55,13 +56,14 @@ public class NoteController {
         Boolean isSuccess = noteService.deleteNote(noteId, userId);
         return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(isSuccess));
     }
-    @GetMapping("/getNoteToFolder")
-    @Operation(summary = "특정 폴더 내 노트 조회 API" , description = "폴더 ID 입력, 성공 시 노트 리스트 반환")
-    public ResponseEntity<NoteResponse.GetNoteToFolderResultDTO> getNoteToFolder(@RequestParam @Valid Long folderId){
-        Folder folder = folderService.getFolder(folderId);
-        List<Note> noteListMark = noteService.searchNoteMark(folder);
-        List<Note> noteListNotMark = noteService.searchNoteNotMark(folder);
-        return ResponseEntity.ok(NoteConverter.toGetNoteToFolderResult(folder, noteListMark, noteListNotMark));
+    @PostMapping("/getNoteToFolder")
+    @Operation(summary = "특정 폴더 내 노트 조회 API" ,
+            description = "폴더 ID 입력, 성공 시 노트 리스트 반환 | order = asc, desc, edit-newest, edit-oldest |" +
+                    " 페이지 번호, 사이즈 미입력시 페이징 X | 정렬방식 미입력시 이름 오름차순")
+    public ResponseEntity<NoteResponse.GetNoteToFolderResultDTO> getNoteToFolder(@RequestBody @Valid NoteRequest.GetNoteToFolderDto request){
+        Folder folder = folderService.getFolder(request.getFolderId());
+        Page<Note> noteList = noteService.getNoteToFolder(folder, request);
+        return ResponseEntity.ok(NoteConverter.toGetNoteToFolderResult(folder, noteList));
     }
     @GetMapping("/markNote")
     @Operation(summary = "노트 즐겨찾기 API" , description = "노트 ID와 즐겨찾기 여부 입력, 성공 시 즐겨찾기 성공 여부 반환")
