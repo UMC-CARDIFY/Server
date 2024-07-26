@@ -176,7 +176,7 @@ public class FolderService {
     public FolderResponse.FolderListDTO filterColorsByUserId(Long userId, int page, int size, String colors){
         User user = userRepository.findById(userId)
                 .orElseThrow(()-> new BadRequestException(ErrorResponseStatus.REQUEST_ERROR));
-        Pageable pageable = PageRequest.of(page, size);
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Order.desc("markState"), Sort.Order.asc("name")));
         Page<Folder> folderPage;
 
         if (colors != null && !colors.isEmpty()) {
