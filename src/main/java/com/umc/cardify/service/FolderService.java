@@ -5,6 +5,7 @@ import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.domain.Folder;
 import com.umc.cardify.domain.Note;
 import com.umc.cardify.domain.User;
+import com.umc.cardify.domain.enums.MarkStatus;
 import com.umc.cardify.dto.folder.FolderRequest;
 import com.umc.cardify.dto.folder.FolderResponse;
 import com.umc.cardify.repository.FolderRepository;
@@ -149,6 +150,25 @@ public class FolderService {
                 .name(folder.getName())
                 .color(folder.getColor())
                 .editDate(folder.getEditDate())
+                .build();
+    }
+
+    @Transactional
+    public FolderResponse.markFolderResultDTO markFolderById(Long userId, Long folderId) {
+        User user = userRepository.findById(userId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.REQUEST_ERROR));
+        Folder folder = folderRepository.findByFolderIdAndUser(folderId, user).orElseThrow(() -> new BadRequestException(ErrorResponseStatus.REQUEST_ERROR));
+
+        if(folder.getMarkState() == MarkStatus.ACTIVE){
+            folder.setMarkState(MarkStatus.INACTIVE);
+        } else {
+            folder.setMarkState(MarkStatus.ACTIVE);
+        }
+
+        folderRepository.save(folder);
+
+        return FolderResponse.markFolderResultDTO.builder()
+                .markState(folder.getMarkState().toString())
+                .isSuccess(true)
                 .build();
     }
 }
