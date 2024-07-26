@@ -111,13 +111,13 @@ public class NoteService {
 
         switch (order.toLowerCase()) {
             case "asc":
-                pageable = PageRequest.of(page, size, Sort.by(Sort.Order.asc("name"), Sort.Order.asc("markState")));
+                pageable = PageRequest.of(page, size, Sort.by(Sort.Order.asc("markState"), Sort.Order.asc("name")));
                 break;
             case "desc":
-                pageable = PageRequest.of(page, size, Sort.by(Sort.Order.desc("name"), Sort.Order.asc("markState")));
+                pageable = PageRequest.of(page, size, Sort.by(Sort.Order.asc("markState"), Sort.Order.desc("name")));
                 break;
             case "edit-newest":
-                pageable = PageRequest.of(page, size, Sort.by(Sort.Order.asc("editDate"), Sort.Order.asc("markState")));
+                pageable = PageRequest.of(page, size, Sort.by(Sort.Order.asc("markState"), Sort.Order.asc("editDate")));
                 break;
             case "edit-oldest":
                 pageable = PageRequest.of(page, size, Sort.by(Sort.Order.asc("markState"), Sort.Order.desc("editDate")));
