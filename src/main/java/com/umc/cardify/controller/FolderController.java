@@ -102,7 +102,7 @@ public class FolderController {
     }
 
     @GetMapping("/filter")
-    @Operation(summary = "폴더 필터링 기능 API", description = "해당 유저의 폴더를 색상으로 필터링하여 반환 | filterType=color")
+    @Operation(summary = "폴더 필터링 기능 API", description = "해당 유저의 폴더를 색상으로 필터링하여 반환 | color값은 String으로 입력&반환")
     public ResponseEntity<FolderResponse.FolderListDTO> filterFolders(
             @RequestHeader("Authorization") String token,
             @RequestParam(defaultValue = "0") int page,

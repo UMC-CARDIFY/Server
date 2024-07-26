@@ -182,7 +182,7 @@ public class FolderService {
         if (colors != null && !colors.isEmpty()) {
             folderPage = folderRepository.findByUserAndColor(user, colors, pageable);
             if (folderPage.isEmpty()) {
-                throw new BadRequestException(ErrorResponseStatus.NOT_EXIST_FOLDER);
+                throw new DatabaseException(ErrorResponseStatus.NOT_EXIST_FOLDER);
             }
         } else {
             throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
