@@ -4,10 +4,12 @@ import com.umc.cardify.domain.Folder;
 import com.umc.cardify.domain.Note;
 import com.umc.cardify.dto.note.NoteRequest;
 import com.umc.cardify.dto.note.NoteResponse;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -47,8 +49,8 @@ public class NoteConverter {
                 .name(note.getName())
                 .folderName(note.getFolder().getName())
                 .markState(note.getMarkState())
-                .editDate(note.getEditDate())
-                .createdAt(note.getCreatedAt())
+                .editDate(note.getEditDate().toLocalDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
+                .createdAt(note.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
                 .build();
     }
     public static NoteResponse.IsSuccessNoteDTO isSuccessNoteResult(Boolean isSuccess){
@@ -56,23 +58,29 @@ public class NoteConverter {
                 .isSuccess(isSuccess)
                 .build();
     }
-    public static NoteResponse.SearchNoteInfoDTO SearchNoteDTO(Note note) {
-        return NoteResponse.SearchNoteInfoDTO.builder()
+    public static NoteResponse.NoteInfoDTO SearchNoteDTO(Note note) {
+        return NoteResponse.NoteInfoDTO.builder()
                 .noteId(note.getNoteId())
                 .name(note.getName())
                 .markState(note.getMarkState())
+                .folderName(note.getFolder().getName())
+                .editDate(note.getEditDate().toLocalDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
+                .createdAt(note.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
                 .build();
     }
-    public static NoteResponse.GetNoteToFolderResultDTO toGetNoteToFolderResult(Folder folder, List<Note> notesMark, List<Note> notesNotMark){
-        List<NoteResponse.SearchNoteInfoDTO> noteListMark = notesMark.stream()
-                .map(NoteConverter::SearchNoteDTO).collect(Collectors.toList());
-        List<NoteResponse.SearchNoteInfoDTO> noteListNotMark = notesNotMark.stream()
+    public static NoteResponse.GetNoteToFolderResultDTO toGetNoteToFolderResult(Folder folder, Page<Note> notePage){
+        List<NoteResponse.NoteInfoDTO> noteResult= notePage.stream()
                 .map(NoteConverter::SearchNoteDTO).collect(Collectors.toList());
         return NoteResponse.GetNoteToFolderResultDTO.builder()
                 .folderName(folder.getName())
                 .folderColor(folder.getColor())
-                .noteListMark(noteListMark)
-                .noteListNotMark(noteListNotMark)
+                .noteList(noteResult)
+                .listSize(notePage.getSize())
+                .currentPage(notePage.getNumber()+1)
+                .totalPage(notePage.getTotalPages())
+                .totalElements(notePage.getTotalElements())
+                .isFirst(notePage.isFirst())
+                .isLast(notePage.isLast())
                 .build();
     }
 }
