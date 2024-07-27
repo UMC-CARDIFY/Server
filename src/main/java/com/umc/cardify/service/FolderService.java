@@ -173,23 +173,30 @@ public class FolderService {
     }
 
     @Transactional(readOnly = true)
-    public FolderResponse.FolderListDTO filterColorsByUserId(Long userId, int page, int size, String colors){
+    public FolderResponse.FolderListDTO filterColorsByUserId(Long userId, Integer page, Integer size, String colors){
         User user = userRepository.findById(userId)
-                .orElseThrow(()-> new BadRequestException(ErrorResponseStatus.REQUEST_ERROR));
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Order.desc("markState"), Sort.Order.asc("name")));
-        Page<Folder> folderPage;
+                .orElseThrow(()-> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+
+        List<Folder> folderList;
+        int filterPage = (page != null) ? page : 0;
+        int filterSize = (size != null) ? size : Integer.MAX_VALUE;
 
         if (colors != null && !colors.isEmpty()) {
-            folderPage = folderRepository.findByUserAndColor(user, colors, pageable);
-            if (folderPage.isEmpty()) {
-                throw new DatabaseException(ErrorResponseStatus.NOT_EXIST_FOLDER);
+            if (page == null && size == null) {
+                folderList = folderRepository.findByUserAndColor(user, colors, Sort.by(Sort.Order.desc("markState"), Sort.Order.asc("name")));
+            } else {
+                Pageable pageable = PageRequest.of(filterPage, filterSize, Sort.by(Sort.Order.desc("markState"), Sort.Order.asc("name")));
+                Page<Folder> folderPage = folderRepository.findByUserAndColor(user, colors, pageable);
+                folderList = folderPage.getContent();
             }
         } else {
-            throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+            throw new DatabaseException(ErrorResponseStatus.NOT_EXIST_FOLDER);
+        }
+        if (folderList.isEmpty()){
+            throw new DatabaseException(ErrorResponseStatus.NOT_EXIST_FOLDER);
         }
 
-
-        List<FolderResponse.FolderInfoDTO> folders = folderPage.getContent().stream()
+        List<FolderResponse.FolderInfoDTO> folders = folderList.stream()
                 .map(folder -> FolderResponse.FolderInfoDTO.builder()
                         .folderId(folder.getFolderId())
                         .name(folder.getName())
@@ -201,12 +208,12 @@ public class FolderService {
 
         return FolderResponse.FolderListDTO.builder()
                 .foldersList(folders)
-                .listSize(folderPage.getSize())
-                .currentPage(folderPage.getNumber()+1)
-                .totalPages(folderPage.getTotalPages())
-                .totalElements(folderPage.getTotalElements())
-                .isFirst(folderPage.isFirst())
-                .isLast(folderPage.isLast())
+                .listSize(filterSize)
+                .currentPage(filterPage + 1)
+                .totalPages((page == null) ? 1 : folderRepository.findByUserAndColor(user, colors, Pageable.unpaged()).getTotalPages())
+                .totalElements((page == null) ? folders.size() : folderRepository.findByUserAndColor(user, colors, Pageable.unpaged()).getTotalElements())
+                .isFirst(filterPage == 0)
+                .isLast((page == null) || (filterPage == folderRepository.findByUserAndColor(user, colors, Pageable.unpaged()).getTotalPages() - 1))
                 .build();
     }
 }
