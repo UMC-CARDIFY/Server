@@ -169,6 +169,7 @@ public class FolderService {
         return FolderResponse.markFolderResultDTO.builder()
                 .markState(folder.getMarkState().toString())
                 .isSuccess(true)
+                .markDate(folder.getMarkDate())
                 .build();
     }
 }
