@@ -28,9 +28,10 @@ public class Card extends BaseEntity {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false)
+    @Column(columnDefinition = "TEXT")
     private String contentsFront;
 
+    @Column(columnDefinition = "TEXT")
     private String contentsBack;
 
     @Column(columnDefinition = "Boolean DEFAULT false")

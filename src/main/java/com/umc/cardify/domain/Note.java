@@ -31,11 +31,11 @@ public class Note extends BaseEntity {
     private Folder folder;
 
     @Setter
-    @Column(nullable = false)
+    @Column(columnDefinition = "TEXT")
     private String name;
 
     @Setter
-    @Column(nullable = false)
+    @Column(columnDefinition = "TEXT")
     private String contents;
 
     @Setter

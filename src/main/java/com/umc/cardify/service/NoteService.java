@@ -168,4 +168,14 @@ public class NoteService {
             return true;
         }
     }
+    public List<NoteResponse.SearchNoteResDTO> searchNote(Folder folder, String search){
+        List<Note> notes = noteRepository.findByFolder(folder).stream()
+                .filter(note -> note.getContents().contains(search) || note.getName().contains(search))
+                .toList();
+        List<NoteResponse.SearchNoteResDTO> searchList = notes.stream()
+                .map(list->noteConverter.toSearchNoteResult(list, search))
+                .collect(Collectors.toList());
+
+        return searchList;
+    }
 }

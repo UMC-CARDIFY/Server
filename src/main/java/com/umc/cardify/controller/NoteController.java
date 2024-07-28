@@ -79,4 +79,15 @@ public class NoteController {
         Boolean isSuccess = noteService.writeNote(request, userId);
         return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(isSuccess));
     }
+    @PostMapping("/search")
+    @Operation(summary = "노트 검색 API" , description = "폴더 ID와 검색어 입력, 성공 시 검색 결과 반환")
+    public ResponseEntity<NoteResponse.SearchNoteDTO> searchNote(@RequestBody @Valid NoteRequest.SearchNoteDto request){
+        Folder folder = folderService.getFolder(request.getFolderId());
+        String searchTxt = request.getSearchTxt();
+        List<NoteResponse.SearchNoteResDTO> DTOList = noteService.searchNote(folder, searchTxt);
+        return ResponseEntity.ok(NoteResponse.SearchNoteDTO.builder()
+                        .searchTxt(searchTxt)
+                        .noteList(DTOList)
+                        .build());
+    }
 }
