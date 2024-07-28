@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -81,6 +82,30 @@ public class NoteConverter {
                 .totalElements(notePage.getTotalElements())
                 .isFirst(notePage.isFirst())
                 .isLast(notePage.isLast())
+                .build();
+    }
+    public NoteResponse.SearchNoteResDTO toSearchNoteResult(Note note, String search){
+        List<String> textList = new ArrayList<>();
+        String text = note.getName() + note.getContents();
+        text.replace(">>", "")
+            .replace("<<", "")
+            .replace("{{", "")
+            .replace("}}", "")
+            .replace("==", "");
+        while(text.contains(search)){
+            int index = text.indexOf(search);
+
+            //분류 기준이 바뀌면 수정
+            int moreText = text.indexOf(".", index + search.length());
+            if(moreText < 0)
+                moreText = text.length();
+            textList.add(text.substring(index, moreText));
+            text = text.substring(moreText, text.length());
+        }
+        return NoteResponse.SearchNoteResDTO.builder()
+                .noteId(note.getNoteId())
+                .noteName(note.getName())
+                .textList(textList)
                 .build();
     }
 }

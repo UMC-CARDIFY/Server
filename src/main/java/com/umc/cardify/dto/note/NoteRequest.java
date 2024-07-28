@@ -40,4 +40,12 @@ public class NoteRequest {
         @Schema(description = "정렬 방식", example = "asc")
         String order;
     }
+    @Getter
+    @Schema(title = "NOTE_REQ_04 : 노트 검색 요청 DTO")
+    public static class SearchNoteDto{
+        @NotNull
+        Long folderId;
+
+        String searchTxt;
+    }
 }

@@ -116,4 +116,23 @@ public class NoteResponse {
         @Schema(description = "마지막 페이지인지 확인", example = "false")
         Boolean isLast;
     }
+    @Builder
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "NOTE_RES_08_01 : 노트 검색 응답 DTO")
+    public static class SearchNoteResDTO{
+        Long noteId;
+        String noteName;
+        List<String> textList;
+    }
+    @Builder
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "NOTE_RES_08 : 노트 검색 응답 DTO")
+    public static class SearchNoteDTO{
+        String searchTxt;
+        List<SearchNoteResDTO> noteList;
+    }
 }
