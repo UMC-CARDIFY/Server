@@ -18,7 +18,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -111,16 +114,16 @@ public class NoteService {
 
         switch (order.toLowerCase()) {
             case "asc":
-                pageable = PageRequest.of(page, size, Sort.by(Sort.Order.asc("markState"), Sort.Order.asc("name")));
+                pageable = PageRequest.of(page, size, Sort.by(Sort.Order.desc("markAt"), Sort.Order.asc("name")));
                 break;
             case "desc":
-                pageable = PageRequest.of(page, size, Sort.by(Sort.Order.asc("markState"), Sort.Order.desc("name")));
+                pageable = PageRequest.of(page, size, Sort.by(Sort.Order.desc("markAt"), Sort.Order.desc("name")));
                 break;
             case "edit-newest":
-                pageable = PageRequest.of(page, size, Sort.by(Sort.Order.asc("markState"), Sort.Order.asc("editDate")));
+                pageable = PageRequest.of(page, size, Sort.by(Sort.Order.desc("markAt"), Sort.Order.asc("editDate")));
                 break;
             case "edit-oldest":
-                pageable = PageRequest.of(page, size, Sort.by(Sort.Order.asc("markState"), Sort.Order.desc("editDate")));
+                pageable = PageRequest.of(page, size, Sort.by(Sort.Order.desc("markAt"), Sort.Order.desc("editDate")));
                 break;
             default:
                 throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
@@ -134,10 +137,14 @@ public class NoteService {
         if(!userId.equals(note_mark.getFolder().getUser().getUserId()))
             throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
         else {
-            if (isMark)
+            if (isMark) {
                 note_mark.setMarkState(MarkStatus.ACTIVE);
-            else if (!isMark)
+                note_mark.setMarkAt(LocalDateTime.now());
+            }
+            else if (!isMark){
                 note_mark.setMarkState(MarkStatus.INACTIVE);
+                note_mark.setMarkAt(null);
+            }
             else
                 throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
             noteRepository.save(note_mark);

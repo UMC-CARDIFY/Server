@@ -43,6 +43,9 @@ public class Note extends BaseEntity {
     @Column(columnDefinition = "VARCHAR(15) DEFAULT 'INACTIVE'")
     private MarkStatus markState;
 
+    @Setter
+    private LocalDateTime markAt;
+
     private LocalDateTime viewAt;
 
     @UpdateTimestamp
