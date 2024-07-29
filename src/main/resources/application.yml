@@ -17,6 +17,8 @@ spring:
         dialect: org.hibernate.dialect.MySQL8Dialect
         physical_naming_strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
         default_batch_fetch_size: 500
+        order_by:
+          default_null_ordering: last
     database: mysql
   servlet:
     multipart:
