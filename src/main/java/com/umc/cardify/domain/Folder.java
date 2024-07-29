@@ -36,7 +36,6 @@ public class Folder extends BaseEntity {
     private MarkStatus markState;
 
     @UpdateTimestamp
-    @Column(name = "mark_date", columnDefinition = "varchar(15) NOT NULL")
     private Timestamp markDate;
 
     @UpdateTimestamp

@@ -1,9 +1,9 @@
 package com.umc.cardify.service;
 
 import com.umc.cardify.config.exception.BadRequestException;
+import com.umc.cardify.config.exception.DatabaseException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.domain.Folder;
-import com.umc.cardify.domain.Note;
 import com.umc.cardify.domain.User;
 import com.umc.cardify.domain.enums.MarkStatus;
 import com.umc.cardify.dto.folder.FolderRequest;
@@ -170,6 +170,52 @@ public class FolderService {
                 .markState(folder.getMarkState().toString())
                 .isSuccess(true)
                 .markDate(folder.getMarkDate())
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public FolderResponse.FolderListDTO filterColorsByUserId(Long userId, Integer page, Integer size, String colors) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+
+        List<Folder> folderList;
+        int filterPage = (page != null) ? page : 0;
+        int filterSize = (size != null) ? size : 30;
+
+        if (colors != null && !colors.isEmpty()) {
+            Pageable pageable = PageRequest.of(filterPage, filterSize);
+            Page<Folder> folderPage = folderRepository.findByUserAndColor(userId, colors, pageable);
+            folderList = folderPage.getContent();
+        } else {
+            throw new DatabaseException(ErrorResponseStatus.NOT_EXIST_FOLDER);
+        }
+
+        if (folderList.isEmpty()) {
+            throw new DatabaseException(ErrorResponseStatus.NOT_EXIST_FOLDER);
+        }
+
+        List<FolderResponse.FolderInfoDTO> folders = folderList.stream()
+                .map(folder -> FolderResponse.FolderInfoDTO.builder()
+                        .folderId(folder.getFolderId())
+                        .name(folder.getName())
+                        .color(folder.getColor())
+                        .markState(folder.getMarkState())
+                        .markDate(folder.getMarkDate())
+                        .createdAt(folder.getCreatedAt())
+                        .build())
+                .collect(Collectors.toList());
+
+        int totalPages = (page == null) ? 1 : folderRepository.findByUserAndColor(userId, colors, Pageable.unpaged()).getTotalPages();
+        long totalElements = (page == null) ? folders.size() : folderRepository.findByUserAndColor(userId, colors, Pageable.unpaged()).getTotalElements();
+
+        return FolderResponse.FolderListDTO.builder()
+                .foldersList(folders)
+                .listSize(filterSize)
+                .currentPage(filterPage + 1)
+                .totalPages(totalPages)
+                .totalElements(totalElements)
+                .isFirst(filterPage == 0)
+                .isLast((page == null) || (filterPage == totalPages - 1))
                 .build();
     }
 }

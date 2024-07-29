@@ -1,6 +1,5 @@
 package com.umc.cardify.controller;
 
-import com.umc.cardify.domain.Folder;
 import com.umc.cardify.dto.folder.FolderRequest;
 import com.umc.cardify.dto.folder.FolderResponse;
 import com.umc.cardify.dto.note.NoteResponse;
@@ -100,5 +99,17 @@ public class FolderController {
         Long userId = jwtUtil.extractUserId(token);
         FolderResponse.markFolderResultDTO response = folderService.markFolderById(userId, folderId);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/filter")
+    @Operation(summary = "폴더 필터링 기능 API", description = "해당 유저의 폴더를 색상으로 필터링하여 반환 | color값은 String으로 입력&반환")
+    public ResponseEntity<FolderResponse.FolderListDTO> filterFolders(
+            @RequestHeader("Authorization") String token,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam String color) {
+        Long userId = jwtUtil.extractUserId(token);
+        FolderResponse.FolderListDTO folders = folderService.filterColorsByUserId(userId, page, size, color);
+        return ResponseEntity.ok(folders);
     }
 }

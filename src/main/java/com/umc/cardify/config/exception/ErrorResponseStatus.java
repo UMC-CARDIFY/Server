@@ -24,6 +24,7 @@ public enum ErrorResponseStatus {
 	DB_UPDATE_ERROR(4006, "DB에 값을 수정 하는데 실패 했습니다."),
 	FILE_FORMAT_ERROR(4007, "파일 형식 검증 실패"),
 	FILE_VALID_ERROR(4008,"파일 유효성 검증 실패" ),
+	NOT_EXIST_FOLDER(4009, "폴더가 존재하지 않습니다."),
 
 	// 5000 : Server connection 오류
 	SERVER_ERROR(5000, "서버와의 연결에 실패하였습니다."),
