@@ -114,9 +114,7 @@ public class NoteService {
 
         switch (order.toLowerCase()) {
             case "asc":
-                pageable = PageRequest.of(page, size,
-                        Sort.by(Sort.Order.asc("markAt"),
-                                Sort.Order.asc("name")));
+                pageable = PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.asc("name")));
                 break;
             case "desc":
                 pageable = PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.desc("name")));
