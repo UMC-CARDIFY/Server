@@ -114,16 +114,16 @@ public class NoteService {
 
         switch (order.toLowerCase()) {
             case "asc":
-                pageable = PageRequest.of(page, size, Sort.by(Sort.Order.desc("markAt"), Sort.Order.asc("name")));
+                pageable = PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.asc("name")));
                 break;
             case "desc":
-                pageable = PageRequest.of(page, size, Sort.by(Sort.Order.desc("markAt"), Sort.Order.desc("name")));
+                pageable = PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.desc("name")));
                 break;
             case "edit-newest":
-                pageable = PageRequest.of(page, size, Sort.by(Sort.Order.desc("markAt"), Sort.Order.asc("editDate")));
+                pageable = PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.asc("editDate")));
                 break;
             case "edit-oldest":
-                pageable = PageRequest.of(page, size, Sort.by(Sort.Order.desc("markAt"), Sort.Order.desc("editDate")));
+                pageable = PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.desc("editDate")));
                 break;
             default:
                 throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
