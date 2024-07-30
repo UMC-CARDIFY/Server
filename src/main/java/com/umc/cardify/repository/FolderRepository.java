@@ -14,7 +14,12 @@ import java.util.Optional;
 
 public interface FolderRepository extends JpaRepository<Folder, Long> {
 
-    Page<Folder> findByUser(User userId, Pageable pageable);
+    @Query(value = "SELECT * FROM folder WHERE user_id = :userId ORDER BY " +
+            "CASE WHEN mark_state = 'ACTIVE' THEN 0 " +
+            "WHEN mark_state = 'INACTIVE' THEN 1 " +
+            "ELSE 2 END, " +
+            "mark_date ASC, created_at ASC", nativeQuery = true)
+    Page<Folder> findByUser(@Param("userId") User userId, Pageable pageable);
 
     Optional<Folder> findByFolderIdAndUser(Long folderId, User userId);
 
@@ -25,6 +30,6 @@ public interface FolderRepository extends JpaRepository<Folder, Long> {
             "WHEN mark_state = 'INACTIVE' THEN 1 " +
             "ELSE 2 END, " +
             "mark_date ASC, created_at ASC", nativeQuery = true)
-    Page<Folder> findByUserAndColor(@Param("userId") Long userId, @Param("colors") String colors, Pageable pageable);
+    Page<Folder> findByUserAndColor(@Param("userId") User userId, @Param("colors") String colors, Pageable pageable);
 
 }

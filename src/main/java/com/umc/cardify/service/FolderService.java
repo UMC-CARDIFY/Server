@@ -33,11 +33,21 @@ public class FolderService {
         return folderRepository.findById(folderId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
     }
 
-    public FolderResponse.FolderListDTO getFoldersByUserId(Long userId, int page, int size){
+    @Transactional(readOnly = true)
+    public FolderResponse.FolderListDTO getFoldersByUserId(Long userId, Integer page, Integer size){
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
-        Pageable pageable = PageRequest.of(page, size);
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+
+        // 폴더 page, size에 값을 입력하지 않으면, 자동으로 0과 30으로 고정
+        int getFolderPage = (page!=null) ? page:0;
+        int getFolderSize = (size!=null) ? size:30;
+
+        Pageable pageable = PageRequest.of(getFolderPage, getFolderSize);
         Page<Folder> folderPage = folderRepository.findByUser(user, pageable);
+
+        if(folderPage.isEmpty()){
+            throw new BadRequestException(ErrorResponseStatus.NOT_EXIST_FOLDER);
+        }
 
         List<FolderResponse.FolderInfoDTO> folders = folderPage.getContent().stream()
                 .map(folder -> FolderResponse.FolderInfoDTO.builder()
@@ -184,7 +194,7 @@ public class FolderService {
 
         if (colors != null && !colors.isEmpty()) {
             Pageable pageable = PageRequest.of(filterPage, filterSize);
-            Page<Folder> folderPage = folderRepository.findByUserAndColor(userId, colors, pageable);
+            Page<Folder> folderPage = folderRepository.findByUserAndColor(user, colors, pageable);
             folderList = folderPage.getContent();
         } else {
             throw new DatabaseException(ErrorResponseStatus.NOT_EXIST_FOLDER);
@@ -205,8 +215,8 @@ public class FolderService {
                         .build())
                 .collect(Collectors.toList());
 
-        int totalPages = (page == null) ? 1 : folderRepository.findByUserAndColor(userId, colors, Pageable.unpaged()).getTotalPages();
-        long totalElements = (page == null) ? folders.size() : folderRepository.findByUserAndColor(userId, colors, Pageable.unpaged()).getTotalElements();
+        int totalPages = (page == null) ? 1 : folderRepository.findByUserAndColor(user, colors, Pageable.unpaged()).getTotalPages();
+        long totalElements = (page == null) ? folders.size() : folderRepository.findByUserAndColor(user, colors, Pageable.unpaged()).getTotalElements();
 
         return FolderResponse.FolderListDTO.builder()
                 .foldersList(folders)

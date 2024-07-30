@@ -20,9 +20,9 @@ public class FolderResponse {
         private Long folderId;
         @Schema(description = "폴더 이름", example = "Sample1")
         private String name;
-        @Schema(description = "폴더 색상", example = "red")
+        @Schema(description = "폴더 색상", example = "blue")
         private String color;
-        @Schema(description = "폴더 즐겨찾기", example = "ACTIVE")
+        @Schema(description = "폴더 즐겨찾기", example = "INACTIVE")
         private MarkStatus markState;
         @Schema(description = "폴더의 노트개수", example = "3")
         private Integer getNoteCount;
@@ -114,7 +114,7 @@ public class FolderResponse {
         Long folderId;
         @Schema(description = "폴더 이름", example = "sample")
         String name;
-        @Schema(description = "폴더 색상", example = "red")
+        @Schema(description = "폴더 색상", example = "blue")
         String color;
         @Schema(description = "폴더 생성 날짜", example = "2023-12-05 12:34:56")
         private LocalDateTime createdAt;
@@ -130,7 +130,7 @@ public class FolderResponse {
         Long folderId;
         @Schema(description = "폴더 이름", example = "sample")
         String name;
-        @Schema(description = "폴더 색상", example = "red")
+        @Schema(description = "폴더 색상", example = "ocean")
         String color;
         @Schema(description = "폴더 수정 날짜", example = "2023-12-05 12:34:56")
         Timestamp editDate;

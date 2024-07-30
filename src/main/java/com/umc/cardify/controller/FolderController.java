@@ -25,11 +25,11 @@ public class FolderController {
     private final JwtUtil jwtUtil;
 
     @GetMapping
-    @Operation(summary = "폴더 목록 조회 API", description = "조회 성공 시, 해당 유저의 폴더 목록 반환")
+    @Operation(summary = "폴더 목록 조회 API", description = "조회 성공 시, 해당 유저의 폴더 목록 반환 | page, size는 수정 가능")
     public ResponseEntity<FolderResponse.FolderListDTO> getAllFolders(
             @RequestHeader("Authorization") String token,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam int size) {
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
         Long userId = jwtUtil.extractUserId(token);
         FolderResponse.FolderListDTO folders = folderService.getFoldersByUserId(userId, page, size);
         return ResponseEntity.ok(folders);
