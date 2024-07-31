@@ -1,6 +1,5 @@
 package com.umc.cardify.domain;
 
-import com.umc.cardify.config.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,6 +10,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
+
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -25,6 +27,10 @@ public class User extends BaseEntity {
     private Long userId;
 
     @Column(name = "name", columnDefinition = "varchar(20) NOT NULL")
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<Folder> userFolderList = new ArrayList<>();
+
+    @Column(name = "name", columnDefinition = "varchar(30) NOT NULL")
     private String name;
 
 //    @Column(name = "url_profile", columnDefinition = "text")

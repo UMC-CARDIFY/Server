@@ -1,6 +1,5 @@
 package com.umc.cardify.domain;
 
-import com.umc.cardify.config.BaseEntity;
 import com.umc.cardify.domain.enums.MarkStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -12,24 +11,32 @@ import java.util.List;
 
 @Entity
 @Getter
+@Setter
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 public class Folder extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "folderid")
+    @Column(name = "folder_id")
     private Long folderId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
 
     @Column(name = "name", columnDefinition = "varchar(30) NOT NULL")
     private String name;
 
-    @Column(name = "color", columnDefinition = "varchar(30) NOT NULL")
+    @Column(name = "color", columnDefinition = "varchar(10) NOT NULL")
     private String color;
 
     @Enumerated(EnumType.STRING)
-    @Column(columnDefinition = "VARCHAR(15) DEFAULT 'ACTIVE'")
+    @Column(columnDefinition = "VARCHAR(15) DEFAULT 'INACTIVE'")
     private MarkStatus markState;
+
+    @UpdateTimestamp
+    private Timestamp markDate;
 
     @UpdateTimestamp
     private Timestamp editDate;

@@ -1,9 +1,7 @@
 package com.umc.cardify.controller;
 
-import com.umc.cardify.converter.NoteConverter;
-import com.umc.cardify.domain.Folder;
-import com.umc.cardify.domain.Note;
-import com.umc.cardify.dto.note.NoteRequest;
+import com.umc.cardify.dto.folder.FolderRequest;
+import com.umc.cardify.dto.folder.FolderResponse;
 import com.umc.cardify.dto.note.NoteResponse;
 import com.umc.cardify.service.FolderService;
 import com.umc.cardify.service.NoteService;
@@ -11,9 +9,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import com.umc.cardify.jwt.JwtUtil;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,15 +20,96 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("api/v1/folders")
 public class FolderController {
 
+    private final FolderService folderService;
     private final NoteService noteService;
+    private final JwtUtil jwtUtil;
 
-    @PostMapping("/notes")
-    @Operation(summary = "모든 노트 조회 API")
-    public ResponseEntity<NoteResponse.GetAllResultDTO> getAllNotes(@RequestBody @Valid NoteRequest.getAllDto request, @RequestParam(defaultValue = "0") int page){
-        Pageable pageable = PageRequest.of(page, 5);
-        Page<Note> notes = noteService.getAllNotes(request, pageable);
-        return ResponseEntity.ok(NoteConverter.toGetAllResult(notes));
+    @GetMapping
+    @Operation(summary = "폴더 목록 조회 API", description = "조회 성공 시, 해당 유저의 폴더 목록 반환")
+    public ResponseEntity<FolderResponse.FolderListDTO> getAllFolders(
+            @RequestHeader("Authorization") String token,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam int size) {
+        Long userId = jwtUtil.extractUserId(token);
+        FolderResponse.FolderListDTO folders = folderService.getFoldersByUserId(userId, page, size);
+        return ResponseEntity.ok(folders);
+    }
+
+    @GetMapping("/sort")
+    @Operation(summary = "폴더 정렬 기능 API", description = "해당 유저의 폴더를 정렬해서 반환, 페이징을 포함 query string으로 페이지 번호를 주세요. | order = asc, desc, edit-newest, edit-oldest")
+    public ResponseEntity<FolderResponse.sortFolderListDTO> sortFolders(
+            @RequestHeader("Authorization") String token,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam int size,
+            @RequestParam String order){
+        Long userId = jwtUtil.extractUserId(token);
+        FolderResponse.sortFolderListDTO folders = folderService.sortFoldersByUserId(userId, page, size, order);
+        return ResponseEntity.ok(folders);
     }
 
 
+    @GetMapping("/notes")
+    @Operation(summary = "노트 조회", description = "조회 성공 시, 해당 유저의 노트목록 반환")
+    public ResponseEntity<NoteResponse.NoteListDTO> getAllNotes(
+            @RequestHeader("Authorization") String token,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam int size) {
+        Long userId = jwtUtil.extractUserId(token);
+        NoteResponse.NoteListDTO notes = noteService.getNotesByUserId(userId, page, size);
+        return ResponseEntity.ok(notes);
+    }
+
+    @DeleteMapping("/{folderId}")
+    @Operation(summary = "특정 폴더 삭제 API", description = "해당 유저의 특정 폴더 삭제 성공 시, true 응답 반환 | 삭제를 원하는 folderId 입력")
+    public ResponseEntity<FolderResponse.deleteFolderResultDTO> deleteFolder(
+            @RequestHeader("Authorization") String token,
+            @RequestParam Long folderId) {
+        Long userId = jwtUtil.extractUserId(token);
+        folderService.deleteFolderById(userId, folderId);
+        return ResponseEntity.ok(FolderResponse.deleteFolderResultDTO.builder().isSuccess(true).build());
+    }
+
+
+    @PostMapping("/addFolder")
+    @Operation(summary = "폴더 추가 기능 API", description = "해당 유저의 폴더를 생성 시, 폴더 아이디, 이름, 색상, 생성일 반환 | 이름,색상 입력")
+    public ResponseEntity<FolderResponse.addFolderResultDTO> addFolder(
+            @RequestHeader("Authorization") String token,
+            @RequestBody @Valid FolderRequest.addFolderDto folderRequest) {
+        Long userId = jwtUtil.extractUserId(token);
+        FolderResponse.addFolderResultDTO response = folderService.addFolder(userId, folderRequest);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PatchMapping("/{folderId}")
+    @Operation(summary = "폴더 수정 기능 API", description = "해당 유저의 폴더를 수정 시, 수정된 이름과 색상, 수정일을 반환")
+    public ResponseEntity<FolderResponse.editFolderResultDTO> editFolder(
+            @RequestHeader("Authorization") String token,
+            @PathVariable Long folderId,
+            @RequestBody @Valid FolderRequest.editFolderDto folderRequest) {
+        Long userId = jwtUtil.extractUserId(token);
+        FolderResponse.editFolderResultDTO response = folderService.editFolder(userId, folderId, folderRequest);
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{folderId}/mark-folders")
+    @Operation(summary = "특정 폴더 즐겨찾기 기능 API", description = "해당 유저의 특정 폴더를 즐겨찾기 시, 폴더의 markState 값에 따라서 ACTIVE/INACTIVE로 변경")
+    public ResponseEntity<FolderResponse.markFolderResultDTO> markFolder(
+            @RequestHeader("Authorization") String token,
+            @PathVariable Long folderId) {
+        Long userId = jwtUtil.extractUserId(token);
+        FolderResponse.markFolderResultDTO response = folderService.markFolderById(userId, folderId);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/filter")
+    @Operation(summary = "폴더 필터링 기능 API", description = "해당 유저의 폴더를 색상으로 필터링하여 반환 | color값은 String으로 입력&반환")
+    public ResponseEntity<FolderResponse.FolderListDTO> filterFolders(
+            @RequestHeader("Authorization") String token,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam String color) {
+        Long userId = jwtUtil.extractUserId(token);
+        FolderResponse.FolderListDTO folders = folderService.filterColorsByUserId(userId, page, size, color);
+        return ResponseEntity.ok(folders);
+    }
 }

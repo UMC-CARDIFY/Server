@@ -16,6 +16,8 @@ spring:
         dialect: org.hibernate.dialect.MySQL8Dialect
         physical_naming_strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
         default_batch_fetch_size: 500
+        order_by:
+          default_null_ordering: last
     database: mysql
   security:
     oauth2:
@@ -35,7 +37,27 @@ spring:
             token-uri: https://kauth.kakao.com/oauth/token
             user-info-uri: https://kapi.kakao.com/v2/user/me
             user-name-attribute: id
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
 jwt:
   secret: ${SECRET_KEY}
   refreshTokenValidity: ${REFRESH_TOKEN}
   accessTokenValidity: ${ACCESS_TOKEN}
+
+
+
+cloud:
+  aws:
+    credentials:
+      accessKey: ${CLOUD_ACCESS_KEY}
+      secretKey: ${CLOUD_SECRET_KEY}
+    s3:
+      bucket: cardify
+    region:
+      static: ap-northeast-2
+      auto: false
+    stack:
+      auto: false
