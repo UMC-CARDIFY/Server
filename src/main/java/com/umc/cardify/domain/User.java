@@ -6,6 +6,12 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 @Getter
 @NoArgsConstructor
@@ -18,7 +24,7 @@ public class User extends BaseEntity {
     @Column(name = "user_id")
     private Long userId;
 
-    @Column(name = "name", columnDefinition = "varchar(30) NOT NULL")
+    @Column(name = "name", columnDefinition = "varchar(20) NOT NULL")
     private String name;
 
 //    @Column(name = "url_profile", columnDefinition = "text")
@@ -27,7 +33,7 @@ public class User extends BaseEntity {
     @Column(name = "email", columnDefinition = "varchar(320)")
     private String email;
 
-    @Column(name = "pawssword", columnDefinition = "varchar(20) NOT NULL")
+    @Column(name = "pawssword", columnDefinition = "varchar(255) NOT NULL")
     private String password;
 
     @Column(name = "kakao", columnDefinition = "boolean")
@@ -40,4 +46,5 @@ public class User extends BaseEntity {
         this.password = password;
         this.kakao = kakao;
     }
+
 }

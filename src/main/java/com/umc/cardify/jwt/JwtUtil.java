@@ -34,7 +34,7 @@ public class JwtUtil {
                 .build();
     }
 
-    private String createAccessToken(Long userId) {
+    public String createAccessToken(Long userId) {
         Claims claims = Jwts.claims();
         claims.put("userId", userId);
         claims.put("type", "Access");
@@ -48,7 +48,7 @@ public class JwtUtil {
                 .compact();
     }
 
-    private String createRefreshToken(Long userId) {
+    public String createRefreshToken(Long userId) {
         Claims claims = Jwts.claims();
         claims.put("userId", userId);
         claims.put("type", "Refresh");
