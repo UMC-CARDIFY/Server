@@ -56,6 +56,7 @@ public class FolderService {
                         .color(folder.getColor())
                         .markState(folder.getMarkState())
                         .getNoteCount(folder.getNoteCount())
+                        .markDate(folder.getMarkDate())
                         .editDate(folder.getEditDate())
                         .createdAt(folder.getCreatedAt())
                         .build())
@@ -177,7 +178,7 @@ public class FolderService {
         folderRepository.save(folder);
 
         return FolderResponse.markFolderResultDTO.builder()
-                .markState(folder.getMarkState().toString())
+                .markState(folder.getMarkState())
                 .isSuccess(true)
                 .markDate(folder.getMarkDate())
                 .build();

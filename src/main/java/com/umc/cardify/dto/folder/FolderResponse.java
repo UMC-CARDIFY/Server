@@ -145,7 +145,7 @@ public class FolderResponse {
         @Schema(description = "즐겨찾기 성공 여부", example = "true")
         Boolean isSuccess;
         @Schema(description = "즐겨찾기 상태", example = "ACTIVE")
-        String markState;
+        MarkStatus markState;
         @Schema(description = "폴더 즐겨찾기 수정 날짜", example = "2023-12-05 12:34:56")
         Timestamp markDate;
     }
