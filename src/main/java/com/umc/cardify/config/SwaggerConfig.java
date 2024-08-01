@@ -10,7 +10,7 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 
-@OpenAPIDefinition(info = @Info(title = "SoundHub API Docs", description = "Swagger API 문서", version = "v1"))
+@OpenAPIDefinition(info = @Info(title = "Cardify API Docs", description = "Swagger API 문서", version = "v1"))
 @Configuration
 public class SwaggerConfig {
 	private static final String BEARER_TOKEN_PREFIX = "Bearer";

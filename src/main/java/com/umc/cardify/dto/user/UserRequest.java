@@ -7,13 +7,14 @@ import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.Setter;
 
 public class UserRequest {
 
     @Getter
     @Builder
     @Schema(title = "USER_REQ_01 : 회원 가입 요청 DTO")
-    public static class signIn {
+    public static class signUp {
         @NotBlank(message = "이름을 입력해 주세요")
         @Pattern(regexp = "^[ㄱ-ㅎ가-힣a-z0-9-_]{2,10}$", message = "이름은 특수문자를 제외한 2~12 자리여야 합니다.")
         @Schema(description = "사용자 이름", example = "홍길동")
