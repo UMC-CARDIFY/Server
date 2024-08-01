@@ -10,6 +10,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -60,4 +61,7 @@ public class Note extends BaseEntity {
 
     @OneToMany(mappedBy = "note", cascade = CascadeType.ALL)
     private List<Card> cards;
+
+    @OneToOne(mappedBy = "library", cascade = CascadeType.ALL)
+    private Library library;
 }
