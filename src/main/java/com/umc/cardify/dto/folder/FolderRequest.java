@@ -21,7 +21,7 @@ public class FolderRequest {
         @Schema(description = "폴더 이름", example = "sample")
         String name;
         @NotNull
-        @Schema(description = "폴더 색상", example = "red")
+        @Schema(description = "폴더 색상", example = "blue")
         String color;
     }
 
@@ -35,7 +35,7 @@ public class FolderRequest {
         @Schema(description = "폴더 이름", example = "sample1")
         String name;
         @NotNull
-        @Schema(description = "폴더 색상", example = "green")
+        @Schema(description = "폴더 색상", example = "blue")
         String color;
     }
 }
