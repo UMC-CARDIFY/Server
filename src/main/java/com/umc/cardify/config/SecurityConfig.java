@@ -1,15 +1,19 @@
 package com.umc.cardify.config;
 
 import com.umc.cardify.handler.CustomAuthenticationSuccessHandler;
+import com.umc.cardify.jwt.JwtFilter;
 import com.umc.cardify.jwt.JwtUtil;
 import com.umc.cardify.repository.UserRepository;
 import com.umc.cardify.service.security.CustomOAuth2UserService;
+import com.umc.cardify.service.security.CustomUserDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
@@ -23,10 +27,14 @@ public class SecurityConfig {
 
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
+    private final CustomUserDetailsService customUserDetailsService;
+    private final DefaultOAuth2UserService defaultOAuth2UserService;
 
-    public SecurityConfig(JwtUtil jwtUtil, UserRepository userRepository) {
+    public SecurityConfig(JwtUtil jwtUtil, UserRepository userRepository, CustomUserDetailsService customUserDetailsService, DefaultOAuth2UserService defaultOAuth2UserService) {
         this.jwtUtil = jwtUtil;
         this.userRepository = userRepository;
+        this.customUserDetailsService = customUserDetailsService;
+        this.defaultOAuth2UserService = defaultOAuth2UserService;
     }
 
 //    @Bean
@@ -49,32 +57,33 @@ public class SecurityConfig {
 //                );
 //
 //        return http.build();
-//    }4
+//    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable()) // CSRF 보호 비활성화
-                .authorizeHttpRequests(authorizeRequests ->
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeRequests(authorizeRequests ->
                         authorizeRequests
-                                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/api/v1/auth/login").permitAll() // 인증 없이 접근 가능
+                                .requestMatchers("/api/v1/users/**", "/swagger-ui/**", "/v3/api-docs/**", "/oauth2/authorization/kakao").permitAll() // 인증 없이 접근 가능
                                 .anyRequest().authenticated() // 나머지 애들은 인증 필요
                 )
-                .formLogin(formLogin -> formLogin
-                        .loginPage("/api/v1/auth/login") // 로그인 페이지 URL
-                        .loginProcessingUrl("/api/v1/auth/login") // 로그인 요청 URL
-                        .defaultSuccessUrl("/", true) // 로그인 성공 후 리디렉션 URL
-                        .permitAll()
+                .addFilterBefore(new JwtFilter(jwtUtil, customUserDetailsService), UsernamePasswordAuthenticationFilter.class)
+                .oauth2Login(oauth2 -> oauth2
+                        .redirectionEndpoint(endpoint -> endpoint.baseUri("/oauth2/callback/*"))
+                        .userInfoEndpoint(endpoint -> endpoint.userService(defaultOAuth2UserService))
                 );
 
         return http.build();
     }
 
 
-    @Bean
-    public CustomOAuth2UserService customOAuth2UserService() {
-        return new CustomOAuth2UserService(userRepository);
-    }
+
+//    @Bean
+//    public CustomOAuth2UserService customOAuth2UserService() {
+//        return new CustomOAuth2UserService(userRepository);
+//    }
 
     @Bean
     public CustomAuthenticationSuccessHandler authenticationSuccessHandler() {
@@ -95,4 +104,8 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
     }
+//    @Bean
+//    public CustomUserDetailsService customUserDetailsService(UserRepository userRepository, JwtUtil jwtUtil) {
+//        return new CustomUserDetailsService(userRepository, jwtUtil);
+//    }
 }
