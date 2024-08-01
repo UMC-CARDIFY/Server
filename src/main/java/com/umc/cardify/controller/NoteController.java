@@ -37,10 +37,10 @@ public class NoteController {
     }
     @GetMapping("/makeLink")
     @Operation(summary = "노트 링크 공유 API" , description = "노트 아이디 입력, 성공 시 uuid 반환(해당 uuid로 노트 특정)")
-    public ResponseEntity<NoteResponse.ShareResultDTO> makeLink(@RequestHeader("Authorization") String token, @RequestParam @Valid Long noteId){
+    public ResponseEntity<NoteResponse.ShareResultDTO> makeLink(@RequestHeader("Authorization") String token, @RequestParam @Valid Long noteId, @RequestParam @Valid Boolean isEdit, @RequestParam @Valid Boolean isContainCard){
         Long userId = jwtUtil.extractUserId(token);
         Note note = noteService.getNoteToID(noteId);
-        note = noteService.makeLink(note, userId);
+        note = noteService.makeLink(note, userId, isEdit, isContainCard);
         return ResponseEntity.ok(NoteConverter.toMakeLinkResult(note));
     }
     @PostMapping("/searchUUID")
@@ -89,5 +89,12 @@ public class NoteController {
                         .searchTxt(searchTxt)
                         .noteList(DTOList)
                         .build());
+    }
+    @PostMapping("/shareLib")
+    @Operation(summary = "노트 자료실 업로드 API" , description = "노트 아이디 입력, 성공 시 자료실 저장 성공 여부")
+    public ResponseEntity<NoteResponse.IsSuccessNoteDTO> shareLib(@RequestHeader("Authorization") String token, @RequestBody @Valid NoteRequest.ShareLibDto request){
+        Long userId = jwtUtil.extractUserId(token);
+        Boolean isSuccess = noteService.shareLib(userId, request);
+        return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(isSuccess));
     }
 }

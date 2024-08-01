@@ -59,9 +59,13 @@ public class Note extends BaseEntity {
     @Column(columnDefinition = "Boolean DEFAULT false")
     private Boolean isEdit;
 
+    @Setter
+    @Column(columnDefinition = "Boolean DEFAULT false")
+    private Boolean isContainCard;
+
     @OneToMany(mappedBy = "note", cascade = CascadeType.ALL)
     private List<Card> cards;
 
-    @OneToOne(mappedBy = "library", cascade = CascadeType.ALL)
+    @OneToOne(mappedBy = "note", cascade = CascadeType.ALL)
     private Library library;
 }
