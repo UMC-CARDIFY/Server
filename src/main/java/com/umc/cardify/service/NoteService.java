@@ -79,14 +79,13 @@ public class NoteService {
                 .isLast(notePage.isLast())
                 .build();
     }
-    public Note shareNote(Note note, Boolean isEdit, Long userId){
+    public Note makeLink(Note note, Long userId){
         if(!userId.equals(note.getFolder().getUser().getUserId()))
             throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
         else {
             if (note.getNoteUUID() == null) {
                 note.setNoteUUID(UUID.randomUUID());
             }
-            note.setIsEdit(isEdit);
             return noteRepository.save(note);
         }
     }
