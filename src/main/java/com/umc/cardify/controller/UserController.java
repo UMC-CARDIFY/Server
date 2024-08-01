@@ -1,40 +1,42 @@
 package com.umc.cardify.controller;
 
-import com.umc.cardify.domain.User;
 import com.umc.cardify.dto.user.UserRequest;
 import com.umc.cardify.dto.user.UserResponse;
 import com.umc.cardify.service.UserService;
-
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 
 @Tag(name = "UserController", description = "회원가입, 로그인, 유저 프로필 관련 API")
 @RestController
-@RequestMapping("api/v1/users")
+@RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
 public class UserController {
 
     private final UserService userService;
 
-    @PostMapping(value = "/signIn")
-    @Operation(summary = "회원 가입", description = " 회원 가입 정보 입력, 성공 시 유저 이름 반환")
-    public ResponseEntity<String> signIn(@Validated @RequestBody UserRequest.signIn request) {
-        String userName = userService.registerUser(request);
-
-        return ResponseEntity.ok(userName);
+    // 이메일 회원가입
+    @PostMapping("/signup")
+    @Operation(summary = "회원가입 API")
+    @ApiResponse(responseCode = "200", description = "회원가입 성공")
+    @ApiResponse(responseCode = "400", description = "잘못된 요청", content = @io.swagger.v3.oas.annotations.media.Content(mediaType = "application/json"))
+    public ResponseEntity<String> signUp(@RequestBody UserRequest.signUp signUpRequest) {
+        String email = userService.signup(signUpRequest);
+        return ResponseEntity.ok(email);
     }
 
+    // 이메일 로그인
     @PostMapping("/login")
-    @Operation(summary = "로그인", description = "아이디와 비밀 번호 입력, 성공 시 토큰 반환")
-    public ResponseEntity<UserResponse.tokenInfo> login(@Validated @RequestBody UserRequest.login request) {
-        UserResponse.tokenInfo tokenInfo = userService.login(request);
-
+    @Operation(summary = "로그인 API")
+    @ApiResponse(responseCode = "200", description = "로그인 성공")
+    @ApiResponse(responseCode = "400", description = "잘못된 요청", content = @io.swagger.v3.oas.annotations.media.Content(mediaType = "application/json"))
+    public ResponseEntity<UserResponse.tokenInfo> login(@RequestBody UserRequest.login loginRequest) {
+        UserResponse.tokenInfo tokenInfo = userService.login(loginRequest);
         return ResponseEntity.ok(tokenInfo);
     }
-
 }
+
