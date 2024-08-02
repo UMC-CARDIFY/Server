@@ -137,6 +137,7 @@ public class FolderService {
                 .color(folder.getColor())
                 .createdAt(folder.getCreatedAt())
                 .build();
+
     }
 
     @Transactional

@@ -40,7 +40,7 @@ public class UserService {
 
         try {
             User result = userRepository.save(user);
-            return result.getEmail();
+            return result.getName();
         } catch (Exception e) {
             // 예외 로그 남기기
             e.printStackTrace();

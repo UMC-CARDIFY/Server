@@ -27,16 +27,10 @@ public class JwtFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+        log.info("JwtFilter is being invoked");
         final String requestTokenHeader = request.getHeader("Authorization");
         String username = null;
         String jwtToken = null;
-
-        // 특정 URL 경로를 제외(kakao 로그인)
-        String requestURI = request.getRequestURI();
-        if (requestURI.startsWith("//oauth2/authorization/kakao")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
 
         // JWT Token is in the form "Bearer token". Remove Bearer word and get only the Token
         if (requestTokenHeader != null && requestTokenHeader.startsWith("Bearer ")) {
@@ -44,9 +38,9 @@ public class JwtFilter extends OncePerRequestFilter {
             try {
                 username = jwtUtil.extractUserId(jwtToken).toString();
             } catch (IllegalArgumentException e) {
-                log.warn("Unable to get JWT Token");
+                log.warn("Unable to get JWT Token", e);
             } catch (ExpiredJwtException e) {
-                log.warn("JWT Token has expired");
+                log.warn("JWT Token has expired", e);
             }
         } else {
             log.warn("JWT Token does not begin with Bearer String");

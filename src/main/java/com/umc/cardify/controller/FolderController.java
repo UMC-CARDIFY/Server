@@ -78,6 +78,7 @@ public class FolderController {
         Long userId = jwtUtil.extractUserId(token);
         FolderResponse.addFolderResultDTO response = folderService.addFolder(userId, folderRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+
     }
 
     @PatchMapping("/{folderId}")
