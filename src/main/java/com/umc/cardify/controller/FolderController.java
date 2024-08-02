@@ -75,20 +75,9 @@ public class FolderController {
     public ResponseEntity<FolderResponse.addFolderResultDTO> addFolder(
             @RequestHeader("Authorization") String token,
             @RequestBody @Valid FolderRequest.addFolderDto folderRequest) {
-        try {
-            Long userId = jwtUtil.extractUserId(token);
-            FolderResponse.addFolderResultDTO response = folderService.addFolder(userId, folderRequest);
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (Exception e) {
-            // 예외 로그 남기기
-            e.printStackTrace();
-            // 원인 예외 접근
-            Throwable cause = e.getCause();
-            if (cause != null) {
-                cause.printStackTrace();
-            }
-            throw new RuntimeException("Unexpected error occurred", e);
-        }
+        Long userId = jwtUtil.extractUserId(token);
+        FolderResponse.addFolderResultDTO response = folderService.addFolder(userId, folderRequest);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
 
     }
 

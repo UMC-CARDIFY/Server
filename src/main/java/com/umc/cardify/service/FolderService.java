@@ -112,29 +112,20 @@ public class FolderService {
             throw new BadRequestException(ErrorResponseStatus.DUPLICATE_ERROR);
         }
 
-        try {
-            Folder folder = Folder.builder()
-                    .name(folderRequest.getName())
-                    .color(folderRequest.getColor())
-                    .user(user)
-                    .build();
+        Folder folder = Folder.builder()
+                .name(folderRequest.getName())
+                .color(folderRequest.getColor())
+                .user(user)
+                .build();
 
-            folder = folderRepository.save(folder);
+        folder = folderRepository.save(folder);
 
-            return FolderResponse.addFolderResultDTO.builder()
-                    .folderId(folder.getFolderId())
-                    .name(folder.getName())
-                    .color(folder.getColor())
-                    .createdAt(folder.getCreatedAt())
-                    .build();
-        } catch (Exception e) {
-            e.printStackTrace();
-            Throwable cause = e.getCause();
-            if (cause != null) {
-                cause.printStackTrace();
-            }
-            throw new RuntimeException("Unexpected error occurred", e);
-        }
+        return FolderResponse.addFolderResultDTO.builder()
+                .folderId(folder.getFolderId())
+                .name(folder.getName())
+                .color(folder.getColor())
+                .createdAt(folder.getCreatedAt())
+                .build();
 
     }
 
