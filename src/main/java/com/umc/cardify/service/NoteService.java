@@ -187,6 +187,8 @@ public class NoteService {
     }
     public Boolean shareLib(Long userId, NoteRequest.ShareLibDto request) {
         Note note = getNoteToID(request.getNoteId());
+        if(libraryRepository.findByNote(note) != null)
+            throw new BadRequestException(ErrorResponseStatus.DB_INSERT_ERROR);
         if(!userId.equals(note.getFolder().getUser().getUserId()))
             throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
         else{
@@ -194,25 +196,30 @@ public class NoteService {
                     .note(note)
                     .uploadAt(LocalDateTime.now())
                     .build();
+            List<Category> categoryList = null;
             //카테고리 찾아서 Library에 삽입
             if(request.getCategory().size() > 0 && request.getCategory().size() <= 3) {
-                List<LibraryCategory> categoryList = request.getCategory().stream()
+                categoryList = request.getCategory().stream()
                         .map(categoryStr -> {
                             Category category = categoryRepository.findByName(categoryStr);
                             //요청한 카테고리가 없으면 에러
                             if(category == null)
                                 throw new BadRequestException(ErrorResponseStatus.NOT_FOUND_CATEGORY);
-                            LibraryCategory libraryCategory = LibraryCategory.builder()
-                                    .library(library)
-                                    .category(category)
-                                    .build();
-                            return libraryCategoryRepository.save(libraryCategory);
+                            return category;
                         })
                         .toList();
-                library.setCategoryList(categoryList);
             }
-
+            else
+                throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
             libraryRepository.save(library);
+            if(categoryList != null){
+                categoryList.stream()
+                        .map(category -> libraryCategoryRepository.save(LibraryCategory.builder()
+                            .category(category)
+                            .library(library)
+                            .build()))
+                        .toList();
+            }
             return true;
         }
     }
