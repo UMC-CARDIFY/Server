@@ -1,5 +1,6 @@
 package com.umc.cardify.handler;
 
+import com.umc.cardify.domain.User;
 import com.umc.cardify.dto.user.UserResponse;
 import com.umc.cardify.jwt.JwtUtil;
 import com.umc.cardify.repository.UserRepository;
@@ -23,21 +24,22 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException {
-        // Authentication 객체에서 사용자 이름을 추출
+        // Authentication 객체에서 사용자 정보를 가져옴
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        String username = userDetails.getUsername();
+        String email = userDetails.getUsername(); // 이메일이 username으로 설정되어 있다고 가정
 
-        // 사용자 이름으로 User 엔티티를 조회하여 사용자 ID를 얻음
-        com.umc.cardify.domain.User user = userRepository.findByEmail(username)
+        // 이메일로 사용자 엔티티를 조회
+        User user = userRepository.findByEmailAndKakao(email, true)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid user email"));
 
-        // JWT 생성 및 설정
+        // JWT 토큰 생성
         UserResponse.tokenInfo tokenInfo = jwtUtil.generateTokens(user.getUserId());
         response.setHeader("Authorization", "Bearer " + tokenInfo.getAccessToken());
         response.setHeader("Refresh-Token", tokenInfo.getRefreshToken());
 
         System.out.println("카카오 로그인 토큰: " + tokenInfo.getAccessToken());
+
         // 로그인 성공 후 리디렉션 URL 설정
-        response.sendRedirect("https://www.google.co.kr/?hl=ko");
+        response.sendRedirect("/home");
     }
 }

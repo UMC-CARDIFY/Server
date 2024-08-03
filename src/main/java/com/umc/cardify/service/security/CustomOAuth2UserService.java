@@ -1,64 +1,66 @@
 package com.umc.cardify.service.security;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.cardify.domain.User;
+import com.umc.cardify.jwt.JwtUtil;
 import com.umc.cardify.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
+import org.springframework.security.oauth2.core.user.OAuth2UserAuthority;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.Map;
 
-// 카카오 로그인 처리
 @Service
-@RequiredArgsConstructor
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
-//    private final UserRepository userRepository;
-//
-//    public CustomOAuth2UserService(UserRepository userRepository) {
-//
-//        this.userRepository = userRepository;
-//    }
+    @Autowired
+    private UserRepository userRepository;
 
-    // 카카오 로그인 요청 처리, 사용자 정보 로드
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    private static final Logger logger = LoggerFactory.getLogger(CustomOAuth2UserService.class);
+
+
     @Override
-    public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
-
-        OAuth2User oAuth2User = super.loadUser(userRequest);
+    public OAuth2User loadUser(OAuth2UserRequest userRequest) {
 
         try {
-            System.out.println(new ObjectMapper().writeValueAsString(oAuth2User.getAttributes()));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-//        Map<String, Object> attributes = oAuth2User.getAttributes();
-//
-//        String email = (String) attributes.get("email");
-//        User user = userRepository.findByEmail(email).orElseGet(()
-//                -> registerUser(attributes));
-//
-//        return (OAuth2User) new org.springframework.security.core.userdetails.User(
-//                user.getEmail(),
-//                user.getPassword(),
-//                Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
-//        );
-        return oAuth2User;
-    }
+            OAuth2User oAuth2User = super.loadUser(userRequest);
 
-//    // 카카오 회원가입
-//    private User registerUser(Map<String, Object> attributes) {
-//        User user = User.builder()
-//                .name((String) attributes.get("name"))
-//                .email((String) attributes.get("email"))
-//                .password("") // 카카오 로그인 사용자에게는 비밀번호가 필요하지 않음
-//                .kakao(true)
-//                .build();
-//        return userRepository.save(user);
-//    }
+            // Log the user attributes for debugging
+            logger.debug("OAuth2 User Attributes: {}", oAuth2User.getAttributes());
+            // Custom processing of the user information
+
+            Map<String, Object> attributes = oAuth2User.getAttributes();
+
+            // 카카오 사용자 정보 추출
+            String email = (String) attributes.get("kakao_account.email");
+            String name = (String) attributes.get("properties.nickname");
+
+            // DB에서 사용자 조회 또는 신규 사용자 저장
+            User user = userRepository.findByEmailAndKakao(email, true)
+                    .orElseGet(() -> {
+                        User newUser = new User();
+                        newUser.setEmail(email);
+                        newUser.setName(name);
+                        newUser.setKakao(true);
+                        newUser.setPassword(""); // 비밀번호는 빈 문자열로 설정 (소셜 로그인 사용)
+                        return userRepository.save(newUser);
+                    });
+
+            return new CustomOAuth2User(Collections.singleton(new OAuth2UserAuthority(attributes)), attributes, "id");
+
+        } catch (OAuth2AuthenticationException e) {
+            logger.error("OAuth2 Authentication Exception", e);
+            throw e;
+        }
+
+    }
 }
