@@ -36,11 +36,11 @@ public class FolderController {
     }
 
     @GetMapping("/sort")
-    @Operation(summary = "폴더 정렬 기능 API", description = "해당 유저의 폴더를 정렬해서 반환, 페이징을 포함 query string으로 페이지 번호를 주세요. | order = asc, desc, edit-newest, edit-oldest")
+    @Operation(summary = "폴더 정렬 기능 API", description = "성공 시 해당 유저의 폴더를 정렬해서 반환 | order = asc, desc, edit-newest, edit-oldest")
     public ResponseEntity<FolderResponse.sortFolderListDTO> sortFolders(
             @RequestHeader("Authorization") String token,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam int size,
+            @RequestParam(required = false)  Integer page,
+            @RequestParam(required = false)  Integer size,
             @RequestParam String order){
         Long userId = jwtUtil.extractUserId(token);
         FolderResponse.sortFolderListDTO folders = folderService.sortFoldersByUserId(userId, page, size, order);

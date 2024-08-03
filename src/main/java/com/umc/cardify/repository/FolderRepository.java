@@ -14,9 +14,20 @@ public interface FolderRepository extends JpaRepository<Folder, Long> {
 
     @Query("SELECT f FROM Folder f WHERE f.user = :user ORDER BY " +
             "CASE WHEN f.markState = 'ACTIVE' THEN 0 ELSE 1 END, " +
-            "CASE WHEN f.markState = 'ACTIVE' THEN f.markDate ELSE f.createdAt END DESC, " +
-            "f.createdAt DESC ")
+            "f.markDate ASC, f.createdAt DESC ")
     Page<Folder> findByUser(@Param("user") User user, Pageable pageable);
+
+    @Query("SELECT f FROM Folder f WHERE f.user = :user ORDER BY " +
+            "CASE WHEN f.markState = 'ACTIVE' THEN 0 ELSE 1 END, " +
+            "CASE WHEN f.markState = 'ACTIVE' THEN f.markDate END ASC, " +
+            "CASE WHEN :order = 'asc' THEN f.name " +
+            "WHEN :order = 'edit-oldest' THEN f.editDate " +
+            "END ASC, " +
+            "CASE WHEN :order = 'desc' THEN f.name " +
+            "WHEN :order = 'edit-newest' THEN f.editDate " +
+            "END DESC")
+    Page<Folder> findByUserAndSort(@Param("user") User user, @Param("order") String order, Pageable pageable);
+
 
     Optional<Folder> findByFolderIdAndUser(Long folderId, User userId);
 
@@ -24,7 +35,6 @@ public interface FolderRepository extends JpaRepository<Folder, Long> {
 
     @Query("SELECT f FROM Folder f WHERE f.user = :user AND f.color IN (:color) ORDER BY " +
             "CASE WHEN f.markState = 'ACTIVE' THEN 0 ELSE 1 END, " +
-            "CASE WHEN f.markState = 'ACTIVE' THEN f.markDate ELSE f.createdAt END DESC, " +
-            "f.createdAt DESC ")
+            "f.markDate ASC, f.createdAt DESC ")
     Page<Folder> findByUserAndColor(@Param("user") User user, @Param("color") String color, Pageable pageable);
 }
