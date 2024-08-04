@@ -48,4 +48,21 @@ public class NoteRequest {
 
         String searchTxt;
     }
+    @Getter
+    @Schema(title = "NOTE_REQ_05 : 노트 링크 생성 요청 DTO")
+    public static class MakeLinkDto{
+        @NotNull
+        Long noteId;
+        Boolean isEdit;
+        Boolean isContainCard;
+    }
+    @Getter
+    @Schema(title = "NOTE_REQ_06 : 노트 자료실 업로드 요청 DTO")
+    public static class ShareLibDto{
+        @NotNull
+        Long noteId;
+        Boolean isEdit;
+        Boolean isContainCard;
+        List<String> category;
+    }
 }

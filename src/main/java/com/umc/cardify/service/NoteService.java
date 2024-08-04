@@ -3,17 +3,12 @@ package com.umc.cardify.service;
 import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.converter.NoteConverter;
-import com.umc.cardify.domain.Card;
-import com.umc.cardify.domain.Folder;
-import com.umc.cardify.domain.Note;
-import com.umc.cardify.domain.User;
+import com.umc.cardify.domain.*;
 import com.umc.cardify.domain.enums.MarkStatus;
 import com.umc.cardify.dto.card.CardRequest;
 import com.umc.cardify.dto.note.NoteRequest;
 import com.umc.cardify.dto.note.NoteResponse;
-import com.umc.cardify.repository.CardRepository;
-import com.umc.cardify.repository.NoteRepository;
-import com.umc.cardify.repository.UserRepository;
+import com.umc.cardify.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
@@ -34,6 +29,10 @@ public class NoteService {
     private final NoteConverter noteConverter;
     private final CardRepository cardRepository;
     private final CardService cardService;
+
+    private final LibraryRepository libraryRepository;
+    private final CategoryRepository categoryRepository;
+    private final LibraryCategoryRepository libraryCategoryRepository;
     public Note getNoteToID(long noteId){
         return noteRepository.findById(noteId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
     }
@@ -79,7 +78,7 @@ public class NoteService {
                 .isLast(notePage.isLast())
                 .build();
     }
-    public Note shareNote(Note note, Boolean isEdit, Long userId){
+    public Note makeLink(Note note, Long userId, Boolean isEdit, Boolean isContainCard){
         if(!userId.equals(note.getFolder().getUser().getUserId()))
             throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
         else {
@@ -87,6 +86,7 @@ public class NoteService {
                 note.setNoteUUID(UUID.randomUUID());
             }
             note.setIsEdit(isEdit);
+            note.setIsContainCard(isContainCard);
             return noteRepository.save(note);
         }
     }
@@ -184,5 +184,68 @@ public class NoteService {
                 .collect(Collectors.toList());
 
         return searchList;
+    }
+    public Boolean shareLib(Long userId, NoteRequest.ShareLibDto request) {
+        Note note = getNoteToID(request.getNoteId());
+        if(!userId.equals(note.getFolder().getUser().getUserId()))
+            throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
+
+        //기존에 공유되어 있던 데이터를 삭제
+        Library library = note.getLibrary();
+        if(library != null){
+            note.setLibrary(null);
+            libraryRepository.delete(library);
+        }
+
+        Library library_new = Library.builder()
+                .note(note)
+                .uploadAt(LocalDateTime.now())
+                .build();
+        libraryRepository.save(library_new);
+
+        //카테고리 찾아서 Library에 삽입
+        List<Category> categoryList = null;
+        if(request.getCategory().size() > 0 && request.getCategory().size() <= 3) {
+            categoryList = request.getCategory().stream()
+                    .map(categoryStr -> {
+                        Category category = categoryRepository.findByName(categoryStr);
+                        //요청한 카테고리가 없으면 에러
+                        if(category == null)
+                            throw new BadRequestException(ErrorResponseStatus.NOT_FOUND_CATEGORY);
+                        return category;
+                    })
+                    .toList();
+        }
+        else
+            throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+        if(categoryList != null){
+            categoryList.stream()
+                    .map(category -> libraryCategoryRepository.save(LibraryCategory.builder()
+                            .category(category)
+                            .library(library_new)
+                            .build()))
+                    .toList();
+        }
+
+        note.setIsEdit(request.getIsEdit());
+        note.setIsContainCard(request.getIsContainCard());
+        noteRepository.save(note);
+        return true;
+    }
+    public Boolean cancelShare(Long noteId, Long userId){
+        Note note = getNoteToID(noteId);
+        if(!userId.equals(note.getFolder().getUser().getUserId()))
+            throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
+        Library library = note.getLibrary();
+
+        note.setLibrary(null);
+        note.setNoteUUID(null);
+        note.setIsEdit(null);
+        note.setIsContainCard(null);
+        noteRepository.save(note);
+
+        if(library!=null)
+            libraryRepository.delete(library);
+        return true;
     }
 }
