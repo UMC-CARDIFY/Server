@@ -187,11 +187,13 @@ public class NoteService {
     }
     public Boolean shareLib(Long userId, NoteRequest.ShareLibDto request) {
         Note note = getNoteToID(request.getNoteId());
-        if(libraryRepository.findByNote(note) != null)
-            throw new BadRequestException(ErrorResponseStatus.DB_INSERT_ERROR);
         if(!userId.equals(note.getFolder().getUser().getUserId()))
             throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
-        else{
+
+        if(libraryRepository.findByNote(note) != null){
+            //카테고리 삽입만 시행
+        }
+        if(libraryRepository.findByNote(note) == null){
             Library library = Library.builder()
                     .note(note)
                     .uploadAt(LocalDateTime.now())
@@ -220,7 +222,26 @@ public class NoteService {
                             .build()))
                         .toList();
             }
-            return true;
         }
+        note.setIsEdit(request.getIsEdit());
+        note.setIsContainCard(request.getIsContainCard());
+        noteRepository.save(note);
+        return true;
+    }
+    public Boolean cancelShare(Long noteId, Long userId){
+        Note note = getNoteToID(noteId);
+        if(!userId.equals(note.getFolder().getUser().getUserId()))
+            throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
+        Library library = note.getLibrary();
+
+        note.setLibrary(null);
+        note.setNoteUUID(null);
+        note.setIsEdit(null);
+        note.setIsContainCard(null);
+        noteRepository.save(note);
+
+        if(library!=null)
+            libraryRepository.delete(library);
+        return true;
     }
 }
