@@ -71,6 +71,7 @@ public class JwtUtil {
                 .compact();
     }
 
+    // 토큰 유효성 검증
     public boolean validateToken(String token) {
         try {
             Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);

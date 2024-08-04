@@ -23,6 +23,7 @@ public class UserService {
     // 이메일 회원가입
     @Transactional
     public String signup(UserRequest.signUp request) {
+
         // 중복된 이메일 검사
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new BadRequestException(ErrorResponseStatus.DUPLICATE_ERROR);

@@ -1,10 +1,7 @@
 package com.umc.cardify.domain;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -16,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
@@ -34,7 +32,7 @@ public class User extends BaseEntity {
     private String name;
 
 //    @Column(name = "url_profile", columnDefinition = "text")
-//    private String urlProfile;
+//    private String urlProfile;Re
 
     @Column(name = "email", columnDefinition = "varchar(320)")
     private String email;
