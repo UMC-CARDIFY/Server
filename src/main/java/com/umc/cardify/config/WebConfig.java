@@ -21,7 +21,7 @@ public class WebConfig implements WebMvcConfigurer {
         return new RestTemplate();
     }
 
-    // CORS 설정을 사용하는 경우 주석 해제
+    // CORS 설정
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")

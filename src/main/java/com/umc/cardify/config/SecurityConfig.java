@@ -15,6 +15,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -44,23 +45,23 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // 세션 비활성화
                 .authorizeRequests(authorizeRequests ->
                         authorizeRequests
-                                .requestMatchers("/oauth2/callback/kakao","/login", "/home", "/loginFailure","/api/v1/users/**", "/swagger-ui/**", "/v3/api-docs/**", "/oauth2/authorization/kakao", "/error").permitAll() // 인증 없이 접근 가능
+                                .requestMatchers("/oauth2/callback/kakao","/oauth2/authorization/kakao", "/login", "/home", "/loginFailure","/api/v1/users/**", "/swagger-ui/**", "/v3/api-docs/**", "/error").permitAll() // 인증 없이 접근 가능
                                 .anyRequest().authenticated() // 나머지 애들은 인증 필요
                 )
                 .oauth2Login(oauth2Login ->
                         oauth2Login
-                                .loginPage("/login")
-                                .defaultSuccessUrl("/home")
-                                .failureUrl("/loginFailure")
                                 .authorizationEndpoint(authorizationEndpoint ->
                                         authorizationEndpoint.baseUri("/oauth2/authorization")
                                 )
                                 .redirectionEndpoint(redirectionEndpoint ->
-                                        redirectionEndpoint.baseUri("/oauth2/callback/*")
+                                        redirectionEndpoint.baseUri("/oauth2/callback/kakao")
                                 )
                                 .userInfoEndpoint(userInfoEndpoint ->
                                         userInfoEndpoint.userService(customOAuth2UserService)
                                 )
+                                .loginPage("/login")
+                                .defaultSuccessUrl("/home")
+                                .failureUrl("/loginFailure")
                                 .successHandler(authenticationSuccessHandler())
                 )
                 .addFilterBefore(new JwtFilter(jwtUtil, customUserDetailsService), UsernamePasswordAuthenticationFilter.class)

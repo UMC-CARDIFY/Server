@@ -32,7 +32,7 @@ public class User extends BaseEntity {
     private String name;
 
 //    @Column(name = "url_profile", columnDefinition = "text")
-//    private String urlProfile;
+//    private String urlProfile;Re
 
     @Column(name = "email", columnDefinition = "varchar(320)")
     private String email;
