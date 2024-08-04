@@ -35,12 +35,12 @@ public class NoteController {
         Note note = noteService.addNote(folder, userId);
         return ResponseEntity.ok(NoteConverter.toAddNoteResult(note));
     }
-    @GetMapping("/makeLink")
+    @PostMapping("/makeLink")
     @Operation(summary = "노트 링크 공유 API" , description = "노트 아이디 입력, 성공 시 uuid 반환(해당 uuid로 노트 특정)")
-    public ResponseEntity<NoteResponse.ShareResultDTO> makeLink(@RequestHeader("Authorization") String token, @RequestParam @Valid Long noteId, @RequestParam @Valid Boolean isEdit, @RequestParam @Valid Boolean isContainCard){
+    public ResponseEntity<NoteResponse.ShareResultDTO> makeLink(@RequestHeader("Authorization") String token, @RequestBody @Valid NoteRequest.MakeLinkDto request){
         Long userId = jwtUtil.extractUserId(token);
-        Note note = noteService.getNoteToID(noteId);
-        note = noteService.makeLink(note, userId, isEdit, isContainCard);
+        Note note = noteService.getNoteToID(request.getNoteId());
+        note = noteService.makeLink(note, userId, request.getIsEdit(), request.getIsContainCard());
         return ResponseEntity.ok(NoteConverter.toMakeLinkResult(note));
     }
     @PostMapping("/searchUUID")

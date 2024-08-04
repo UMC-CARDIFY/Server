@@ -190,39 +190,43 @@ public class NoteService {
         if(!userId.equals(note.getFolder().getUser().getUserId()))
             throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
 
-        if(libraryRepository.findByNote(note) != null){
-            //카테고리 삽입만 시행
+        //기존에 공유되어 있던 데이터를 삭제
+        Library library = note.getLibrary();
+        if(library != null){
+            note.setLibrary(null);
+            libraryRepository.delete(library);
         }
-        if(libraryRepository.findByNote(note) == null){
-            Library library = Library.builder()
-                    .note(note)
-                    .uploadAt(LocalDateTime.now())
-                    .build();
-            List<Category> categoryList = null;
-            //카테고리 찾아서 Library에 삽입
-            if(request.getCategory().size() > 0 && request.getCategory().size() <= 3) {
-                categoryList = request.getCategory().stream()
-                        .map(categoryStr -> {
-                            Category category = categoryRepository.findByName(categoryStr);
-                            //요청한 카테고리가 없으면 에러
-                            if(category == null)
-                                throw new BadRequestException(ErrorResponseStatus.NOT_FOUND_CATEGORY);
-                            return category;
-                        })
-                        .toList();
-            }
-            else
-                throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
-            libraryRepository.save(library);
-            if(categoryList != null){
-                categoryList.stream()
-                        .map(category -> libraryCategoryRepository.save(LibraryCategory.builder()
+
+        Library library_new = Library.builder()
+                .note(note)
+                .uploadAt(LocalDateTime.now())
+                .build();
+        libraryRepository.save(library_new);
+
+        //카테고리 찾아서 Library에 삽입
+        List<Category> categoryList = null;
+        if(request.getCategory().size() > 0 && request.getCategory().size() <= 3) {
+            categoryList = request.getCategory().stream()
+                    .map(categoryStr -> {
+                        Category category = categoryRepository.findByName(categoryStr);
+                        //요청한 카테고리가 없으면 에러
+                        if(category == null)
+                            throw new BadRequestException(ErrorResponseStatus.NOT_FOUND_CATEGORY);
+                        return category;
+                    })
+                    .toList();
+        }
+        else
+            throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+        if(categoryList != null){
+            categoryList.stream()
+                    .map(category -> libraryCategoryRepository.save(LibraryCategory.builder()
                             .category(category)
-                            .library(library)
+                            .library(library_new)
                             .build()))
-                        .toList();
-            }
+                    .toList();
         }
+
         note.setIsEdit(request.getIsEdit());
         note.setIsContainCard(request.getIsContainCard());
         noteRepository.save(note);
