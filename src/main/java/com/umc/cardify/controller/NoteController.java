@@ -97,4 +97,11 @@ public class NoteController {
         Boolean isSuccess = noteService.shareLib(userId, request);
         return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(isSuccess));
     }
+    @DeleteMapping("/cancelShare")
+    @Operation(summary = "노트 공유 취소 API" , description = "노트 ID 입력, 성공 시 즐겨찾기 성공 여부 반환")
+    public ResponseEntity<NoteResponse.IsSuccessNoteDTO> cancelShare(@RequestHeader("Authorization") String token, @RequestParam @Valid Long noteId){
+        Long userId = jwtUtil.extractUserId(token);
+        Boolean isSuccess = noteService.cancelShare(noteId, userId);
+        return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(isSuccess));
+    }
 }

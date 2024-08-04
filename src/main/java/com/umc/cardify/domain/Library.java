@@ -24,7 +24,6 @@ public class Library extends BaseEntity {
 
     private LocalDateTime uploadAt;
 
-    @Setter
     @OneToMany(mappedBy = "library", cascade = CascadeType.ALL)
     private List<LibraryCategory> categoryList = new ArrayList<>();
 }
