@@ -3,12 +3,18 @@ package com.umc.cardify.controller;
 import com.umc.cardify.dto.user.UserRequest;
 import com.umc.cardify.dto.user.UserResponse;
 import com.umc.cardify.service.UserService;
+import io.jsonwebtoken.Jwt;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 
 @Tag(name = "UserController", description = "회원가입, 로그인, 유저 프로필 관련 API")
@@ -38,5 +44,8 @@ public class UserController {
         UserResponse.tokenInfo tokenInfo = userService.login(loginRequest);
         return ResponseEntity.ok(tokenInfo);
     }
+
+    // 카카오 로그인
+
 }
 

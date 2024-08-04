@@ -24,11 +24,7 @@ public class User extends BaseEntity {
     @Column(name = "user_id")
     private Long userId;
 
-    @Column(name = "name", columnDefinition = "varchar(20) NOT NULL")
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    private List<Folder> userFolderList = new ArrayList<>();
-
-    @Column(name = "name", columnDefinition = "varchar(30) NOT NULL")
+    @Column(name = "name", columnDefinition = "varchar(30)")
     private String name;
 
 //    @Column(name = "url_profile", columnDefinition = "text")
@@ -37,17 +33,27 @@ public class User extends BaseEntity {
     @Column(name = "email", columnDefinition = "varchar(320)")
     private String email;
 
-    @Column(name = "pawssword", columnDefinition = "varchar(255) NOT NULL")
+    @Column(name = "password", columnDefinition = "varchar(255) NOT NULL")
     private String password;
 
     @Column(name = "kakao", columnDefinition = "boolean")
     private boolean kakao;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<Folder> userFolderList = new ArrayList<>();
 
     @Builder
     public User(String name, String email, String password, boolean kakao) {
         this.name = name;
         this.email = email;
         this.password = password;
+        this.kakao = kakao;
+    }
+
+    public User (String name, String email, boolean kakao) {
+        this.name = name;
+        this.email = email;
+        this.password = "KakaoPassw0rd"; // 카카오라 의미 없음
         this.kakao = kakao;
     }
 

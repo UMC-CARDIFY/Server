@@ -45,13 +45,16 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // 세션 비활성화
                 .authorizeRequests(authorizeRequests ->
                         authorizeRequests
-                                .requestMatchers("/oauth2/callback/kakao","/oauth2/authorization/kakao", "/login", "/home", "/loginFailure","/api/v1/users/**", "/swagger-ui/**", "/v3/api-docs/**", "/error").permitAll() // 인증 없이 접근 가능
+                                .requestMatchers( "auth/oauth-response/**","oauth2/callback/kakao/**","/oauth2/authorization/kakao","/login", "/home", "/loginFailure","/api/v1/users/**", "/swagger-ui/**", "/v3/api-docs/**", "/error").permitAll() // 인증 없이 접근 가능
                                 .anyRequest().authenticated() // 나머지 애들은 인증 필요
                 )
                 .oauth2Login(oauth2Login ->
                         oauth2Login
+//                                .loginPage("/home")
+//                                .defaultSuccessUrl("/home")
+//                                .failureUrl("/loginFailure")
                                 .authorizationEndpoint(authorizationEndpoint ->
-                                        authorizationEndpoint.baseUri("/oauth2/authorization")
+                                        authorizationEndpoint.baseUri("/api/v1/auth/oauth2")
                                 )
                                 .redirectionEndpoint(redirectionEndpoint ->
                                         redirectionEndpoint.baseUri("/oauth2/callback/kakao")
@@ -59,9 +62,6 @@ public class SecurityConfig {
                                 .userInfoEndpoint(userInfoEndpoint ->
                                         userInfoEndpoint.userService(customOAuth2UserService)
                                 )
-                                .loginPage("/login")
-                                .defaultSuccessUrl("/home")
-                                .failureUrl("/loginFailure")
                                 .successHandler(authenticationSuccessHandler())
                 )
                 .addFilterBefore(new JwtFilter(jwtUtil, customUserDetailsService), UsernamePasswordAuthenticationFilter.class)
