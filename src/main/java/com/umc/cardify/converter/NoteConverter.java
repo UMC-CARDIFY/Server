@@ -21,7 +21,6 @@ public class NoteConverter {
                 .folder(folder)
                 .name("제목없음")
                 .contents("빈 노트")
-                .isEdit(false)
                 .build();
     }
     public static NoteResponse.AddNoteResultDTO toAddNoteResult(Note note){
@@ -30,20 +29,6 @@ public class NoteConverter {
                 .createdAt(LocalDateTime.now())
                 .build();
     }
-    public static NoteResponse.ShareResultDTO toMakeLinkResult(Note note){
-        return NoteResponse.ShareResultDTO.builder()
-                .uuid(note.getNoteUUID().toString())
-                .build();
-    }
-    public static NoteResponse.SearchUUIDResultDTO toSearchUUIDResult(Note note){
-        return NoteResponse.SearchUUIDResultDTO.builder()
-                .noteId(note.getNoteId())
-                .name(note.getName())
-                .contents(note.getContents())
-                .isEdit(note.getIsEdit())
-                .build();
-    }
-
     public NoteResponse.NoteInfoDTO toNoteInfoDTO(Note note) {
         return NoteResponse.NoteInfoDTO.builder()
                 .noteId(note.getNoteId())

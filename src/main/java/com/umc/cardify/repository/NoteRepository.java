@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.UUID;
 
 public interface NoteRepository extends JpaRepository<Note, Long> {
-    Note findByNoteUUID(UUID uuid);
     Page<Note> findByFolder(Folder folder, Pageable pageable);
     List<Note> findByFolder(Folder folder);
     @Query("SELECT n FROM Note n WHERE n.folder.user = :user")
