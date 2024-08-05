@@ -1,6 +1,7 @@
 package com.umc.cardify.service;
 
 import com.umc.cardify.config.exception.BadRequestException;
+import com.umc.cardify.config.exception.DatabaseException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.converter.NoteConverter;
 import com.umc.cardify.domain.*;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -36,6 +38,18 @@ public class NoteService {
     public Note getNoteToID(long noteId){
         return noteRepository.findById(noteId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
     }
+    public Note getNoteToUUID(String uuid_str){
+        try{
+            UUID uuid = UUID.fromString(uuid_str);
+            Note note = noteRepository.findByNoteUUID(uuid);
+            if(note == null)
+                throw new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR);
+            return note;
+        }catch (IllegalArgumentException e){
+            throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+        }
+    }
+
     public Note addNote(Folder folder, Long userId){
         if(!userId.equals(folder.getUser().getUserId()))
             throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
@@ -45,15 +59,29 @@ public class NoteService {
         }
     }
 
-    public NoteResponse.NoteListDTO getNotesByUserId(Long userId, int page, int size) {
+    public NoteResponse.NoteListDTO getNotesByUserId(Long userId, Integer page, Integer size) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
-        Pageable pageable = PageRequest.of(page, size);
+        int getNotePage = (page != null) ? page : 0;
+        int getNoteSize = (size != null) ? size : 30;
+
+        Pageable pageable = PageRequest.of(getNotePage, getNoteSize);
         Page<Note> notePage = noteRepository.findByUser(user, pageable);
 
+        if(notePage == null){
+            throw new DatabaseException(ErrorResponseStatus.NOT_EXIST_NOTE);
+        }
+
         List<NoteResponse.NoteInfoDTO> notes = notePage.getContent().stream()
-                .map(noteConverter::toNoteInfoDTO)
+                .map(note -> NoteResponse.NoteInfoDTO.builder()
+                        .noteId(note.getNoteId())
+                        .name(note.getName())
+                        .folderName(note.getFolder().getName())
+                        .markState(note.getMarkState())
+                        .editDate(note.getEditDate().toLocalDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
+                        .createdAt(note.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
+                        .build())
                 .collect(Collectors.toList());
 
         return NoteResponse.NoteListDTO.builder()
@@ -66,6 +94,19 @@ public class NoteService {
                 .isLast(notePage.isLast())
                 .build();
     }
+
+    public Note makeLink(Note note, Long userId, Boolean isEdit, Boolean isContainCard){
+        if(!userId.equals(note.getFolder().getUser().getUserId()))
+            throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
+        else {
+            if (note.getNoteUUID() == null) {
+                note.setNoteUUID(UUID.randomUUID());
+            }
+            note.setIsEdit(isEdit);
+            note.setIsContainCard(isContainCard);
+            return noteRepository.save(note);
+        }
+    }
     public Boolean deleteNote(Long noteId, Long userId){
         Note note_del = noteRepository.findById(noteId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
         if(!userId.equals(note_del.getFolder().getUser().getUserId()))
@@ -76,7 +117,7 @@ public class NoteService {
         }
     }
 
-    public NoteResponse.GetNoteToFolderResultDTO getNoteToFolder(Folder folder, NoteRequest.GetNoteToFolderDto request){
+    public Page<Note> getNoteToFolder(Folder folder, NoteRequest.GetNoteToFolderDto request){
         Pageable pageable;
 
         Integer page = request.getPage();
@@ -106,8 +147,7 @@ public class NoteService {
         }
         Page<Note> notes_all = noteRepository.findByFolder(folder, pageable);
 
-        NoteResponse.GetNoteToFolderResultDTO noteDTO = noteConverter.toGetNoteToFolderResult(folder, notes_all);
-        return noteDTO;
+        return notes_all;
     }
     public Boolean markNote(Long noteId, Boolean isMark, Long userId){
         Note note_mark = noteRepository.findById(noteId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
@@ -130,11 +170,8 @@ public class NoteService {
     }
     public Boolean writeNote(NoteRequest.WriteNoteDto request, Long userId){
         Note note = noteRepository.findById(request.getNoteId()).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
-        if(!(userId.equals(note.getFolder().getUser().getUserId())))
+        if(!(userId.equals(note.getFolder().getUser().getUserId()) || note.getIsEdit()))
             throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
-        else if(libraryRepository.findByNote(note) != null){
-            throw new BadRequestException(ErrorResponseStatus.DB_INSERT_ERROR);
-        }
         else {
             note.setName(request.getName());
 
@@ -169,8 +206,7 @@ public class NoteService {
         Note note = getNoteToID(request.getNoteId());
         if(!userId.equals(note.getFolder().getUser().getUserId()))
             throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
-        if(note.getDownloadLibId() != null)
-            throw new BadRequestException(ErrorResponseStatus.DB_INSERT_ERROR);
+
         //기존에 공유되어 있던 데이터를 삭제
         Library library = note.getLibrary();
         if(library != null){
@@ -208,6 +244,8 @@ public class NoteService {
                     .toList();
         }
 
+        note.setIsEdit(request.getIsEdit());
+        note.setIsContainCard(request.getIsContainCard());
         noteRepository.save(note);
         return true;
     }
@@ -218,6 +256,9 @@ public class NoteService {
         Library library = note.getLibrary();
 
         note.setLibrary(null);
+        note.setNoteUUID(null);
+        note.setIsEdit(null);
+        note.setIsContainCard(null);
         noteRepository.save(note);
 
         if(library!=null)
