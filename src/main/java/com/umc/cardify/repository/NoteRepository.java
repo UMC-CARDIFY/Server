@@ -16,7 +16,10 @@ public interface NoteRepository extends JpaRepository<Note, Long> {
     Note findByNoteUUID(UUID uuid);
     Page<Note> findByFolder(Folder folder, Pageable pageable);
     List<Note> findByFolder(Folder folder);
-    @Query("SELECT n FROM Note n WHERE n.folder.user = :user")
+
+    @Query("SELECT n FROM Note n WHERE n.folder.user = :user ORDER BY " +
+           "CASE WHEN n.markState = 'ACTIVE' THEN 0 ELSE 1 END, " +
+           "n.markAt ASC, n.createdAt DESC ")
     Page<Note> findByUser(@Param("user") User user, Pageable pageable);
     void deleteByFolder(Folder folder);
 }

@@ -44,16 +44,6 @@ public class NoteConverter {
                 .build();
     }
 
-    public NoteResponse.NoteInfoDTO toNoteInfoDTO(Note note) {
-        return NoteResponse.NoteInfoDTO.builder()
-                .noteId(note.getNoteId())
-                .name(note.getName())
-                .folderName(note.getFolder().getName())
-                .markState(note.getMarkState())
-                .editDate(note.getEditDate().toLocalDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
-                .createdAt(note.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
-                .build();
-    }
     public static NoteResponse.IsSuccessNoteDTO isSuccessNoteResult(Boolean isSuccess){
         return NoteResponse.IsSuccessNoteDTO.builder()
                 .isSuccess(isSuccess)
