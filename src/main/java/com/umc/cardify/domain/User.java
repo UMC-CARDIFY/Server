@@ -28,7 +28,7 @@ public class User extends BaseEntity {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<Folder> userFolderList = new ArrayList<>();
 
-    @Column(name = "name", columnDefinition = "varchar(30) NOT NULL")
+    @Column(name = "name", columnDefinition = "varchar(30)")
     private String name;
 
 //    @Column(name = "url_profile", columnDefinition = "text")
@@ -37,7 +37,7 @@ public class User extends BaseEntity {
     @Column(name = "email", columnDefinition = "varchar(320)")
     private String email;
 
-    @Column(name = "pawssword", columnDefinition = "varchar(255) NOT NULL")
+    @Column(name = "password", columnDefinition = "varchar(255) NOT NULL")
     private String password;
 
     @Column(name = "kakao", columnDefinition = "boolean")
