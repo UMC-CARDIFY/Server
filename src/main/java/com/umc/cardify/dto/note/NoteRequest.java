@@ -11,13 +11,6 @@ import java.util.List;
 
 public class NoteRequest {
     @Getter
-    @Schema(title = "NOTE_REQ_01 : 노트 UUID 검색 요청 DTO")
-    public static class SearchUUIDDto{
-        @NotBlank
-        @UUID
-        String uuid;
-    }
-    @Getter
     @Schema(title = "NOTE_REQ_02 : 노트 작성 요청 DTO")
     public static class WriteNoteDto{
         @NotNull
@@ -49,20 +42,10 @@ public class NoteRequest {
         String searchTxt;
     }
     @Getter
-    @Schema(title = "NOTE_REQ_05 : 노트 링크 생성 요청 DTO")
-    public static class MakeLinkDto{
-        @NotNull
-        Long noteId;
-        Boolean isEdit;
-        Boolean isContainCard;
-    }
-    @Getter
     @Schema(title = "NOTE_REQ_06 : 노트 자료실 업로드 요청 DTO")
     public static class ShareLibDto{
         @NotNull
         Long noteId;
-        Boolean isEdit;
-        Boolean isContainCard;
         List<String> category;
     }
 }

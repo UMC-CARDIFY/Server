@@ -36,18 +36,6 @@ public class NoteService {
     public Note getNoteToID(long noteId){
         return noteRepository.findById(noteId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
     }
-    public Note getNoteToUUID(String uuid_str){
-        try{
-            UUID uuid = UUID.fromString(uuid_str);
-            Note note = noteRepository.findByNoteUUID(uuid);
-            if(note == null)
-                throw new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR);
-            return note;
-        }catch (IllegalArgumentException e){
-            throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
-        }
-    }
-
     public Note addNote(Folder folder, Long userId){
         if(!userId.equals(folder.getUser().getUserId()))
             throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
@@ -77,18 +65,6 @@ public class NoteService {
                 .isFirst(notePage.isFirst())
                 .isLast(notePage.isLast())
                 .build();
-    }
-    public Note makeLink(Note note, Long userId, Boolean isEdit, Boolean isContainCard){
-        if(!userId.equals(note.getFolder().getUser().getUserId()))
-            throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
-        else {
-            if (note.getNoteUUID() == null) {
-                note.setNoteUUID(UUID.randomUUID());
-            }
-            note.setIsEdit(isEdit);
-            note.setIsContainCard(isContainCard);
-            return noteRepository.save(note);
-        }
     }
     public Boolean deleteNote(Long noteId, Long userId){
         Note note_del = noteRepository.findById(noteId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
@@ -153,7 +129,7 @@ public class NoteService {
     }
     public Boolean writeNote(NoteRequest.WriteNoteDto request, Long userId){
         Note note = noteRepository.findById(request.getNoteId()).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
-        if(!(userId.equals(note.getFolder().getUser().getUserId()) || note.getIsEdit()))
+        if(!(userId.equals(note.getFolder().getUser().getUserId())))
             throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
         else {
             note.setName(request.getName());
@@ -227,8 +203,6 @@ public class NoteService {
                     .toList();
         }
 
-        note.setIsEdit(request.getIsEdit());
-        note.setIsContainCard(request.getIsContainCard());
         noteRepository.save(note);
         return true;
     }
@@ -239,9 +213,6 @@ public class NoteService {
         Library library = note.getLibrary();
 
         note.setLibrary(null);
-        note.setNoteUUID(null);
-        note.setIsEdit(null);
-        note.setIsContainCard(null);
         noteRepository.save(note);
 
         if(library!=null)
