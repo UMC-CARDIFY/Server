@@ -131,6 +131,9 @@ public class NoteService {
         Note note = noteRepository.findById(request.getNoteId()).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
         if(!(userId.equals(note.getFolder().getUser().getUserId())))
             throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
+        else if(libraryRepository.findByNote(note) != null){
+            throw new BadRequestException(ErrorResponseStatus.DB_INSERT_ERROR);
+        }
         else {
             note.setName(request.getName());
 
