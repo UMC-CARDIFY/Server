@@ -52,6 +52,9 @@ public class Note extends BaseEntity {
     @UpdateTimestamp
     private Timestamp editDate;
 
+    @Setter
+    private Long downloadLibId;
+
     @OneToMany(mappedBy = "note", cascade = CascadeType.ALL)
     private List<Card> cards;
 

@@ -2,6 +2,7 @@ package com.umc.cardify.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.ColumnDefault;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -51,4 +52,9 @@ public class User extends BaseEntity {
         this.kakao = kakao;
     }
 
+    @ColumnDefault("5000")
+    private Integer point;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<Download> downloadList = new ArrayList<>();
 }
