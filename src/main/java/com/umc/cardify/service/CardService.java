@@ -75,4 +75,16 @@ public class CardService {
 		cardRepository.save(card);
 
 	}
+	public void addCard(Card card, Note note){
+		Card card_new = Card.builder()
+				.note(note)
+				.name(card.getName())
+				.contentsFront(card.getContentsFront())
+				.contentsBack(card.getContentsBack())
+				.countLearn(0L)
+				.build();
+
+		cardRepository.save(card_new);
+
+	}
 }

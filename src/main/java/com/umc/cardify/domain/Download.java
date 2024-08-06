@@ -14,6 +14,9 @@ public class Download {
     @Column(name = "download_id")
     private Long downloadId;
 
+    @Setter
+    private Boolean isContainCard;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "library_id")
     private Library library;

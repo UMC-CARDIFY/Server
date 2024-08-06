@@ -18,4 +18,12 @@ public class LibraryResponse {
         String categoryName;
         Integer noteCount;
     }
+    @Builder
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "Library_RES_02 : API 실행 성공 여부 응답 DTO")
+    public static class IsSuccessLibDTO{
+        Boolean isSuccess;
+    }
 }
