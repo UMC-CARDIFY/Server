@@ -42,6 +42,8 @@ public class NoteResponse {
         String createdAt;
         @Schema(description = "다운로드한 노트 여부", example = "true")
         Boolean isDownload;
+        @Schema(description = "업로드한 노트 여부", example = "true")
+        Boolean isUpload;
     }
 
     @Getter
