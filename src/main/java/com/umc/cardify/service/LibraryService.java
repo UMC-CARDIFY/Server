@@ -24,6 +24,13 @@ public class LibraryService {
     private final DownloadRepository downloadRepository;
 
     private final CardService cardService;
+    public Boolean isUploadLib(Note note){
+        Library library = libraryRepository.findByNote(note);
+        if(library != null)
+            return true;
+        else
+            return false;
+    }
     public List<LibraryResponse.LibraryInfoDTO> getCategory(){
         List<Category> categoryList = categoryRepository.findAll();
         List<LibraryResponse.LibraryInfoDTO> resultDTO = categoryList.stream()

@@ -76,7 +76,7 @@ public class NoteService {
         }
     }
 
-    public Page<Note> getNoteToFolder(Folder folder, NoteRequest.GetNoteToFolderDto request){
+    public NoteResponse.GetNoteToFolderResultDTO getNoteToFolder(Folder folder, NoteRequest.GetNoteToFolderDto request){
         Pageable pageable;
 
         Integer page = request.getPage();
@@ -106,7 +106,8 @@ public class NoteService {
         }
         Page<Note> notes_all = noteRepository.findByFolder(folder, pageable);
 
-        return notes_all;
+        NoteResponse.GetNoteToFolderResultDTO noteDTO = noteConverter.toGetNoteToFolderResult(folder, notes_all);
+        return noteDTO;
     }
     public Boolean markNote(Long noteId, Boolean isMark, Long userId){
         Note note_mark = noteRepository.findById(noteId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));

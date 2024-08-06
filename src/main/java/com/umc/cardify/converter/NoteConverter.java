@@ -4,6 +4,10 @@ import com.umc.cardify.domain.Folder;
 import com.umc.cardify.domain.Note;
 import com.umc.cardify.dto.note.NoteRequest;
 import com.umc.cardify.dto.note.NoteResponse;
+import com.umc.cardify.repository.LibraryRepository;
+import com.umc.cardify.service.LibraryService;
+import com.umc.cardify.service.NoteService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
@@ -15,7 +19,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Component
+@RequiredArgsConstructor
 public class NoteConverter {
+    private final LibraryService libraryService;
     public static Note toAddNote(Folder folder){
         return Note.builder()
                 .folder(folder)
@@ -30,9 +36,6 @@ public class NoteConverter {
                 .build();
     }
     public NoteResponse.NoteInfoDTO toNoteInfoDTO(Note note) {
-        Boolean isDownload = false;
-        if(note.getDownloadLibId() != null)
-            isDownload = true;
         return NoteResponse.NoteInfoDTO.builder()
                 .noteId(note.getNoteId())
                 .name(note.getName())
@@ -40,7 +43,8 @@ public class NoteConverter {
                 .markState(note.getMarkState())
                 .editDate(note.getEditDate().toLocalDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
                 .createdAt(note.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
-                .isDownload(isDownload)
+                .isDownload(note.getDownloadLibId() != null)
+                .isUpload(libraryService.isUploadLib(note))
                 .build();
     }
     public static NoteResponse.IsSuccessNoteDTO isSuccessNoteResult(Boolean isSuccess){
@@ -48,23 +52,9 @@ public class NoteConverter {
                 .isSuccess(isSuccess)
                 .build();
     }
-    public static NoteResponse.NoteInfoDTO SearchNoteDTO(Note note) {
-        Boolean isDownload = false;
-        if(note.getDownloadLibId() != null)
-            isDownload = true;
-        return NoteResponse.NoteInfoDTO.builder()
-                .noteId(note.getNoteId())
-                .name(note.getName())
-                .markState(note.getMarkState())
-                .folderName(note.getFolder().getName())
-                .editDate(note.getEditDate().toLocalDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
-                .createdAt(note.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
-                .isDownload(isDownload)
-                .build();
-    }
-    public static NoteResponse.GetNoteToFolderResultDTO toGetNoteToFolderResult(Folder folder, Page<Note> notePage){
+    public NoteResponse.GetNoteToFolderResultDTO toGetNoteToFolderResult(Folder folder, Page<Note> notePage){
         List<NoteResponse.NoteInfoDTO> noteResult= notePage.stream()
-                .map(NoteConverter::SearchNoteDTO).collect(Collectors.toList());
+                .map(this::toNoteInfoDTO).collect(Collectors.toList());
         return NoteResponse.GetNoteToFolderResultDTO.builder()
                 .folderName(folder.getName())
                 .folderColor(folder.getColor())
