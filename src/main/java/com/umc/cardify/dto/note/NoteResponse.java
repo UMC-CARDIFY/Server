@@ -40,6 +40,8 @@ public class NoteResponse {
         String editDate;
         @Schema(description = "노트 생성 날짜", example = "2023-07-10")
         String createdAt;
+        @Schema(description = "다운로드한 노트 여부", example = "true")
+        Boolean isDownload;
     }
 
     @Getter

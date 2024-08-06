@@ -26,4 +26,7 @@ public class Library extends BaseEntity {
 
     @OneToMany(mappedBy = "library", cascade = CascadeType.ALL)
     private List<LibraryCategory> categoryList = new ArrayList<>();
+
+    @OneToMany(mappedBy = "library", cascade = CascadeType.ALL)
+    private List<Download> downloadList = new ArrayList<>();
 }
