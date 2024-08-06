@@ -30,6 +30,9 @@ public class NoteConverter {
                 .build();
     }
     public NoteResponse.NoteInfoDTO toNoteInfoDTO(Note note) {
+        Boolean isDownload = false;
+        if(note.getDownloadLibId() != null)
+            isDownload = true;
         return NoteResponse.NoteInfoDTO.builder()
                 .noteId(note.getNoteId())
                 .name(note.getName())
@@ -37,6 +40,7 @@ public class NoteConverter {
                 .markState(note.getMarkState())
                 .editDate(note.getEditDate().toLocalDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
                 .createdAt(note.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
+                .isDownload(isDownload)
                 .build();
     }
     public static NoteResponse.IsSuccessNoteDTO isSuccessNoteResult(Boolean isSuccess){
@@ -45,6 +49,9 @@ public class NoteConverter {
                 .build();
     }
     public static NoteResponse.NoteInfoDTO SearchNoteDTO(Note note) {
+        Boolean isDownload = false;
+        if(note.getDownloadLibId() != null)
+            isDownload = true;
         return NoteResponse.NoteInfoDTO.builder()
                 .noteId(note.getNoteId())
                 .name(note.getName())
@@ -52,6 +59,7 @@ public class NoteConverter {
                 .folderName(note.getFolder().getName())
                 .editDate(note.getEditDate().toLocalDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
                 .createdAt(note.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
+                .isDownload(isDownload)
                 .build();
     }
     public static NoteResponse.GetNoteToFolderResultDTO toGetNoteToFolderResult(Folder folder, Page<Note> notePage){
