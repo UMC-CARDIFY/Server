@@ -33,9 +33,11 @@ public class ExceptionAdvice {
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)
 	public ResponseEntity<ErrorResponse> handleMethodArgumentNotValidException(MethodArgumentNotValidException ex) {
+
 		BindingResult bindingResult = ex.getBindingResult();
 
 		StringBuilder builder = new StringBuilder();
+
 		for (FieldError fieldError : bindingResult.getFieldErrors()) {
 			builder.append("[");
 			builder.append(fieldError.getField());
@@ -46,6 +48,7 @@ public class ExceptionAdvice {
 			builder.append("]");
 			builder.append(System.lineSeparator());
 		}
+
 		ErrorResponse errorResponse = new ErrorResponse(2000, builder.toString());
 
 		return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
