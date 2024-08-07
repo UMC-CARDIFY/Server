@@ -41,31 +41,31 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // CSRF 보호 비활성화
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // 세션 비활성화
-                .authorizeRequests(authorizeRequests ->
-                        authorizeRequests
-                                .requestMatchers("/oauth2/callback/kakao","/oauth2/authorization/kakao", "/login", "/home", "/loginFailure","/api/v1/users/**", "/swagger-ui/**", "/v3/api-docs/**", "/error").permitAll() // 인증 없이 접근 가능
-                                .anyRequest().authenticated() // 나머지 애들은 인증 필요
-                )
-                .oauth2Login(oauth2Login ->
-                        oauth2Login
-                                .authorizationEndpoint(authorizationEndpoint ->
-                                        authorizationEndpoint.baseUri("/oauth2/authorization")
-                                )
-                                .redirectionEndpoint(redirectionEndpoint ->
-                                        redirectionEndpoint.baseUri("/oauth2/callback/kakao")
-                                )
-                                .userInfoEndpoint(userInfoEndpoint ->
-                                        userInfoEndpoint.userService(customOAuth2UserService)
-                                )
-                                .loginPage("/login")
-                                .defaultSuccessUrl("/home")
-                                .failureUrl("/loginFailure")
-                                .successHandler(authenticationSuccessHandler())
-                )
-                .addFilterBefore(new JwtFilter(jwtUtil, customUserDetailsService), UsernamePasswordAuthenticationFilter.class)
-                .cors(cors -> cors.configurationSource(corsConfigurationSource)); // CORS 설정 적용
+            .csrf(csrf -> csrf.disable()) // CSRF 보호 비활성화
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // 세션 비활성화
+            .authorizeRequests(authorizeRequests ->
+                authorizeRequests
+                    .requestMatchers("/oauth2/callback/kakao","/oauth2/authorization/kakao", "/login", "/home", "/loginFailure","/api/v1/users/**", "/swagger-ui/**", "/v3/api-docs/**", "/error").permitAll() // 인증 없이 접근 가능
+                    .anyRequest().authenticated() // 나머지 애들은 인증 필요
+            )
+            .oauth2Login(oauth2Login ->
+                oauth2Login
+                    .authorizationEndpoint(authorizationEndpoint ->
+                        authorizationEndpoint.baseUri("/oauth2/authorization")
+                    )
+                    .redirectionEndpoint(redirectionEndpoint ->
+                        redirectionEndpoint.baseUri("/oauth2/callback/kakao")
+                    )
+                    .userInfoEndpoint(userInfoEndpoint ->
+                        userInfoEndpoint.userService(customOAuth2UserService)
+                    )
+                    .loginPage("/login")
+                    .defaultSuccessUrl("/home")
+                    .failureUrl("/loginFailure")
+                    .successHandler(authenticationSuccessHandler())
+            )
+            .addFilterBefore(new JwtFilter(jwtUtil, customUserDetailsService), UsernamePasswordAuthenticationFilter.class)
+            .cors(cors -> cors.configurationSource(corsConfigurationSource)); // CORS 설정 적용
 
         return http.build();
     }

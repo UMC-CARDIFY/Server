@@ -22,28 +22,6 @@ public class NoteResponse {
         Long noteId;
         LocalDateTime createdAt;
     }
-
-    @Builder
-    @Getter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Schema(title = "NOTE_RES_02 : 노트 공유 응답 DTO")
-    public static class ShareResultDTO{
-        String uuid;
-    }
-
-    @Builder
-    @Getter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Schema(title = "NOTE_RES_03 : 노트 UUID 검색 응답 DTO")
-    public static class SearchUUIDResultDTO{
-        Long noteId;
-        String name;
-        String contents;
-        Boolean isEdit;
-    }
-
     @Getter
     @Builder
     @NoArgsConstructor
@@ -62,6 +40,10 @@ public class NoteResponse {
         String editDate;
         @Schema(description = "노트 생성 날짜", example = "2023-07-10")
         String createdAt;
+        @Schema(description = "다운로드한 노트 여부", example = "true")
+        Boolean isDownload;
+        @Schema(description = "업로드한 노트 여부", example = "true")
+        Boolean isUpload;
     }
 
     @Getter

@@ -53,15 +53,7 @@ public class Note extends BaseEntity {
     private Timestamp editDate;
 
     @Setter
-    private UUID noteUUID;
-
-    @Setter
-    @Column(columnDefinition = "Boolean DEFAULT false")
-    private Boolean isEdit;
-
-    @Setter
-    @Column(columnDefinition = "Boolean DEFAULT false")
-    private Boolean isContainCard;
+    private Long downloadLibId;
 
     @OneToMany(mappedBy = "note", cascade = CascadeType.ALL)
     private List<Card> cards;

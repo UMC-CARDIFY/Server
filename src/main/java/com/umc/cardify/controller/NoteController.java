@@ -35,20 +35,6 @@ public class NoteController {
         Note note = noteService.addNote(folder, userId);
         return ResponseEntity.ok(NoteConverter.toAddNoteResult(note));
     }
-    @PostMapping("/makeLink")
-    @Operation(summary = "노트 링크 공유 API" , description = "노트 아이디 입력, 성공 시 uuid 반환(해당 uuid로 노트 특정)")
-    public ResponseEntity<NoteResponse.ShareResultDTO> makeLink(@RequestHeader("Authorization") String token, @RequestBody @Valid NoteRequest.MakeLinkDto request){
-        Long userId = jwtUtil.extractUserId(token);
-        Note note = noteService.getNoteToID(request.getNoteId());
-        note = noteService.makeLink(note, userId, request.getIsEdit(), request.getIsContainCard());
-        return ResponseEntity.ok(NoteConverter.toMakeLinkResult(note));
-    }
-    @PostMapping("/searchUUID")
-    @Operation(summary = "공유한 노트 UUID로 탐색 API" , description = "노트 UUID 입력, 성공 시 노트 내용 반환")
-    public ResponseEntity<NoteResponse.SearchUUIDResultDTO> searchUUIDNote(@RequestBody @Valid NoteRequest.SearchUUIDDto request){
-        Note note = noteService.getNoteToUUID(request.getUuid());
-        return ResponseEntity.ok(NoteConverter.toSearchUUIDResult(note));
-    }
     @DeleteMapping("/deleteNote")
     @Operation(summary = "노트 삭제 API" , description = "노트 ID 입력, 성공 시 삭제 성공 여부 반환")
     public ResponseEntity<NoteResponse.IsSuccessNoteDTO> deleteNote(@RequestHeader("Authorization") String token, @RequestParam @Valid Long noteId){
@@ -62,8 +48,8 @@ public class NoteController {
                     " 페이지 번호, 사이즈 미입력시 페이징 X | 정렬방식 미입력시 이름 오름차순")
     public ResponseEntity<NoteResponse.GetNoteToFolderResultDTO> getNoteToFolder(@RequestBody @Valid NoteRequest.GetNoteToFolderDto request){
         Folder folder = folderService.getFolder(request.getFolderId());
-        Page<Note> noteList = noteService.getNoteToFolder(folder, request);
-        return ResponseEntity.ok(NoteConverter.toGetNoteToFolderResult(folder, noteList));
+        NoteResponse.GetNoteToFolderResultDTO noteList = noteService.getNoteToFolder(folder, request);
+        return ResponseEntity.ok(noteList);
     }
     @GetMapping("/markNote")
     @Operation(summary = "노트 즐겨찾기 API" , description = "노트 ID와 즐겨찾기 여부 입력, 성공 시 즐겨찾기 성공 여부 반환")
