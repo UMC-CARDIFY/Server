@@ -4,6 +4,7 @@ import com.umc.cardify.domain.User;
 import com.umc.cardify.dto.user.UserResponse;
 import com.umc.cardify.jwt.JwtUtil;
 import com.umc.cardify.repository.UserRepository;
+import jakarta.servlet.http.Cookie;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
@@ -67,10 +68,27 @@ public class CustomAuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             throw new RuntimeException("Unknown principal type: " + principal.getClass().getName());
         }
 
+        // 토큰 전달
+        response.addCookie(createCookie("Authorization", jwtToken));
+
         // JWT 토큰을 쿠키에 저장하거나 클라이언트 측에 전달
         response.setHeader("Authorization", "Bearer " + jwtToken);
 
+        System.out.println(jwtToken);
+        // log.info(jwtToken);
+
         // 로그인 성공 후 리다이렉트 (404 에러 뜨는 거 당연함)
         getRedirectStrategy().sendRedirect(request, response, "/auth/oauth-response/" + jwtToken);
+    }
+
+    private Cookie createCookie(String key, String value) {
+
+        Cookie cookie = new Cookie(key, value);
+        cookie.setMaxAge(60*60*60);
+        //cookie.setSecure(true);
+        cookie.setPath("/");
+        cookie.setHttpOnly(true);
+
+        return cookie;
     }
 }

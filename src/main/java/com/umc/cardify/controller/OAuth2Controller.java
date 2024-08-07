@@ -24,7 +24,7 @@ public class OAuth2Controller {
 
     // 카카오 로그인
     @GetMapping("/kakao")
-    @Operation(summary = "카카오 로그인 API")public ResponseEntity<UserResponse.tokenInfo> login(@RequestBody OAuth2UserRequest userRequest) {
+    @Operation(summary = "카카오 로그인 API") public ResponseEntity<UserResponse.tokenInfo> login(@RequestBody OAuth2UserRequest userRequest) {
         log.info(userRequest.toString());
         OAuth2User kakaoUser = customOAuth2UserService.loadUser(userRequest);
         UserResponse.tokenInfo tokenInfo = jwtUtil.generateTokens(kakaoUser.getAttribute("id"));
