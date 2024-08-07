@@ -169,7 +169,8 @@ public class NoteService {
         Note note = getNoteToID(request.getNoteId());
         if(!userId.equals(note.getFolder().getUser().getUserId()))
             throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
-
+        if(note.getDownloadLibId() != null)
+            throw new BadRequestException(ErrorResponseStatus.DB_INSERT_ERROR);
         //기존에 공유되어 있던 데이터를 삭제
         Library library = note.getLibrary();
         if(library != null){
