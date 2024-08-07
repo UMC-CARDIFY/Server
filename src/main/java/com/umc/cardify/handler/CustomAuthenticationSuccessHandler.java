@@ -17,7 +17,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.Optional;
 
 @Slf4j
 @Component
@@ -45,7 +44,7 @@ public class CustomAuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                     .orElseGet(() -> {
                         User newUser = new User();
                         newUser.setEmail(email);
-                        newUser.setName((String) oAuth2User.getAttributes().get("name"));
+                        newUser.setName((String) oAuth2User.getAttributes().get("nickname"));
                         newUser.setKakao(true);
                         newUser.setPassword(""); // 소셜 로그인 시 비밀번호는 필요 없음
                         return userRepository.save(newUser);
