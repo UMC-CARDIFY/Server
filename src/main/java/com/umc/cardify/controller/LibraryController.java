@@ -35,4 +35,14 @@ public class LibraryController {
         Boolean isSuccess = libraryService.downloadLib(userId, request);
         return ResponseEntity.ok(LibraryResponse.IsSuccessLibDTO.builder().isSuccess(isSuccess).build());
     }
+    @GetMapping("/getTopNote")
+    @Operation(summary = "추천 노트 조회 API")
+    public ResponseEntity<List<LibraryResponse.TopNoteDTO>> getTopNote(){
+        List<LibraryResponse.TopNoteDTO> resultNote = libraryService.getTopNote();
+        int index = 3;
+        if(resultNote.size() < index)
+            index = resultNote.size();
+
+        return ResponseEntity.ok(resultNote.subList(0, index));
+    }
 }

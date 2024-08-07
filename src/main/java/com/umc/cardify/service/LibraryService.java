@@ -9,6 +9,8 @@ import com.umc.cardify.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -39,7 +41,7 @@ public class LibraryService {
                     return LibraryResponse.LibraryInfoDTO.builder()
                             .categoryId(category.getCategoryId())
                             .categoryName(category.getName())
-                            .noteCount(count)
+                            .cntNote(count)
                             .build();
                 })
                 .collect(Collectors.toList());
@@ -108,5 +110,29 @@ public class LibraryService {
         if(cardList != null)
             cardList.forEach(card -> cardService.addCard(card, note_new));
         return true;
+    }
+    public List<LibraryResponse.TopNoteDTO> getTopNote(){
+        List<Library> libraryList = libraryRepository.findAll();
+        List<LibraryResponse.TopNoteDTO> resultDto = libraryList.stream()
+                .map(library -> {
+                    int count = downloadRepository.findByLibrary(library).stream()
+                            .filter(download -> download.getCreatedAt().compareTo(LocalDateTime.now().minusDays(7)) > 0)
+                            .toList().size();
+                    User user = library.getNote().getFolder().getUser();
+                    List<String> categoryName = library.getCategoryList().stream()
+                            .map(libraryCategory -> libraryCategory.getCategory().getName()).toList();
+                    return LibraryResponse.TopNoteDTO.builder()
+                            .userName(user.getName())
+                            .userImgSrc(null)       //추후 유저 이미지 생성되면 삽입
+                            .cntDownload(count)
+                            .noteName(library.getNote().getName())
+                            .cntCard(library.getNote().getCards().size())
+                            .categoryName(categoryName)
+                            .build();
+                })
+                .sorted(Comparator.comparing(LibraryResponse.TopNoteDTO::getCntDownload).reversed())
+                .collect(Collectors.toList());
+
+        return resultDto;
     }
 }

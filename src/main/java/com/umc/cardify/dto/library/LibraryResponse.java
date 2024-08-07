@@ -6,6 +6,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.joda.time.DateTime;
+
+import java.util.List;
 
 public class LibraryResponse {
     @Getter
@@ -16,7 +19,7 @@ public class LibraryResponse {
     public static class LibraryInfoDTO {
         Long categoryId;
         String categoryName;
-        Integer noteCount;
+        Integer cntNote;
     }
     @Builder
     @Getter
@@ -25,5 +28,18 @@ public class LibraryResponse {
     @Schema(title = "Library_RES_02 : API 실행 성공 여부 응답 DTO")
     public static class IsSuccessLibDTO{
         Boolean isSuccess;
+    }
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "Library_RES_03 : 추천 노트 조회 DTO")
+    public static class TopNoteDTO {
+        String noteName;
+        List<String> categoryName;
+        Integer cntCard;
+        String userImgSrc;
+        String userName;
+        Integer cntDownload;
     }
 }
