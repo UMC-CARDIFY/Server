@@ -29,7 +29,7 @@ spring:
             client-name: Kakao
             provider: kakao
             authorization-grant-type: authorization_code
-            redirect-uri: "http://3.37.13.40:8080/oauth2/callback/kakao"
+            redirect-uri: "{baseUrl}/oauth2/callback/kakao"
             scope:
               - profile_nickname
               - account_email
