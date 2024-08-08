@@ -49,11 +49,11 @@ public class FolderController {
 
 
     @GetMapping("/notes")
-    @Operation(summary = "노트 조회", description = "조회 성공 시, 해당 유저의 노트목록 반환")
+    @Operation(summary = "노트 목록 조회 API", description = "조회 성공 시, 해당 유저의 노트 목록 반환(폴더 상관이 전체 노트) | 페이징 제한 없음")
     public ResponseEntity<NoteResponse.NoteListDTO> getAllNotes(
             @RequestHeader("Authorization") String token,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam int size) {
+            @RequestParam(required = false)  Integer page,
+            @RequestParam(required = false)  Integer size) {
         Long userId = jwtUtil.extractUserId(token);
         NoteResponse.NoteListDTO notes = noteService.getNotesByUserId(userId, page, size);
         return ResponseEntity.ok(notes);

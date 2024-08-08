@@ -1,6 +1,7 @@
 package com.umc.cardify.service;
 
 import com.umc.cardify.config.exception.BadRequestException;
+import com.umc.cardify.config.exception.DatabaseException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.converter.NoteConverter;
 import com.umc.cardify.domain.*;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -45,15 +47,29 @@ public class NoteService {
         }
     }
 
-    public NoteResponse.NoteListDTO getNotesByUserId(Long userId, int page, int size) {
+    public NoteResponse.NoteListDTO getNotesByUserId(Long userId, Integer page, Integer size) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
-        Pageable pageable = PageRequest.of(page, size);
+        int getNotePage = (page != null) ? page : 0;
+        int getNoteSize = (size != null) ? size : 30;
+
+        Pageable pageable = PageRequest.of(getNotePage, getNoteSize);
         Page<Note> notePage = noteRepository.findByUser(user, pageable);
 
+        if(notePage == null){
+            throw new DatabaseException(ErrorResponseStatus.NOT_EXIST_NOTE);
+        }
+
         List<NoteResponse.NoteInfoDTO> notes = notePage.getContent().stream()
-                .map(noteConverter::toNoteInfoDTO)
+                .map(note -> NoteResponse.NoteInfoDTO.builder()
+                        .noteId(note.getNoteId())
+                        .name(note.getName())
+                        .folderName(note.getFolder().getName())
+                        .markState(note.getMarkState())
+                        .editDate(note.getEditDate().toLocalDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
+                        .createdAt(note.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
+                        .build())
                 .collect(Collectors.toList());
 
         return NoteResponse.NoteListDTO.builder()

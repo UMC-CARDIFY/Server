@@ -26,10 +26,10 @@ public enum ErrorResponseStatus {
 	FILE_VALID_ERROR(4008,"파일 유효성 검증 실패" ),
 	NOT_EXIST_FOLDER(4009, "폴더가 존재하지 않습니다."),
 	NOT_FOUND_CATEGORY(4010, "해당 카테고리는 존재하지 않습니다."),
+	NOT_EXIST_NOTE(4011, "노트가 존재하지 않습니다."),
 
 	// 5000 : Server connection 오류
-	SERVER_ERROR(5000, "서버와의 연결에 실패하였습니다."),
-	;
+	SERVER_ERROR(5000, "서버와의 연결에 실패하였습니다.");
 
 	private final int code;
 	private final String message;
