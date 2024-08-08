@@ -24,8 +24,8 @@ public class LibraryController {
     private final LibraryService libraryService;
     @GetMapping("/getCategory")
     @Operation(summary = "카테고리 조회 API")
-    public ResponseEntity<List<LibraryResponse.LibraryInfoDTO>> getCategory(){
-        List<LibraryResponse.LibraryInfoDTO> resultCategory = libraryService.getCategory();
+    public ResponseEntity<List<LibraryResponse.CategoryInfoDTO>> getCategory(){
+        List<LibraryResponse.CategoryInfoDTO> resultCategory = libraryService.getCategory();
         return ResponseEntity.ok(resultCategory);
     }
     @PostMapping("/download")
@@ -44,5 +44,11 @@ public class LibraryController {
             index = resultNote.size();
 
         return ResponseEntity.ok(resultNote.subList(0, index));
+    }
+    @GetMapping("/getTopCategory")
+    @Operation(summary = "추천 카테고리 조회 API")
+    public ResponseEntity<List<LibraryResponse.CategoryInfoDTO>> getTopCategory(){
+        List<LibraryResponse.CategoryInfoDTO> resultCategory = libraryService.getTopCategory();
+        return ResponseEntity.ok(resultCategory.subList(0, 3));
     }
 }

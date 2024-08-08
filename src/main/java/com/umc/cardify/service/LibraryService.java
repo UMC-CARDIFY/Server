@@ -33,12 +33,12 @@ public class LibraryService {
         else
             return false;
     }
-    public List<LibraryResponse.LibraryInfoDTO> getCategory(){
+    public List<LibraryResponse.CategoryInfoDTO> getCategory(){
         List<Category> categoryList = categoryRepository.findAll();
-        List<LibraryResponse.LibraryInfoDTO> resultDTO = categoryList.stream()
+        List<LibraryResponse.CategoryInfoDTO> resultDTO = categoryList.stream()
                 .map(category -> {
                     int count = libraryCategoryRepository.findByCategory(category).size();
-                    return LibraryResponse.LibraryInfoDTO.builder()
+                    return LibraryResponse.CategoryInfoDTO.builder()
                             .categoryId(category.getCategoryId())
                             .categoryName(category.getName())
                             .cntNote(count)
@@ -134,5 +134,23 @@ public class LibraryService {
                 .collect(Collectors.toList());
 
         return resultDto;
+    }
+    public List<LibraryResponse.CategoryInfoDTO> getTopCategory(){
+        List<Category> categoryList = categoryRepository.findAll();
+        List<LibraryResponse.CategoryInfoDTO> resultCateDTO = categoryList.stream()
+                .map(category -> {
+                    List<LibraryCategory> uploadList = libraryCategoryRepository.findByCategory(category).stream()
+                            .filter(upload->upload.getCreatedAt().compareTo(LocalDateTime.now().minusDays(7)) > 0)
+                            .toList();
+                    int count = uploadList.size();
+                    return LibraryResponse.CategoryInfoDTO.builder()
+                            .categoryId(category.getCategoryId())
+                            .categoryName(category.getName())
+                            .cntNote(count)
+                            .build();
+                })
+                .sorted(Comparator.comparing(LibraryResponse.CategoryInfoDTO::getCntNote).reversed())
+                .collect(Collectors.toList());
+        return resultCateDTO;
     }
 }

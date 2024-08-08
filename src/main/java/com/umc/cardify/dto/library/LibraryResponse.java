@@ -16,7 +16,7 @@ public class LibraryResponse {
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(title = "Library_RES_01 : 카테고리 조회 DTO")
-    public static class LibraryInfoDTO {
+    public static class CategoryInfoDTO {
         Long categoryId;
         String categoryName;
         Integer cntNote;
