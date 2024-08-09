@@ -157,8 +157,31 @@ public class LibraryService {
                             .uploadAt(uploadAt)
                             .build();
                 })
-                .sorted(Comparator.comparing(LibraryResponse.CategoryInfoDTO::getCategoryName).reversed())
+                .sorted(Comparator.comparing(LibraryResponse.CategoryInfoDTO::getUploadAt).reversed())
                 .collect(Collectors.toList());
         return resultCateDTO;
+    }
+    public List<LibraryResponse.TopNoteDTO> getNoteToCategory(String input) {
+        Category category = categoryRepository.findByName(input);
+        if(category==null)
+            throw new BadRequestException(ErrorResponseStatus.NOT_FOUND_CATEGORY);
+        List<LibraryResponse.TopNoteDTO> resultList = libraryCategoryRepository.findByCategory(category).stream()
+                .map(upload -> {
+                    Library library = upload.getLibrary();
+                    Note note = library.getNote();
+                    User user = note.getFolder().getUser();
+                    List<String> categoryName = library.getCategoryList().stream()
+                            .map(libraryCategory -> libraryCategory.getCategory().getName()).toList();
+                    return LibraryResponse.TopNoteDTO.builder()
+                            .userName(user.getName())
+                            .userImgSrc(null)       //추후 유저 이미지 생성되면 삽입
+                            .noteName(note.getName())
+                            .cntCard(note.getCards().size())
+                            .categoryName(categoryName)
+                            .build();
+                })
+                .sorted(Comparator.comparing(LibraryResponse.TopNoteDTO::getNoteName))
+                .toList();
+        return resultList;
     }
 }
