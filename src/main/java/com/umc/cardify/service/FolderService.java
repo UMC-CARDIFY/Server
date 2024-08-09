@@ -4,10 +4,12 @@ import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.DatabaseException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.domain.Folder;
+import com.umc.cardify.domain.Note;
 import com.umc.cardify.domain.User;
 import com.umc.cardify.domain.enums.MarkStatus;
 import com.umc.cardify.dto.folder.FolderRequest;
 import com.umc.cardify.dto.folder.FolderResponse;
+import com.umc.cardify.dto.note.NoteResponse;
 import com.umc.cardify.repository.FolderRepository;
 import com.umc.cardify.repository.NoteRepository;
 import com.umc.cardify.repository.UserRepository;
@@ -236,6 +238,23 @@ public class FolderService {
                 .totalElements(totalElements)
                 .isFirst(filterPage == 0)
                 .isLast((page == null) || (filterPage == totalPages - 1))
+                .build();
+    }
+
+    @Transactional
+    public NoteResponse.IsSuccessNoteDTO deleteNoteByFolderId(Long userId, Long folderId, Long noteId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+        Folder folder = folderRepository.findByFolderIdAndUser(folderId, user)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_EXIST_FOLDER));
+        Note note = noteRepository.findByNoteIdAndFolder(noteId, folder)
+                .orElseThrow(() -> new BadRequestException(
+                        ErrorResponseStatus.NOT_EXIST_NOTE));
+
+        noteRepository.delete(note);
+
+        return NoteResponse.IsSuccessNoteDTO.builder()
+                .isSuccess(true)
                 .build();
     }
 }

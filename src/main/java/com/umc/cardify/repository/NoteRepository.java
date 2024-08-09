@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface NoteRepository extends JpaRepository<Note, Long> {
@@ -21,4 +22,6 @@ public interface NoteRepository extends JpaRepository<Note, Long> {
            "n.markAt ASC, n.createdAt DESC ")
     Page<Note> findByUser(@Param("user") User user, Pageable pageable);
     void deleteByFolder(Folder folder);
+
+    Optional<Note> findByNoteIdAndFolder(Long noteId, Folder folder);
 }

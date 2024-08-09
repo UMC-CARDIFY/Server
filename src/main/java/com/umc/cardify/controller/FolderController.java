@@ -113,4 +113,15 @@ public class FolderController {
         FolderResponse.FolderListDTO folders = folderService.filterColorsByUserId(userId, page, size, color);
         return ResponseEntity.ok(folders);
     }
+
+    @DeleteMapping("/{folderId}/notes/{noteId}")
+    @Operation(summary = "특정 폴더 내 노트 삭제 기능 API", description = "특정 폴더 안의 특정 노트를 삭제하는 기능 | 폴더 아이디와 노트 아이디를 request로 요청하고 삭제 성공 시, boolean 값으로 도출")
+    public ResponseEntity<NoteResponse.IsSuccessNoteDTO> deleteNoteByFolder(
+            @RequestHeader("Authorization") String token,
+            @PathVariable Long folderId,
+            @PathVariable Long noteId) {
+        Long userId = jwtUtil.extractUserId(token);
+        NoteResponse.IsSuccessNoteDTO response = folderService.deleteNoteByFolderId(userId, folderId, noteId);
+        return ResponseEntity.ok(response);
+    }
 }
