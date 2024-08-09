@@ -6,6 +6,7 @@ import com.umc.cardify.jwt.JwtUtil;
 import com.umc.cardify.repository.UserRepository;
 import com.umc.cardify.service.security.CustomUserDetailsService;
 import com.umc.cardify.service.security.CustomOAuth2UserService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -29,6 +30,8 @@ public class SecurityConfig {
     private final CorsConfigurationSource corsConfigurationSource;
     private final UserRepository userRepository;
     private final CustomOAuth2UserService customOAuth2UserService;
+    @Value("${spring.security.oauth2.client.registration.kakao.redirect-uri}")
+    String redirectUri;
 
     public SecurityConfig(JwtUtil jwtUtil, CustomUserDetailsService customUserDetailsService, CorsConfigurationSource corsConfigurationSource, UserRepository userRepository, CustomOAuth2UserService customOAuth2UserService) {
         this.jwtUtil = jwtUtil;
@@ -53,15 +56,12 @@ public class SecurityConfig {
                     .authorizationEndpoint(authorizationEndpoint ->
                         authorizationEndpoint.baseUri("/oauth2/authorization")
                     )
-                    .redirectionEndpoint(redirectionEndpoint ->
-                        redirectionEndpoint.baseUri("/oauth2/callback/kakao")
-                    )
+//                    .redirectionEndpoint(redirectionEndpoint ->
+//                        redirectionEndpoint.baseUri(redirectUri)
+//                    )
                     .userInfoEndpoint(userInfoEndpoint ->
                         userInfoEndpoint.userService(customOAuth2UserService)
                     )
-//                    .loginPage("/login")
-//                    .defaultSuccessUrl("/home")
-//                    .failureUrl("/loginFailure")
                     .successHandler(authenticationSuccessHandler())
             )
             .addFilterBefore(new JwtFilter(jwtUtil, customUserDetailsService), UsernamePasswordAuthenticationFilter.class)
