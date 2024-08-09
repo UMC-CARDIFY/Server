@@ -7,6 +7,7 @@ import com.umc.cardify.dto.library.LibraryRequest;
 import com.umc.cardify.dto.library.LibraryResponse;
 import com.umc.cardify.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.joda.time.DateTime;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -33,12 +34,12 @@ public class LibraryService {
         else
             return false;
     }
-    public List<LibraryResponse.LibraryInfoDTO> getCategory(){
+    public List<LibraryResponse.CategoryInfoDTO> getCategory(){
         List<Category> categoryList = categoryRepository.findAll();
-        List<LibraryResponse.LibraryInfoDTO> resultDTO = categoryList.stream()
+        List<LibraryResponse.CategoryInfoDTO> resultDTO = categoryList.stream()
                 .map(category -> {
                     int count = libraryCategoryRepository.findByCategory(category).size();
-                    return LibraryResponse.LibraryInfoDTO.builder()
+                    return LibraryResponse.CategoryInfoDTO.builder()
                             .categoryId(category.getCategoryId())
                             .categoryName(category.getName())
                             .cntNote(count)
@@ -134,5 +135,53 @@ public class LibraryService {
                 .collect(Collectors.toList());
 
         return resultDto;
+    }
+    public List<LibraryResponse.CategoryInfoDTO> getTopCategory(){
+        List<Category> categoryList = categoryRepository.findAll();
+        List<LibraryResponse.CategoryInfoDTO> resultCateDTO = categoryList.stream()
+                .map(category -> {
+                    List<LibraryCategory> uploadList = libraryCategoryRepository.findByCategory(category).stream()
+                            .filter(upload->upload.getCreatedAt().compareTo(LocalDateTime.now().minusDays(7)) > 0)
+                            .sorted(Comparator.comparing(LibraryCategory::getCreatedAt).reversed())
+                            .toList();
+                    int count = uploadList.size();
+                    LocalDateTime uploadAt = LocalDateTime.now().minusDays(7);  //가능한 날짜의 최대값을 초기값으로 설정
+
+                    if(count > 0)
+                        uploadAt = uploadList.get(0).getCreatedAt();
+
+                    return LibraryResponse.CategoryInfoDTO.builder()
+                            .categoryId(category.getCategoryId())
+                            .categoryName(category.getName())
+                            .cntNote(count)
+                            .uploadAt(uploadAt)
+                            .build();
+                })
+                .sorted(Comparator.comparing(LibraryResponse.CategoryInfoDTO::getUploadAt).reversed())
+                .collect(Collectors.toList());
+        return resultCateDTO;
+    }
+    public List<LibraryResponse.TopNoteDTO> getNoteToCategory(String input) {
+        Category category = categoryRepository.findByName(input);
+        if(category==null)
+            throw new BadRequestException(ErrorResponseStatus.NOT_FOUND_CATEGORY);
+        List<LibraryResponse.TopNoteDTO> resultList = libraryCategoryRepository.findByCategory(category).stream()
+                .map(upload -> {
+                    Library library = upload.getLibrary();
+                    Note note = library.getNote();
+                    User user = note.getFolder().getUser();
+                    List<String> categoryName = library.getCategoryList().stream()
+                            .map(libraryCategory -> libraryCategory.getCategory().getName()).toList();
+                    return LibraryResponse.TopNoteDTO.builder()
+                            .userName(user.getName())
+                            .userImgSrc(null)       //추후 유저 이미지 생성되면 삽입
+                            .noteName(note.getName())
+                            .cntCard(note.getCards().size())
+                            .categoryName(categoryName)
+                            .build();
+                })
+                .sorted(Comparator.comparing(LibraryResponse.TopNoteDTO::getNoteName))
+                .toList();
+        return resultList;
     }
 }

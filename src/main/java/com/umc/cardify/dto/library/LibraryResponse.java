@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.joda.time.DateTime;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class LibraryResponse {
@@ -16,10 +17,11 @@ public class LibraryResponse {
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(title = "Library_RES_01 : 카테고리 조회 DTO")
-    public static class LibraryInfoDTO {
+    public static class CategoryInfoDTO {
         Long categoryId;
         String categoryName;
         Integer cntNote;
+        LocalDateTime uploadAt;
     }
     @Builder
     @Getter

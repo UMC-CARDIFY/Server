@@ -12,7 +12,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Tag(name = "LibraryController", description = "자료실 관련 API")
 @RestController
@@ -24,8 +26,8 @@ public class LibraryController {
     private final LibraryService libraryService;
     @GetMapping("/getCategory")
     @Operation(summary = "카테고리 조회 API")
-    public ResponseEntity<List<LibraryResponse.LibraryInfoDTO>> getCategory(){
-        List<LibraryResponse.LibraryInfoDTO> resultCategory = libraryService.getCategory();
+    public ResponseEntity<List<LibraryResponse.CategoryInfoDTO>> getCategory(){
+        List<LibraryResponse.CategoryInfoDTO> resultCategory = libraryService.getCategory();
         return ResponseEntity.ok(resultCategory);
     }
     @PostMapping("/download")
@@ -44,5 +46,19 @@ public class LibraryController {
             index = resultNote.size();
 
         return ResponseEntity.ok(resultNote.subList(0, index));
+    }
+    @GetMapping("/getTopCategory")
+    @Operation(summary = "추천 카테고리 조회 API")
+    public ResponseEntity<List<LibraryResponse.CategoryInfoDTO>> getTopCategory(){
+        List<LibraryResponse.CategoryInfoDTO> resultCategory = libraryService.getTopCategory()
+                .stream().sorted(Comparator.comparing(LibraryResponse.CategoryInfoDTO::getCntNote).reversed())
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(resultCategory.subList(0, 3));
+    }
+    @GetMapping("/getNoteToCategory")
+    @Operation(summary = "특정 카테고리 내 노트 조회 API")
+    public ResponseEntity<List<LibraryResponse.TopNoteDTO>> getNoteToCategory(@RequestParam @Valid String input){
+        List<LibraryResponse.TopNoteDTO> resultNote = libraryService.getNoteToCategory(input);
+        return ResponseEntity.ok(resultNote);
     }
 }
