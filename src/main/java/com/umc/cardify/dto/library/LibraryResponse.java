@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.joda.time.DateTime;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class LibraryResponse {
@@ -20,6 +21,7 @@ public class LibraryResponse {
         Long categoryId;
         String categoryName;
         Integer cntNote;
+        LocalDateTime uploadAt;
     }
     @Builder
     @Getter

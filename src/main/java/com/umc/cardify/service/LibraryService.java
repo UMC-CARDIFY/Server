@@ -7,6 +7,7 @@ import com.umc.cardify.dto.library.LibraryRequest;
 import com.umc.cardify.dto.library.LibraryResponse;
 import com.umc.cardify.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.joda.time.DateTime;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -141,15 +142,22 @@ public class LibraryService {
                 .map(category -> {
                     List<LibraryCategory> uploadList = libraryCategoryRepository.findByCategory(category).stream()
                             .filter(upload->upload.getCreatedAt().compareTo(LocalDateTime.now().minusDays(7)) > 0)
+                            .sorted(Comparator.comparing(LibraryCategory::getCreatedAt).reversed())
                             .toList();
                     int count = uploadList.size();
+                    LocalDateTime uploadAt = LocalDateTime.now().minusDays(7);  //가능한 날짜의 최대값을 초기값으로 설정
+
+                    if(count > 0)
+                        uploadAt = uploadList.get(0).getCreatedAt();
+
                     return LibraryResponse.CategoryInfoDTO.builder()
                             .categoryId(category.getCategoryId())
                             .categoryName(category.getName())
                             .cntNote(count)
+                            .uploadAt(uploadAt)
                             .build();
                 })
-                .sorted(Comparator.comparing(LibraryResponse.CategoryInfoDTO::getCntNote).reversed())
+                .sorted(Comparator.comparing(LibraryResponse.CategoryInfoDTO::getCategoryName).reversed())
                 .collect(Collectors.toList());
         return resultCateDTO;
     }

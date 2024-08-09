@@ -12,7 +12,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Tag(name = "LibraryController", description = "자료실 관련 API")
 @RestController
@@ -48,7 +50,9 @@ public class LibraryController {
     @GetMapping("/getTopCategory")
     @Operation(summary = "추천 카테고리 조회 API")
     public ResponseEntity<List<LibraryResponse.CategoryInfoDTO>> getTopCategory(){
-        List<LibraryResponse.CategoryInfoDTO> resultCategory = libraryService.getTopCategory();
+        List<LibraryResponse.CategoryInfoDTO> resultCategory = libraryService.getTopCategory()
+                .stream().sorted(Comparator.comparing(LibraryResponse.CategoryInfoDTO::getCntNote).reversed())
+                .collect(Collectors.toList());
         return ResponseEntity.ok(resultCategory.subList(0, 3));
     }
 }
