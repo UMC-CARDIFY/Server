@@ -55,4 +55,10 @@ public class LibraryController {
                 .collect(Collectors.toList());
         return ResponseEntity.ok(resultCategory.subList(0, 3));
     }
+    @GetMapping("/getNoteToCategory")
+    @Operation(summary = "특정 카테고리 내 노트 조회 API")
+    public ResponseEntity<List<LibraryResponse.TopNoteDTO>> getNoteToCategory(@RequestParam @Valid String input){
+        List<LibraryResponse.TopNoteDTO> resultNote = libraryService.getNoteToCategory(input);
+        return ResponseEntity.ok(resultNote);
+    }
 }
