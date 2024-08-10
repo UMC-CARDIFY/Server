@@ -1,7 +1,11 @@
 package com.umc.cardify.service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import com.umc.cardify.domain.Card;
 import com.umc.cardify.domain.Note;
+import com.umc.cardify.dto.card.CardResponse;
 import com.umc.cardify.repository.CardRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -55,6 +59,32 @@ public class CardService {
 
 		return savedImageCard.getImageUrl();
 	}
+
+	public CardResponse.getImageCard viewImageCard(Long imageCardId) {
+		ImageCard imageCard = imageCardRepository.findById(imageCardId)
+			.orElseThrow(() -> new IllegalArgumentException("Image card not found with id: " + imageCardId));
+
+		// 관련된 오버레이 정보를 가져오기
+		List<Overlay> overlays = overlayRepository.findByImageCard(imageCard);
+
+		// CardResponse.addImageCard의 오버레이 리스트를 생성
+		List<CardRequest.addImageCardOverlay> overlayResponses = overlays.stream().map(overlay ->
+				CardRequest.addImageCardOverlay.builder()
+					.positionOfX(overlay.getXPosition())
+					.positionOfY(overlay.getYPosition())
+					.width(overlay.getWidth())
+					.height(overlay.getHeight())
+					.build())
+			.collect(Collectors.toList());
+
+		return CardResponse.getImageCard.builder()
+			.imgUrl(imageCard.getImageUrl())
+			.baseImageWidth(imageCard.getWidth())
+			.baseImageHeight(imageCard.getHeight())
+			.overlays(overlayResponses)
+			.build();
+	}
+
 	public void addCard(CardRequest.WriteCardDto cardDto, Note note){
 		String contents_front = cardDto.getText();
 		String contents_back = contents_front
@@ -73,8 +103,8 @@ public class CardService {
 				.build();
 
 		cardRepository.save(card);
-
 	}
+
 	public void addCard(Card card, Note note){
 		Card card_new = Card.builder()
 				.note(note)
@@ -85,6 +115,5 @@ public class CardService {
 				.build();
 
 		cardRepository.save(card_new);
-
 	}
 }
