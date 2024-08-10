@@ -240,4 +240,23 @@ public class NoteService {
             libraryRepository.delete(library);
         return true;
     }
+    public NoteResponse.getNoteDTO getNote(Long noteId){
+        Note note = noteRepository.findById(noteId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+        List<NoteResponse.getNoteCardDTO> cardDTO = note.getCards().stream()
+                .map(card -> {
+                    return NoteResponse.getNoteCardDTO.builder()
+                            .cardId(card.getCardId())
+                            .cardName(card.getName())
+                            .contentsFront(card.getContentsFront())
+                            .contentsBack(card.getContentsBack())
+                            .build();
+                })
+                .toList();
+        return NoteResponse.getNoteDTO.builder()
+                .noteId(note.getNoteId())
+                .noteName(note.getName())
+                .noteContent(note.getContents())
+                .cardList(cardDTO)
+                .build();
+    }
 }

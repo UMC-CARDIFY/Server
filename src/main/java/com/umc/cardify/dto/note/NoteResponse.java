@@ -117,4 +117,26 @@ public class NoteResponse {
         String searchTxt;
         List<SearchNoteResDTO> noteList;
     }
+    @Builder
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "NOTE_RES_09-1 : 노트 조회 응답(카드) DTO")
+    public static class getNoteCardDTO{
+        Long cardId;
+        String cardName;
+        String contentsFront;
+        String contentsBack;
+    }
+    @Builder
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "NOTE_RES_09 : 노트 조회 응답 DTO")
+    public static class getNoteDTO{
+        Long noteId;
+        String noteName;
+        String noteContent;
+        List<getNoteCardDTO> cardList;
+    }
 }
