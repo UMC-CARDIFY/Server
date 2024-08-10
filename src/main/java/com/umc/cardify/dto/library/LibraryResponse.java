@@ -44,4 +44,14 @@ public class LibraryResponse {
         String userName;
         Integer cntDownload;
     }
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "Library_RES_04 : 추천 노트 조회 DTO")
+    public static class SearchLibDTO {
+        String searchTxt;
+        List<String> searchCategory;
+        List<TopNoteDTO> resultNote;
+    }
 }
