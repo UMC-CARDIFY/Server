@@ -56,9 +56,10 @@ public class LibraryController {
         return ResponseEntity.ok(resultCategory.subList(0, 3));
     }
     @GetMapping("/getNoteToCategory")
-    @Operation(summary = "특정 카테고리 내 노트 조회 API")
-    public ResponseEntity<List<LibraryResponse.NoteInfoDTO>> getNoteToCategory(@RequestParam @Valid String category){
-        List<LibraryResponse.NoteInfoDTO> resultNote = libraryService.getNoteToCategory(category);
+    @Operation(summary = "특정 카테고리 내 노트 조회 API",
+            description = "order = asc, desc, upload-newest, upload-oldest, download | 정렬방식 미입력시 이름 오름차순")
+    public ResponseEntity<List<LibraryResponse.NoteInfoDTO>> getNoteToCategory(@RequestParam @Valid String category,@RequestParam @Valid String order){
+        List<LibraryResponse.NoteInfoDTO> resultNote = libraryService.getNoteToCategory(category, order);
         return ResponseEntity.ok(resultNote);
     }
     @PostMapping("/searchLib")

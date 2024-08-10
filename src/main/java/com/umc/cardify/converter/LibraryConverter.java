@@ -37,6 +37,7 @@ public class LibraryConverter {
                 .categoryName(categoryName)
                 .cntDownloadWeek(cntDownloadWeek)
                 .cntDownloadAll(cntDownloadAll)
+                .uploadAt(library.getUploadAt())
                 .build();
     }
 }
