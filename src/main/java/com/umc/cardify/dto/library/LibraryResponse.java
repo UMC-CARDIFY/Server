@@ -45,6 +45,7 @@ public class LibraryResponse {
         String userName;
         Integer cntDownloadAll;
         Integer cntDownloadWeek;
+        LocalDateTime uploadAt;
     }
     @Getter
     @Builder
