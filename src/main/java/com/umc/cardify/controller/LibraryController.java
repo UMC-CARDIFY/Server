@@ -39,8 +39,8 @@ public class LibraryController {
     }
     @GetMapping("/getTopNote")
     @Operation(summary = "추천 노트 조회 API")
-    public ResponseEntity<List<LibraryResponse.TopNoteDTO>> getTopNote(){
-        List<LibraryResponse.TopNoteDTO> resultNote = libraryService.getTopNote();
+    public ResponseEntity<List<LibraryResponse.NoteInfoDTO>> getTopNote(){
+        List<LibraryResponse.NoteInfoDTO> resultNote = libraryService.getTopNote();
         int index = 3;
         if(resultNote.size() < index)
             index = resultNote.size();
@@ -57,8 +57,8 @@ public class LibraryController {
     }
     @GetMapping("/getNoteToCategory")
     @Operation(summary = "특정 카테고리 내 노트 조회 API")
-    public ResponseEntity<List<LibraryResponse.TopNoteDTO>> getNoteToCategory(@RequestParam @Valid String input){
-        List<LibraryResponse.TopNoteDTO> resultNote = libraryService.getNoteToCategory(input);
+    public ResponseEntity<List<LibraryResponse.NoteInfoDTO>> getNoteToCategory(@RequestParam @Valid String category){
+        List<LibraryResponse.NoteInfoDTO> resultNote = libraryService.getNoteToCategory(category);
         return ResponseEntity.ok(resultNote);
     }
     @PostMapping("/searchLib")

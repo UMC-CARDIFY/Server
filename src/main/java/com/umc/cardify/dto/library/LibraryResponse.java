@@ -35,14 +35,16 @@ public class LibraryResponse {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    @Schema(title = "Library_RES_03 : 추천 노트 조회 DTO")
-    public static class TopNoteDTO {
+    @Schema(title = "Library_RES_03 : 각종 노트 조회 DTO")
+    public static class NoteInfoDTO {
+        Long noteId;
         String noteName;
         List<String> categoryName;
         Integer cntCard;
         String userImgSrc;
         String userName;
-        Integer cntDownload;
+        Integer cntDownloadAll;
+        Integer cntDownloadWeek;
     }
     @Getter
     @Builder
@@ -52,6 +54,6 @@ public class LibraryResponse {
     public static class SearchLibDTO {
         String searchTxt;
         List<String> searchCategory;
-        List<TopNoteDTO> resultNote;
+        List<NoteInfoDTO> resultNote;
     }
 }
