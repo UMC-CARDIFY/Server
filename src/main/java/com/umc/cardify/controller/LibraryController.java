@@ -61,4 +61,10 @@ public class LibraryController {
         List<LibraryResponse.TopNoteDTO> resultNote = libraryService.getNoteToCategory(input);
         return ResponseEntity.ok(resultNote);
     }
+    @PostMapping("/searchLib")
+    @Operation(summary = "자료실 내 노트 검색 API")
+    public ResponseEntity<List<LibraryResponse.TopNoteDTO>> searchLib(@RequestBody @Valid LibraryRequest.SearchLibDto request){
+        List<LibraryResponse.TopNoteDTO> resultNote = libraryService.searchLib(request);
+        return ResponseEntity.ok(resultNote);
+    }
 }
