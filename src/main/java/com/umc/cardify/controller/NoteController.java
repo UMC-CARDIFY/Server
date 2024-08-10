@@ -90,4 +90,9 @@ public class NoteController {
         Boolean isSuccess = noteService.cancelShare(noteId, userId);
         return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(isSuccess));
     }
+    @GetMapping("/getNote")
+    @Operation(summary = "노트 내용 조회 API" , description = "노트 ID 입력, 성공 시 노트 내용 반환")
+    public ResponseEntity<NoteResponse.getNoteDTO> getNote(@RequestParam @Valid Long noteId){
+        return ResponseEntity.ok(noteService.getNote(noteId));
+    }
 }
