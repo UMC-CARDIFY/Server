@@ -112,9 +112,13 @@ public class CustomAuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         response.setHeader("Authorization", "Bearer " + jwtToken);
 
         log.info("JWT Token generated: {}", jwtToken);
+        String targetUrl = UriComponentsBuilder.fromUriString("http://localhost:5173/dashboard")
+                .build()
+                .encode(StandardCharsets.UTF_8)
+                .toUriString();
 
         // 로그인 성공 후 리다이렉트 (필요에 따라 URL 변경 가능)
-        getRedirectStrategy().sendRedirect(request, response, "http://localhost:5173/dashboard");
+        getRedirectStrategy().sendRedirect(request, response, targetUrl);
     }
 
     private Cookie createCookie(String key, String value) {
