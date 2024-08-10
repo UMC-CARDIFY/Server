@@ -2,6 +2,7 @@ package com.umc.cardify.service;
 
 import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
+import com.umc.cardify.converter.LibraryConverter;
 import com.umc.cardify.domain.*;
 import com.umc.cardify.dto.library.LibraryRequest;
 import com.umc.cardify.dto.library.LibraryResponse;
@@ -28,6 +29,8 @@ public class LibraryService {
     private final DownloadRepository downloadRepository;
 
     private final CardService cardService;
+
+    private final LibraryConverter libraryConverter;
     public Boolean isUploadLib(Note note){
         Library library = libraryRepository.findByNote(note);
         if(library != null)
@@ -113,26 +116,11 @@ public class LibraryService {
             cardList.forEach(card -> cardService.addCard(card, note_new));
         return true;
     }
-    public List<LibraryResponse.TopNoteDTO> getTopNote(){
+    public List<LibraryResponse.NoteInfoDTO> getTopNote(){
         List<Library> libraryList = libraryRepository.findAll();
-        List<LibraryResponse.TopNoteDTO> resultDto = libraryList.stream()
-                .map(library -> {
-                    int count = downloadRepository.findByLibrary(library).stream()
-                            .filter(download -> download.getCreatedAt().isAfter(LocalDateTime.now().minusDays(7)))
-                            .toList().size();
-                    User user = library.getNote().getFolder().getUser();
-                    List<String> categoryName = library.getCategoryList().stream()
-                            .map(libraryCategory -> libraryCategory.getCategory().getName()).toList();
-                    return LibraryResponse.TopNoteDTO.builder()
-                            .userName(user.getName())
-                            .userImgSrc(null)       //추후 유저 이미지 생성되면 삽입
-                            .cntDownload(count)
-                            .noteName(library.getNote().getName())
-                            .cntCard(library.getNote().getCards().size())
-                            .categoryName(categoryName)
-                            .build();
-                })
-                .sorted(Comparator.comparing(LibraryResponse.TopNoteDTO::getCntDownload).reversed())
+        List<LibraryResponse.NoteInfoDTO> resultDto = libraryList.stream()
+                .map(libraryConverter::toLibInfo)
+                .sorted(Comparator.comparing(LibraryResponse.NoteInfoDTO::getCntDownloadWeek).reversed())
                 .collect(Collectors.toList());
 
         return resultDto;
@@ -142,7 +130,7 @@ public class LibraryService {
         List<LibraryResponse.CategoryInfoDTO> resultCateDTO = categoryList.stream()
                 .map(category -> {
                     List<LibraryCategory> uploadList = libraryCategoryRepository.findByCategory(category).stream()
-                            .filter(upload->upload.getCreatedAt().compareTo(LocalDateTime.now().minusDays(7)) > 0)
+                            .filter(upload-> upload.getCreatedAt().isAfter(LocalDateTime.now().minusDays(7)))
                             .sorted(Comparator.comparing(LibraryCategory::getCreatedAt).reversed())
                             .toList();
                     int count = uploadList.size();
@@ -162,26 +150,13 @@ public class LibraryService {
                 .collect(Collectors.toList());
         return resultCateDTO;
     }
-    public List<LibraryResponse.TopNoteDTO> getNoteToCategory(String input) {
+    public List<LibraryResponse.NoteInfoDTO> getNoteToCategory(String input) {
         Category category = categoryRepository.findByName(input);
         if(category==null)
             throw new BadRequestException(ErrorResponseStatus.NOT_FOUND_CATEGORY);
-        List<LibraryResponse.TopNoteDTO> resultList = libraryCategoryRepository.findByCategory(category).stream()
-                .map(upload -> {
-                    Library library = upload.getLibrary();
-                    Note note = library.getNote();
-                    User user = note.getFolder().getUser();
-                    List<String> categoryName = library.getCategoryList().stream()
-                            .map(libraryCategory -> libraryCategory.getCategory().getName()).toList();
-                    return LibraryResponse.TopNoteDTO.builder()
-                            .userName(user.getName())
-                            .userImgSrc(null)       //추후 유저 이미지 생성되면 삽입
-                            .noteName(note.getName())
-                            .cntCard(note.getCards().size())
-                            .categoryName(categoryName)
-                            .build();
-                })
-                .sorted(Comparator.comparing(LibraryResponse.TopNoteDTO::getNoteName))
+        List<LibraryResponse.NoteInfoDTO> resultList = libraryCategoryRepository.findByCategory(category).stream()
+                .map(upload -> libraryConverter.toLibInfo(upload.getLibrary()))
+                .sorted(Comparator.comparing(LibraryResponse.NoteInfoDTO::getNoteName))
                 .toList();
         return resultList;
     }
@@ -219,23 +194,13 @@ public class LibraryService {
                 resultLib.addAll(libList);
             });
         }
-        List<LibraryResponse.TopNoteDTO> resultList = resultLib.stream()
+
+        List<LibraryResponse.NoteInfoDTO> resultList = resultLib.stream()
                 .distinct()
                 .filter(library -> library.getNote().getName().contains(searchTxt))
-                .map(library -> {
-                    Note note = library.getNote();
-                    User user = note.getFolder().getUser();
-                    List<String> categoryName = library.getCategoryList().stream()
-                            .map(libraryCategory -> libraryCategory.getCategory().getName()).toList();
-                    return LibraryResponse.TopNoteDTO.builder()
-                            .userName(user.getName())
-                            .userImgSrc(null)       //추후 유저 이미지 생성되면 삽입
-                            .noteName(note.getName())
-                            .cntCard(note.getCards().size())
-                            .categoryName(categoryName)
-                            .build();
-                })
+                .map(libraryConverter::toLibInfo)
                 .toList();
+
         return LibraryResponse.SearchLibDTO.builder()
                 .searchTxt(searchTxt)
                 .searchCategory(categoryList.stream().map(Category::getName).toList())
