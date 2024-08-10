@@ -62,14 +62,7 @@ public class NoteService {
         }
 
         List<NoteResponse.NoteInfoDTO> notes = notePage.getContent().stream()
-                .map(note -> NoteResponse.NoteInfoDTO.builder()
-                        .noteId(note.getNoteId())
-                        .name(note.getName())
-                        .folderName(note.getFolder().getName())
-                        .markState(note.getMarkState())
-                        .editDate(note.getEditDate().toLocalDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
-                        .createdAt(note.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
-                        .build())
+                .map(noteConverter::toNoteInfoDTO)
                 .collect(Collectors.toList());
 
         return NoteResponse.NoteListDTO.builder()
@@ -104,22 +97,15 @@ public class NoteService {
         String order = request.getOrder();
         if(order == null) order = "asc";
 
-        switch (order.toLowerCase()) {
-            case "asc":
-                pageable = PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.asc("name")));
-                break;
-            case "desc":
-                pageable = PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.desc("name")));
-                break;
-            case "edit-newest":
-                pageable = PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.asc("editDate")));
-                break;
-            case "edit-oldest":
-                pageable = PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.desc("editDate")));
-                break;
-            default:
-                throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
-        }
+        pageable = switch (order.toLowerCase()) {
+            case "asc" -> PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.asc("name")));
+            case "desc" -> PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.desc("name")));
+            case "edit-newest" ->
+                    PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.asc("editDate")));
+            case "edit-oldest" ->
+                    PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.desc("editDate")));
+            default -> throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+        };
         Page<Note> notes_all = noteRepository.findByFolder(folder, pageable);
 
         NoteResponse.GetNoteToFolderResultDTO noteDTO = noteConverter.toGetNoteToFolderResult(folder, notes_all);
