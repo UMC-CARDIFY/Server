@@ -192,25 +192,32 @@ public class LibraryService {
         else
             searchTxt = request.getSearchTxt();
 
-        List<Category> categoryList = request.getCategoryList().stream()
-                .map(str->{
-                    Category category = categoryRepository.findByName(str);
-                    if(category == null)
-                        throw new BadRequestException(ErrorResponseStatus.NOT_FOUND_CATEGORY);
-                    return category;
-                })
-                .toList();
-
-        List<Library> resultLib = new ArrayList<>();
-        categoryList.forEach(category -> {
-            List<LibraryCategory> uploadList = libraryCategoryRepository.findByCategory(category);
-            List<Library> libList = uploadList.stream()
+        List<Library> resultLib;
+        if(request.getCategoryList() == null){
+            resultLib = libraryCategoryRepository.findAll().stream()
                     .map(LibraryCategory::getLibrary)
                     .toList();
-            resultLib.addAll(libList);
-        });
+        }
+        else {
+            resultLib = new ArrayList<>();
+            List<Category> categoryList = request.getCategoryList().stream()
+                    .map(str -> {
+                        Category category = categoryRepository.findByName(str);
+                        if (category == null)
+                            throw new BadRequestException(ErrorResponseStatus.NOT_FOUND_CATEGORY);
+                        return category;
+                    })
+                    .toList();
 
-        List<LibraryResponse.TopNoteDTO> resultDto = resultLib.stream()
+            categoryList.forEach(category -> {
+                List<LibraryCategory> uploadList = libraryCategoryRepository.findByCategory(category);
+                List<Library> libList = uploadList.stream()
+                        .map(LibraryCategory::getLibrary)
+                        .toList();
+                resultLib.addAll(libList);
+            });
+        }
+        return resultLib.stream()
                 .distinct()
                 .filter(library -> library.getNote().getName().contains(searchTxt))
                 .map(library -> {
@@ -227,6 +234,5 @@ public class LibraryService {
                             .build();
                 })
                 .toList();
-        return resultDto;
     }
 }
