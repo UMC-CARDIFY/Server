@@ -118,7 +118,7 @@ public class LibraryService {
         List<LibraryResponse.TopNoteDTO> resultDto = libraryList.stream()
                 .map(library -> {
                     int count = downloadRepository.findByLibrary(library).stream()
-                            .filter(download -> download.getCreatedAt().compareTo(LocalDateTime.now().minusDays(7)) > 0)
+                            .filter(download -> download.getCreatedAt().isAfter(LocalDateTime.now().minusDays(7)))
                             .toList().size();
                     User user = library.getNote().getFolder().getUser();
                     List<String> categoryName = library.getCategoryList().stream()
@@ -185,7 +185,7 @@ public class LibraryService {
                 .toList();
         return resultList;
     }
-    public List<LibraryResponse.TopNoteDTO> searchLib(LibraryRequest.SearchLibDto request){
+    public LibraryResponse.SearchLibDTO searchLib(LibraryRequest.SearchLibDto request){
         String searchTxt;
         if(request.getSearchTxt() == null)
             searchTxt = "";
@@ -193,14 +193,16 @@ public class LibraryService {
             searchTxt = request.getSearchTxt();
 
         List<Library> resultLib;
+        List<Category> categoryList;
         if(request.getCategoryList() == null){
             resultLib = libraryCategoryRepository.findAll().stream()
                     .map(LibraryCategory::getLibrary)
                     .toList();
+            categoryList = new ArrayList<>();
         }
         else {
             resultLib = new ArrayList<>();
-            List<Category> categoryList = request.getCategoryList().stream()
+            categoryList = request.getCategoryList().stream()
                     .map(str -> {
                         Category category = categoryRepository.findByName(str);
                         if (category == null)
@@ -217,7 +219,7 @@ public class LibraryService {
                 resultLib.addAll(libList);
             });
         }
-        return resultLib.stream()
+        List<LibraryResponse.TopNoteDTO> resultList = resultLib.stream()
                 .distinct()
                 .filter(library -> library.getNote().getName().contains(searchTxt))
                 .map(library -> {
@@ -234,5 +236,10 @@ public class LibraryService {
                             .build();
                 })
                 .toList();
+        return LibraryResponse.SearchLibDTO.builder()
+                .searchTxt(searchTxt)
+                .searchCategory(categoryList.stream().map(Category::getName).toList())
+                .resultNote(resultList)
+                .build();
     }
 }
