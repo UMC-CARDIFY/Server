@@ -11,6 +11,7 @@ import org.joda.time.DateTime;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -183,5 +184,49 @@ public class LibraryService {
                 .sorted(Comparator.comparing(LibraryResponse.TopNoteDTO::getNoteName))
                 .toList();
         return resultList;
+    }
+    public List<LibraryResponse.TopNoteDTO> searchLib(LibraryRequest.SearchLibDto request){
+        String searchTxt;
+        if(request.getSearchTxt() == null)
+            searchTxt = "";
+        else
+            searchTxt = request.getSearchTxt();
+
+        List<Category> categoryList = request.getCategoryList().stream()
+                .map(str->{
+                    Category category = categoryRepository.findByName(str);
+                    if(category == null)
+                        throw new BadRequestException(ErrorResponseStatus.NOT_FOUND_CATEGORY);
+                    return category;
+                })
+                .toList();
+
+        List<Library> resultLib = new ArrayList<>();
+        categoryList.forEach(category -> {
+            List<LibraryCategory> uploadList = libraryCategoryRepository.findByCategory(category);
+            List<Library> libList = uploadList.stream()
+                    .map(LibraryCategory::getLibrary)
+                    .toList();
+            resultLib.addAll(libList);
+        });
+
+        List<LibraryResponse.TopNoteDTO> resultDto = resultLib.stream()
+                .distinct()
+                .filter(library -> library.getNote().getName().contains(searchTxt))
+                .map(library -> {
+                    Note note = library.getNote();
+                    User user = note.getFolder().getUser();
+                    List<String> categoryName = library.getCategoryList().stream()
+                            .map(libraryCategory -> libraryCategory.getCategory().getName()).toList();
+                    return LibraryResponse.TopNoteDTO.builder()
+                            .userName(user.getName())
+                            .userImgSrc(null)       //추후 유저 이미지 생성되면 삽입
+                            .noteName(note.getName())
+                            .cntCard(note.getCards().size())
+                            .categoryName(categoryName)
+                            .build();
+                })
+                .toList();
+        return resultDto;
     }
 }

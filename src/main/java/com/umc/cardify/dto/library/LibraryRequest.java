@@ -18,4 +18,10 @@ public class LibraryRequest {
         @NotNull
         Boolean isContainCard;
     }
+    @Getter
+    @Schema(title = "LIBRARY_REQ_02 : 자료실 검색 요청 DTO")
+    public static class SearchLibDto{
+        String searchTxt;
+        List<String> categoryList;
+    }
 }
