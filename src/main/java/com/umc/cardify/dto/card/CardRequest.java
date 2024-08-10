@@ -5,6 +5,7 @@ import java.util.List;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import lombok.Builder;
 import lombok.Getter;
 
 public class CardRequest {
@@ -26,6 +27,7 @@ public class CardRequest {
 
 	@Getter
 	@Schema(title = "CARD_REQ_02 : 이미지 카드 생성 요청 내부 가림판 정보 DTO")
+	@Builder
 	public static class addImageCardOverlay{
 		@NotBlank(message = "가림판 x 좌표 입력 필요")
 		@Schema(description = "가림판 x좌표", example = "400")
