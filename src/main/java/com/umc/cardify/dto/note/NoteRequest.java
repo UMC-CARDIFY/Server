@@ -19,7 +19,6 @@ public class NoteRequest {
         String name;
         @NotNull
         String contents;
-        List<CardRequest.WriteCardDto> cards;
     }
     @Getter
     @Schema(title = "NOTE_REQ_03 : 특정 폴더 내 노트 조회 요청 DTO")

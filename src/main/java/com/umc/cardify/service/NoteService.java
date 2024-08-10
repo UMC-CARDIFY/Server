@@ -157,14 +157,7 @@ public class NoteService {
             //저장되어 있는 노트 내용과 입력된 내용이 같을 시 카드를 저장하지 않음
             if(!note.getContents().equals(request.getContents())) {
                 note.setContents(request.getContents());
-                List<CardRequest.WriteCardDto> cardsDto = request.getCards();
-                if (note.getCards() != null) {
-                    List<Card> cardList = cardRepository.findByNote(note);
-                    cardRepository.deleteAll(cardList);
-                }
-                if (cardsDto != null) {
-                    cardsDto.forEach((card) -> {cardService.addCard(card, note);});
-                }
+                //여기에 카드 작성이 들어가 있었음
             }
             noteRepository.save(note);
 
