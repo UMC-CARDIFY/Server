@@ -199,6 +199,7 @@ public class LibraryService {
                 .distinct()
                 .filter(library -> library.getNote().getName().contains(searchTxt))
                 .map(libraryConverter::toLibInfo)
+                .sorted(Comparator.comparing(LibraryResponse.NoteInfoDTO::getCntDownloadWeek).reversed())
                 .toList();
 
         return LibraryResponse.SearchLibDTO.builder()
