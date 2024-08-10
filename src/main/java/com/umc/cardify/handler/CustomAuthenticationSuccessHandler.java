@@ -17,8 +17,12 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Component;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 @Slf4j
 @Component
@@ -27,8 +31,31 @@ public class CustomAuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
+    // private final RestTemplate restTemplate;
+
+    @Value("${spring.security.oauth2.client.provider.kakao.token-uri}")
+    String tokenUri;
+
+    @Value("${spring.security.oauth2.client.provider.kakao.user-info-uri}")
+    String userInfoUri;
+
+    @Value("${spring.security.oauth2.client.registration.kakao.client-id}")
+    String clientId;
+
     @Value("${spring.security.oauth2.client.registration.kakao.redirect-uri}")
     String redirectUri;
+
+    @Value("${spring.security.oauth2.client.registration.kakao.client-secret}")
+    private String clientSecret;
+
+    public MultiValueMap<String, String> accessTokenParams(String grantType, String clientId, String code, String redirect_uri) {
+        MultiValueMap<String, String> accessTokenParams = new LinkedMultiValueMap<>();
+        accessTokenParams.add("grant_type", grantType);
+        accessTokenParams.add("client_id", clientId);
+        accessTokenParams.add("code", code);
+        accessTokenParams.add("redirect_uri", redirect_uri);
+        return accessTokenParams;
+    }
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
@@ -71,6 +98,11 @@ public class CustomAuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             Long userId = user.getUserId();
             tokenInfo = jwtUtil.generateTokens(userId);
             jwtToken = tokenInfo.getAccessToken();
+
+//            String targetUrl = UriComponentsBuilder.fromUriString("http://localhost:5173/dashboard")
+//                    .build()
+//                    .encode(StandardCharsets.UTF_8)
+//                    .toUriString();
         } else {
             throw new RuntimeException("Unknown principal type: " + principal.getClass().getName());
         }
@@ -82,7 +114,7 @@ public class CustomAuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         log.info("JWT Token generated: {}", jwtToken);
 
         // 로그인 성공 후 리다이렉트 (필요에 따라 URL 변경 가능)
-        getRedirectStrategy().sendRedirect(request, response, "/kakao-response" + jwtToken);
+        getRedirectStrategy().sendRedirect(request, response, "http://localhost:5173/dashboard");
     }
 
     private Cookie createCookie(String key, String value) {
