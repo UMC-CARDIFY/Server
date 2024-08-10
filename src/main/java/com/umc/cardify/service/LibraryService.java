@@ -1,5 +1,6 @@
 package com.umc.cardify.service;
 
+import com.amazonaws.services.s3.transfer.Upload;
 import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.converter.LibraryConverter;
@@ -150,13 +151,22 @@ public class LibraryService {
                 .collect(Collectors.toList());
         return resultCateDTO;
     }
-    public List<LibraryResponse.NoteInfoDTO> getNoteToCategory(String input) {
+    public List<LibraryResponse.NoteInfoDTO> getNoteToCategory(String input, String order) {
         Category category = categoryRepository.findByName(input);
-        if(category==null)
+        Comparator<LibraryResponse.NoteInfoDTO> comparator;
+        if(category == null)
             throw new BadRequestException(ErrorResponseStatus.NOT_FOUND_CATEGORY);
+        comparator = switch (order.toLowerCase()) {
+            case "asc" -> Comparator.comparing(LibraryResponse.NoteInfoDTO::getNoteName);
+            case "desc" -> Comparator.comparing(LibraryResponse.NoteInfoDTO::getNoteName).reversed();
+            case "upload-newest" -> Comparator.comparing(LibraryResponse.NoteInfoDTO::getUploadAt).reversed();
+            case "upload-oldest" -> Comparator.comparing(LibraryResponse.NoteInfoDTO::getUploadAt);
+            case "download" -> Comparator.comparing(LibraryResponse.NoteInfoDTO::getCntDownloadAll).reversed();
+            default -> throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+        };
         List<LibraryResponse.NoteInfoDTO> resultList = libraryCategoryRepository.findByCategory(category).stream()
                 .map(upload -> libraryConverter.toLibInfo(upload.getLibrary()))
-                .sorted(Comparator.comparing(LibraryResponse.NoteInfoDTO::getNoteName))
+                .sorted(comparator)
                 .toList();
         return resultList;
     }
