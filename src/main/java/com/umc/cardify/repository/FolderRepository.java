@@ -14,7 +14,8 @@ public interface FolderRepository extends JpaRepository<Folder, Long> {
 
     @Query("SELECT f FROM Folder f WHERE f.user = :user ORDER BY " +
             "CASE WHEN f.markState = 'ACTIVE' THEN 0 ELSE 1 END, " +
-            "f.markDate ASC, f.createdAt DESC ")
+            "CASE WHEN f.markState = 'ACTIVE' THEN f.markDate END ASC, " +
+            "CASE WHEN f.markState != 'ACTIVE' THEN f.createdAt END DESC")
     Page<Folder> findByUser(@Param("user") User user, Pageable pageable);
 
     @Query("SELECT f FROM Folder f WHERE f.user = :user ORDER BY " +
@@ -35,6 +36,7 @@ public interface FolderRepository extends JpaRepository<Folder, Long> {
 
     @Query("SELECT f FROM Folder f WHERE f.user = :user AND f.color IN (:color) ORDER BY " +
             "CASE WHEN f.markState = 'ACTIVE' THEN 0 ELSE 1 END, " +
-            "f.markDate ASC, f.createdAt DESC ")
+            "CASE WHEN f.markState = 'ACTIVE' THEN f.markDate END ASC, " +
+            "CASE WHEN f.markState != 'ACTIVE' THEN f.createdAt END DESC")
     Page<Folder> findByUserAndColor(@Param("user") User user, @Param("color") String color, Pageable pageable);
 }
