@@ -6,6 +6,7 @@ import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.domain.Folder;
 import com.umc.cardify.domain.User;
 import com.umc.cardify.domain.enums.MarkStatus;
+import com.umc.cardify.dto.folder.FolderComparator;
 import com.umc.cardify.dto.folder.FolderRequest;
 import com.umc.cardify.dto.folder.FolderResponse;
 import com.umc.cardify.repository.FolderRepository;
@@ -23,6 +24,7 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -79,12 +81,15 @@ public class FolderService {
 
     public FolderResponse.sortFolderListDTO sortFoldersByUserId(Long userId, Integer page, Integer size, String order){
         User user = userRepository.findById(userId)
-                .orElseThrow(()-> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
-        int sortFolderPage = (page!=null) ? page:0;
-        int sortFolderSize = (size!=null) ? size:30;
+        int sortFolderPage = (page != null) ? page : 0;
+        int sortFolderSize = (size != null) ? size : 30;
 
-        switch(order){
+        Pageable pageable = PageRequest.of(sortFolderPage, sortFolderSize);
+        Page<Folder> folderPage = folderRepository.findByUserAndSort(user, order, pageable);
+
+        switch (order) {
             case "asc":
             case "desc":
             case "edit-newest":
@@ -94,10 +99,8 @@ public class FolderService {
                 throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
         }
 
-        Pageable pageable = PageRequest.of(sortFolderPage, sortFolderSize);
-        Page<Folder> folderPage = folderRepository.findByUserAndSort(user, order, pageable);
-
         List<FolderResponse.sortFolderInfoDTO> folders = folderPage.getContent().stream()
+                .sorted(new FolderComparator())
                 .map(folder -> FolderResponse.sortFolderInfoDTO.builder()
                         .folderId(folder.getFolderId())
                         .name(folder.getName())
@@ -109,7 +112,7 @@ public class FolderService {
         return FolderResponse.sortFolderListDTO.builder()
                 .sortFoldersList(folders)
                 .listSize(folderPage.getSize())
-                .currentPage(folderPage.getNumber()+1)
+                .currentPage(folderPage.getNumber() + 1)
                 .totalPages(folderPage.getTotalPages())
                 .totalElements(folderPage.getTotalElements())
                 .isFirst(folderPage.isFirst())
