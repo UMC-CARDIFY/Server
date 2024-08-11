@@ -2,8 +2,14 @@ package com.umc.cardify.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.umc.cardify.domain.User;
 import com.umc.cardify.dto.user.KakaoToken;
+import com.umc.cardify.dto.user.UserResponse;
+import com.umc.cardify.jwt.JwtUtil;
+import com.umc.cardify.repository.UserRepository;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -18,9 +24,13 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Tag(name = "OAuth2Controller", description = "카카오 로그인 관련 API")
 @RestController
 @RequestMapping("/")
+@RequiredArgsConstructor
 public class OAuth2Controller {
 
     @Value("${spring.security.oauth2.client.provider.kakao.token-uri}")
@@ -38,6 +48,9 @@ public class OAuth2Controller {
     @Value("${spring.security.oauth2.client.registration.kakao.client-secret}")
     private String clientSecret;
 
+    private final UserRepository userRepository;
+
+    private final JwtUtil jwtUtil;
     @GetMapping("oauth2/callback/kakao")
     public @ResponseBody String kakaoCallback(String code) throws JsonProcessingException {
 
@@ -103,28 +116,47 @@ public class OAuth2Controller {
         // kakaoTokenRequest는 데이터(Body)와 헤더(Header)를 Entity가 된다.
         HttpEntity<MultiValueMap<String, String>> kakaoTokenRequest2 = new HttpEntity<>(headers2);
 
-        ResponseEntity<String> response2 = rt2.exchange(
-                userInfoUri,
-                HttpMethod.GET,
-                kakaoTokenRequest2,
-                String.class
-        );
+        try {
 
-        return response2.getBody();
+            ResponseEntity<String> response2 = rt2.exchange(
+                    userInfoUri,
+                    HttpMethod.GET,
+                    kakaoTokenRequest2,
+                    String.class
+            );
 
-//        try {
-//
-//            ResponseEntity<String> response2 = rt2.exchange(
-//                    userInfoUri,
-//                    HttpMethod.GET,
-//                    kakaoTokenRequest2,
-//                    String.class
-//            );
-//
-//            return response2.getBody();
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
+            // 사용자 정보 파싱 (필요한 데이터 추출)
+            Map<String, Object> userInfo = objectMapper.readValue(response2.getBody(), HashMap.class);
 
+            // 카카오 계정 정보 (kakao_account) 가져오기
+            Map<String, Object> kakaoAccount = (Map<String, Object>) userInfo.get("kakao_account");
+            String email = (String) kakaoAccount.get("email");
+
+            // 사용자 프로필 정보 (properties) 가져오기
+            Map<String, Object> properties = (Map<String, Object>) userInfo.get("properties");
+            String nickname = (String) properties.get("nickname");
+
+            // DB에서 사용자 검색 또는 새 사용자 생성
+            User user = userRepository.findByEmail(email)
+                    .orElseGet(() -> {
+                        User newUser = new User();
+                        newUser.setEmail(email);
+                        newUser.setName(nickname);
+                        newUser.setKakao(true);
+                        newUser.setPassword(""); // 소셜 로그인 시 비밀번호는 필요 없음
+                        return userRepository.save(newUser);
+                    });
+
+            Long userId = user.getUserId();
+            UserResponse.tokenInfo tokenInfo = jwtUtil.generateTokens(userId);
+            String accessToken = tokenInfo.getAccessToken();
+
+            return accessToken;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
+        return "카카오 로그인 실패";
     }
 }
