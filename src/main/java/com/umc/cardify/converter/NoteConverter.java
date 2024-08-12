@@ -71,10 +71,10 @@ public class NoteConverter {
         List<String> textList = new ArrayList<>();
         String text = note.getName() + note.getContents();
         text.replace(">>", "")
-            .replace("<<", "")
-            .replace("{{", "")
-            .replace("}}", "")
-            .replace("==", "");
+                .replace("<<", "")
+                .replace("{{", "")
+                .replace("}}", "")
+                .replace("==", "");
         while(text.contains(search)){
             int index = text.indexOf(search);
 

@@ -32,10 +32,10 @@ public class CardController {
 
 	@PostMapping(value = "/add/Image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	@Operation(summary = "이미지 카드 생성", description = "이미지 및 가림판들의 크기와 위치 전송")
-	public ResponseEntity<String> addImageCard(@RequestHeader("Authorization") String token,
-		@RequestPart("image") MultipartFile image, @RequestPart("imageCard") CardRequest.addImageCard request) {
-		//Long userId = jwtUtil.extractUserId(token);
-		Long userId = 1L;
+	public ResponseEntity<String> addImageCard( @RequestHeader("Authorization") String token,
+		@RequestPart("image") MultipartFile image, @RequestPart("imageCard")CardRequest.addImageCard request){
+    
+		Long userId = jwtUtil.extractUserId(token);
 
 		String imgUrl = cardService.addImageCard(userId, image, request);
 

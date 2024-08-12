@@ -30,16 +30,6 @@ public class UserController {
 
     private final UserService userService;
 
-    // 이메일 회원가입
-//    @PostMapping("/signup")
-//    @Operation(summary = "회원가입 API")
-//    @ApiResponse(responseCode = "200", description = "회원가입 성공")
-//    @ApiResponse(responseCode = "400", description = "잘못된 요청", content = @io.swagger.v3.oas.annotations.media.Content(mediaType = "application/json"))
-//    public ResponseEntity<String> signUp(@RequestBody UserRequest.signUp signUpRequest) {
-//        String email = userService.signup(signUpRequest);
-//        return ResponseEntity.ok(email);
-//    }
-
     @PostMapping("/signup")
     @Operation(summary = "회원가입 API")
     @ApiResponse(responseCode = "200", description = "회원가입 성공")
@@ -55,8 +45,8 @@ public class UserController {
         }
 
         try {
-            String email = userService.signup(signUpRequest);
-            return ResponseEntity.ok(email);
+            String name = userService.signup(signUpRequest);
+            return ResponseEntity.ok(name);
         } catch (BadRequestException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
         } catch (Exception e) {
