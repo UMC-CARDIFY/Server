@@ -57,6 +57,7 @@ public class CustomAuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         return accessTokenParams;
     }
 
+    // oauth2.0 성공시
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
                                         Authentication authentication) throws IOException, ServletException {
