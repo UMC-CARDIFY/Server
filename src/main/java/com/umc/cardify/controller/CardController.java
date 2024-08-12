@@ -2,6 +2,7 @@ package com.umc.cardify.controller;
 
 import java.util.List;
 
+import com.umc.cardify.dto.card.CardResponse;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
