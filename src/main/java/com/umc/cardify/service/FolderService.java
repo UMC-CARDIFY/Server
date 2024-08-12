@@ -4,6 +4,7 @@ import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.DatabaseException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.domain.Folder;
+import com.umc.cardify.domain.Note;
 import com.umc.cardify.domain.User;
 import com.umc.cardify.domain.enums.MarkStatus;
 import com.umc.cardify.dto.folder.FolderComparator;
@@ -39,7 +40,7 @@ public class FolderService {
         return folderRepository.findById(folderId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public FolderResponse.FolderListDTO getFoldersByUserId(Long userId, Integer page, Integer size){
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
@@ -55,17 +56,30 @@ public class FolderService {
             throw new BadRequestException(ErrorResponseStatus.NOT_EXIST_FOLDER);
         }
 
+
         List<FolderResponse.FolderInfoDTO> folders = folderPage.getContent().stream()
-                .map(folder -> FolderResponse.FolderInfoDTO.builder()
-                        .folderId(folder.getFolderId())
-                        .name(folder.getName())
-                        .color(folder.getColor())
-                        .markState(folder.getMarkState())
-                        .getNoteCount(folder.getNoteCount())
-                        .markDate(folder.getMarkDate())
-                        .editDate(folder.getEditDate())
-                        .createdAt(folder.getCreatedAt())
-                        .build())
+                .map(folder -> {
+                    Note latestNote = noteRepository.findTopByFolderOrderByEditDateDesc(folder);
+                    Timestamp latestNoteEditDate = latestNote != null ? latestNote.getEditDate() : null;
+
+                    if (latestNoteEditDate != null) {
+                        if (folder.getEditDate() == null || latestNoteEditDate.after(folder.getEditDate())) {
+                            folder.setEditDate(latestNoteEditDate);
+                            folderRepository.save(folder);
+                        }
+                    }
+
+                    return FolderResponse.FolderInfoDTO.builder()
+                            .folderId(folder.getFolderId())
+                            .name(folder.getName())
+                            .color(folder.getColor())
+                            .markState(folder.getMarkState())
+                            .getNoteCount(folder.getNoteCount())
+                            .markDate(folder.getMarkDate())
+                            .editDate(folder.getEditDate())
+                            .createdAt(folder.getCreatedAt())
+                            .build();
+                })
                 .collect(Collectors.toList());
 
         return FolderResponse.FolderListDTO.builder()
