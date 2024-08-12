@@ -62,14 +62,7 @@ public class NoteService {
         }
 
         List<NoteResponse.NoteInfoDTO> notes = notePage.getContent().stream()
-                .map(note -> NoteResponse.NoteInfoDTO.builder()
-                        .noteId(note.getNoteId())
-                        .name(note.getName())
-                        .folderName(note.getFolder().getName())
-                        .markState(note.getMarkState())
-                        .editDate(note.getEditDate().toLocalDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
-                        .createdAt(note.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
-                        .build())
+                .map(noteConverter::toNoteInfoDTO)
                 .collect(Collectors.toList());
 
         return NoteResponse.NoteListDTO.builder()
@@ -104,22 +97,15 @@ public class NoteService {
         String order = request.getOrder();
         if(order == null) order = "asc";
 
-        switch (order.toLowerCase()) {
-            case "asc":
-                pageable = PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.asc("name")));
-                break;
-            case "desc":
-                pageable = PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.desc("name")));
-                break;
-            case "edit-newest":
-                pageable = PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.asc("editDate")));
-                break;
-            case "edit-oldest":
-                pageable = PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.desc("editDate")));
-                break;
-            default:
-                throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
-        }
+        pageable = switch (order.toLowerCase()) {
+            case "asc" -> PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.asc("name")));
+            case "desc" -> PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.desc("name")));
+            case "edit-newest" ->
+                    PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.asc("editDate")));
+            case "edit-oldest" ->
+                    PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.desc("editDate")));
+            default -> throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+        };
         Page<Note> notes_all = noteRepository.findByFolder(folder, pageable);
 
         NoteResponse.GetNoteToFolderResultDTO noteDTO = noteConverter.toGetNoteToFolderResult(folder, notes_all);
@@ -157,14 +143,7 @@ public class NoteService {
             //저장되어 있는 노트 내용과 입력된 내용이 같을 시 카드를 저장하지 않음
             if(!note.getContents().equals(request.getContents())) {
                 note.setContents(request.getContents());
-                List<CardRequest.WriteCardDto> cardsDto = request.getCards();
-                if (note.getCards() != null) {
-                    List<Card> cardList = cardRepository.findByNote(note);
-                    cardRepository.deleteAll(cardList);
-                }
-                if (cardsDto != null) {
-                    cardsDto.forEach((card) -> {cardService.addCard(card, note);});
-                }
+                //여기에 카드 작성이 들어가 있었음
             }
             noteRepository.save(note);
 
@@ -239,5 +218,26 @@ public class NoteService {
         if(library!=null)
             libraryRepository.delete(library);
         return true;
+    }
+
+
+    public NoteResponse.getNoteDTO getNote(Long noteId){
+        Note note = noteRepository.findById(noteId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+        List<NoteResponse.getNoteCardDTO> cardDTO = note.getCards().stream()
+                .map(card -> {
+                    return NoteResponse.getNoteCardDTO.builder()
+                            .cardId(card.getCardId())
+                            .cardName(card.getName())
+                            .contentsFront(card.getContentsFront())
+                            .contentsBack(card.getContentsBack())
+                            .build();
+                })
+                .toList();
+        return NoteResponse.getNoteDTO.builder()
+                .noteId(note.getNoteId())
+                .noteName(note.getName())
+                .noteContent(note.getContents())
+                .cardList(cardDTO)
+                .build();
     }
 }

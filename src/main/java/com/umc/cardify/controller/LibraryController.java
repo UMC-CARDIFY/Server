@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 @Tag(name = "LibraryController", description = "자료실 관련 API")
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("api/v1/Library")
+@RequestMapping("api/v1/library")
 public class LibraryController {
 
     private final JwtUtil jwtUtil;
@@ -39,8 +39,8 @@ public class LibraryController {
     }
     @GetMapping("/getTopNote")
     @Operation(summary = "추천 노트 조회 API")
-    public ResponseEntity<List<LibraryResponse.TopNoteDTO>> getTopNote(){
-        List<LibraryResponse.TopNoteDTO> resultNote = libraryService.getTopNote();
+    public ResponseEntity<List<LibraryResponse.NoteInfoDTO>> getTopNote(){
+        List<LibraryResponse.NoteInfoDTO> resultNote = libraryService.getTopNote();
         int index = 3;
         if(resultNote.size() < index)
             index = resultNote.size();
@@ -56,9 +56,16 @@ public class LibraryController {
         return ResponseEntity.ok(resultCategory.subList(0, 3));
     }
     @GetMapping("/getNoteToCategory")
-    @Operation(summary = "특정 카테고리 내 노트 조회 API")
-    public ResponseEntity<List<LibraryResponse.TopNoteDTO>> getNoteToCategory(@RequestParam @Valid String input){
-        List<LibraryResponse.TopNoteDTO> resultNote = libraryService.getNoteToCategory(input);
+    @Operation(summary = "특정 카테고리 내 노트 조회 API",
+            description = "order = asc, desc, upload-newest, upload-oldest, download | 정렬방식 미입력시 이름 오름차순")
+    public ResponseEntity<List<LibraryResponse.NoteInfoDTO>> getNoteToCategory(@RequestParam @Valid String category,@RequestParam @Valid String order){
+        List<LibraryResponse.NoteInfoDTO> resultNote = libraryService.getNoteToCategory(category, order);
         return ResponseEntity.ok(resultNote);
+    }
+    @PostMapping("/searchLib")
+    @Operation(summary = "자료실 내 노트 검색 API")
+    public ResponseEntity<LibraryResponse.SearchLibDTO> searchLib(@RequestBody @Valid LibraryRequest.SearchLibDto request){
+        LibraryResponse.SearchLibDTO resultDto = libraryService.searchLib(request);
+        return ResponseEntity.ok(resultDto);
     }
 }
