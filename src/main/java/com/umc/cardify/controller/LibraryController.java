@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 @Tag(name = "LibraryController", description = "자료실 관련 API")
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("api/v1/Library")
+@RequestMapping("api/v1/library")
 public class LibraryController {
 
     private final JwtUtil jwtUtil;
