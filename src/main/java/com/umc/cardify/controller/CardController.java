@@ -15,9 +15,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.umc.cardify.dto.card.CardRequest;
+import com.umc.cardify.dto.card.CardResponse;
 import com.umc.cardify.jwt.JwtUtil;
 import com.umc.cardify.service.CardService;
-import com.umc.cardify.service.S3Service;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -37,6 +37,7 @@ public class CardController {
 	@Operation(summary = "이미지 카드 생성", description = "이미지 및 가림판들의 크기와 위치 전송")
 	public ResponseEntity<String> addImageCard( @RequestHeader("Authorization") String token,
 		@RequestPart("image") MultipartFile image, @RequestPart("imageCard")CardRequest.addImageCard request){
+
 		Long userId = jwtUtil.extractUserId(token);
 
 		String imgUrl = cardService.addImageCard(userId, image, request);
