@@ -3,6 +3,7 @@ package com.umc.cardify.dto.folder;
 import com.umc.cardify.domain.enums.MarkStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
+import org.springframework.cglib.core.Local;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -101,7 +102,7 @@ public class FolderResponse {
     @Schema(title = "FOLDER_RES_05 : 폴더 삭제 응답 DTO")
     public static class deleteFolderResultDTO{
         @Schema(description = "삭제 성공 여부", example = "true")
-        Boolean isSuccess;
+        private Boolean isSuccess;
     }
 
     @Getter
@@ -111,11 +112,11 @@ public class FolderResponse {
     @Schema(title = "FOLDER_RES_06 : 폴더 추가 응답 DTO")
     public static class addFolderResultDTO{
         @Schema(description = "폴더 아이디", example = "1")
-        Long folderId;
+        private Long folderId;
         @Schema(description = "폴더 이름", example = "sample")
-        String name;
+        private String name;
         @Schema(description = "폴더 색상", example = "blue")
-        String color;
+        private String color;
         @Schema(description = "폴더 생성 날짜", example = "2023-12-05 12:34:56")
         private LocalDateTime createdAt;
     }
@@ -127,13 +128,13 @@ public class FolderResponse {
     @Schema(title = "FOLDER_RES_07 : 폴더 수정 응답 DTO")
     public static class editFolderResultDTO {
         @Schema(description = "폴더 아이디", example = "1")
-        Long folderId;
+        private Long folderId;
         @Schema(description = "폴더 이름", example = "sample")
-        String name;
+        private String name;
         @Schema(description = "폴더 색상", example = "ocean")
-        String color;
+        private String color;
         @Schema(description = "폴더 수정 날짜", example = "2023-12-05 12:34:56")
-        Timestamp editDate;
+        private Timestamp editDate;
     }
 
     @Getter
@@ -143,11 +144,11 @@ public class FolderResponse {
     @Schema(title = "FOLDER_RES_08 : 폴더 즐겨찾기 응답 DTO")
     public static class markFolderResultDTO{
         @Schema(description = "즐겨찾기 성공 여부", example = "true")
-        Boolean isSuccess;
+        private Boolean isSuccess;
         @Schema(description = "즐겨찾기 상태", example = "ACTIVE")
-        MarkStatus markState;
+        private MarkStatus markState;
         @Schema(description = "폴더 즐겨찾기 수정 날짜", example = "2023-12-05 12:34:56")
-        Timestamp markDate;
+        private Timestamp markDate;
     }
 
 }

@@ -21,4 +21,6 @@ public interface NoteRepository extends JpaRepository<Note, Long> {
            "n.markAt ASC, n.createdAt DESC ")
     Page<Note> findByUser(@Param("user") User user, Pageable pageable);
     void deleteByFolder(Folder folder);
+
+    Note findTopByFolderOrderByEditDateDesc(Folder folder);
 }

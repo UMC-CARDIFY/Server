@@ -29,21 +29,21 @@ public class NoteResponse {
     @Schema(title = "NOTE_RES_04 : 노트 정보 DTO")
     public static class NoteInfoDTO {
         @Schema(description = "노트 아이디", example = "1")
-        Long noteId;
+        private Long noteId;
         @Schema(description = "노트 이름", example = "Sample Note")
-        String name;
+        private String name;
         @Schema(description = "폴더 이름", example = "Sample Folder")
-        String folderName;
+        private String folderName;
         @Schema(description = "노트 즐겨찾기", example = "ACTIVE")
-        MarkStatus markState;
+        private MarkStatus markState;
         @Schema(description = "노트 수정일", example = "2023-07-18")
-        String editDate;
+        private String editDate;
         @Schema(description = "노트 생성 날짜", example = "2023-07-10")
-        String createdAt;
+        private String createdAt;
         @Schema(description = "다운로드한 노트 여부", example = "true")
-        Boolean isDownload;
+        private Boolean isDownload;
         @Schema(description = "업로드한 노트 여부", example = "true")
-        Boolean isUpload;
+        private Boolean isUpload;
     }
 
     @Getter
@@ -53,19 +53,19 @@ public class NoteResponse {
     @Schema(title = "NOTE_RES_05 : 노트 목록 응답 DTO")
     public static class NoteListDTO {
         @Schema(description = "노트 목록")
-        List<NoteInfoDTO> noteList;
+        private List<NoteInfoDTO> noteList;
         @Schema(description = "리스트 사이즈", example = "10")
-        Integer listsize;
+        private Integer listsize;
         @Schema(description = "현재 페이지 번호", example = "1")
-        Integer currentPage;
+        private Integer currentPage;
         @Schema(description = "총 페이지 수", example = "5")
-        Integer totalPage;
+        private Integer totalPage;
         @Schema(description = "총 노트 수", example = "10")
-        Long totalElements;
+        private Long totalElements;
         @Schema(description = "첫 페이지인지 확인", example = "true")
-        Boolean isFirst;
+        private Boolean isFirst;
         @Schema(description = "마지막 페이지인지 확인", example = "false")
-        Boolean isLast;
+        private Boolean isLast;
     }
     @Builder
     @Getter

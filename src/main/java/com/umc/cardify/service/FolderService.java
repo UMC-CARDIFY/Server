@@ -4,21 +4,28 @@ import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.DatabaseException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.domain.Folder;
+import com.umc.cardify.domain.Note;
 import com.umc.cardify.domain.User;
 import com.umc.cardify.domain.enums.MarkStatus;
+import com.umc.cardify.dto.folder.FolderComparator;
 import com.umc.cardify.dto.folder.FolderRequest;
 import com.umc.cardify.dto.folder.FolderResponse;
 import com.umc.cardify.repository.FolderRepository;
 import com.umc.cardify.repository.NoteRepository;
 import com.umc.cardify.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.apache.ibatis.jdbc.Null;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -33,7 +40,7 @@ public class FolderService {
         return folderRepository.findById(folderId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public FolderResponse.FolderListDTO getFoldersByUserId(Long userId, Integer page, Integer size){
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
@@ -49,17 +56,30 @@ public class FolderService {
             throw new BadRequestException(ErrorResponseStatus.NOT_EXIST_FOLDER);
         }
 
+
         List<FolderResponse.FolderInfoDTO> folders = folderPage.getContent().stream()
-                .map(folder -> FolderResponse.FolderInfoDTO.builder()
-                        .folderId(folder.getFolderId())
-                        .name(folder.getName())
-                        .color(folder.getColor())
-                        .markState(folder.getMarkState())
-                        .getNoteCount(folder.getNoteCount())
-                        .markDate(folder.getMarkDate())
-                        .editDate(folder.getEditDate())
-                        .createdAt(folder.getCreatedAt())
-                        .build())
+                .map(folder -> {
+                    Note latestNote = noteRepository.findTopByFolderOrderByEditDateDesc(folder);
+                    Timestamp latestNoteEditDate = latestNote != null ? latestNote.getEditDate() : null;
+
+                    if (latestNoteEditDate != null) {
+                        if (folder.getEditDate() == null || latestNoteEditDate.after(folder.getEditDate())) {
+                            folder.setEditDate(latestNoteEditDate);
+                            folderRepository.save(folder);
+                        }
+                    }
+
+                    return FolderResponse.FolderInfoDTO.builder()
+                            .folderId(folder.getFolderId())
+                            .name(folder.getName())
+                            .color(folder.getColor())
+                            .markState(folder.getMarkState())
+                            .getNoteCount(folder.getNoteCount())
+                            .markDate(folder.getMarkDate())
+                            .editDate(folder.getEditDate())
+                            .createdAt(folder.getCreatedAt())
+                            .build();
+                })
                 .collect(Collectors.toList());
 
         return FolderResponse.FolderListDTO.builder()
@@ -75,12 +95,15 @@ public class FolderService {
 
     public FolderResponse.sortFolderListDTO sortFoldersByUserId(Long userId, Integer page, Integer size, String order){
         User user = userRepository.findById(userId)
-                .orElseThrow(()-> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
-        int sortFolderPage = (page!=null) ? page:0;
-        int sortFolderSize = (size!=null) ? size:30;
+        int sortFolderPage = (page != null) ? page : 0;
+        int sortFolderSize = (size != null) ? size : 30;
 
-        switch(order){
+        Pageable pageable = PageRequest.of(sortFolderPage, sortFolderSize);
+        Page<Folder> folderPage = folderRepository.findByUserAndSort(user, order, pageable);
+
+        switch (order) {
             case "asc":
             case "desc":
             case "edit-newest":
@@ -90,10 +113,8 @@ public class FolderService {
                 throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
         }
 
-        Pageable pageable = PageRequest.of(sortFolderPage, sortFolderSize);
-        Page<Folder> folderPage = folderRepository.findByUserAndSort(user, order, pageable);
-
         List<FolderResponse.sortFolderInfoDTO> folders = folderPage.getContent().stream()
+                .sorted(new FolderComparator())
                 .map(folder -> FolderResponse.sortFolderInfoDTO.builder()
                         .folderId(folder.getFolderId())
                         .name(folder.getName())
@@ -105,7 +126,7 @@ public class FolderService {
         return FolderResponse.sortFolderListDTO.builder()
                 .sortFoldersList(folders)
                 .listSize(folderPage.getSize())
-                .currentPage(folderPage.getNumber()+1)
+                .currentPage(folderPage.getNumber() + 1)
                 .totalPages(folderPage.getTotalPages())
                 .totalElements(folderPage.getTotalElements())
                 .isFirst(folderPage.isFirst())
@@ -125,36 +146,36 @@ public class FolderService {
     @Transactional
     public FolderResponse.addFolderResultDTO addFolder(Long userId, FolderRequest.addFolderDto folderRequest) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
+                .orElseThrow(()-> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
         if (folderRepository.existsByUserAndName(user, folderRequest.getName())) {
             throw new BadRequestException(ErrorResponseStatus.DUPLICATE_ERROR);
+        } else {
+            Folder folder = Folder.builder()
+                    .name(folderRequest.getName())
+                    .color(folderRequest.getColor())
+                    .user(user)
+                    .markState(MarkStatus.INACTIVE)
+                    .build();
+
+            folder = folderRepository.save(folder);
+
+            return FolderResponse.addFolderResultDTO.builder()
+                    .folderId(folder.getFolderId())
+                    .name(folder.getName())
+                    .color(folder.getColor())
+                    .createdAt(LocalDateTime.now())
+                    .build();
         }
-
-        Folder folder = Folder.builder()
-                .name(folderRequest.getName())
-                .color(folderRequest.getColor())
-                .user(user)
-                .build();
-
-        folder = folderRepository.save(folder);
-
-        return FolderResponse.addFolderResultDTO.builder()
-                .folderId(folder.getFolderId())
-                .name(folder.getName())
-                .color(folder.getColor())
-                .createdAt(folder.getCreatedAt())
-                .build();
-
     }
 
     @Transactional
     public FolderResponse.editFolderResultDTO editFolder(Long userId, Long folderId, FolderRequest.editFolderDto folderRequest) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
         Folder folder = folderRepository.findByFolderIdAndUser(folderId, user)
-                .orElseThrow(() -> new IllegalArgumentException("Folder not found with id: " + folderId));
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_EXIST_FOLDER));
 
         if (folderRepository.existsByUserAndName(user, folderRequest.getName())) {
             throw new BadRequestException(ErrorResponseStatus.DUPLICATE_ERROR);
@@ -175,8 +196,11 @@ public class FolderService {
 
     @Transactional
     public FolderResponse.markFolderResultDTO markFolderById(Long userId, Long folderId) {
-        User user = userRepository.findById(userId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.REQUEST_ERROR));
-        Folder folder = folderRepository.findByFolderIdAndUser(folderId, user).orElseThrow(() -> new BadRequestException(ErrorResponseStatus.REQUEST_ERROR));
+        User user = userRepository.findById(userId)
+                .orElseThrow(()-> new BadRequestException(ErrorResponseStatus.REQUEST_ERROR));
+
+        Folder folder = folderRepository.findByFolderIdAndUser(folderId, user)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.REQUEST_ERROR));
 
         if(folder.getMarkState() == MarkStatus.ACTIVE){
             folder.setMarkState(MarkStatus.INACTIVE);
@@ -184,6 +208,7 @@ public class FolderService {
             folder.setMarkState(MarkStatus.ACTIVE);
         }
 
+        folder.setMarkDate(Timestamp.valueOf(LocalDateTime.now()));
         folderRepository.save(folder);
 
         return FolderResponse.markFolderResultDTO.builder()
@@ -198,23 +223,21 @@ public class FolderService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
-        List<Folder> folderList;
         int filterPage = (page != null) ? page : 0;
         int filterSize = (size != null) ? size : 30;
 
-        if (colors != null && !colors.isEmpty()) {
-            Pageable pageable = PageRequest.of(filterPage, filterSize);
-            Page<Folder> folderPage = folderRepository.findByUserAndColor(user, colors, pageable);
-            folderList = folderPage.getContent();
-        } else {
+        if (colors == null || colors.isEmpty()) {
             throw new DatabaseException(ErrorResponseStatus.NOT_EXIST_FOLDER);
         }
 
-        if (folderList.isEmpty()) {
+        Pageable pageable = PageRequest.of(filterPage, filterSize);
+        Page<Folder> folderPage = folderRepository.findByUserAndColor(user, colors, pageable);
+
+        if(folderPage.isEmpty()){
             throw new DatabaseException(ErrorResponseStatus.NOT_EXIST_FOLDER);
         }
 
-        List<FolderResponse.FolderInfoDTO> folders = folderList.stream()
+        List<FolderResponse.FolderInfoDTO> folders = folderPage.stream()
                 .map(folder -> FolderResponse.FolderInfoDTO.builder()
                         .folderId(folder.getFolderId())
                         .name(folder.getName())
@@ -225,17 +248,14 @@ public class FolderService {
                         .build())
                 .collect(Collectors.toList());
 
-        int totalPages = (page == null) ? 1 : folderRepository.findByUserAndColor(user, colors, Pageable.unpaged()).getTotalPages();
-        long totalElements = (page == null) ? folders.size() : folderRepository.findByUserAndColor(user, colors, Pageable.unpaged()).getTotalElements();
-
         return FolderResponse.FolderListDTO.builder()
                 .foldersList(folders)
                 .listSize(filterSize)
                 .currentPage(filterPage + 1)
-                .totalPages(totalPages)
-                .totalElements(totalElements)
-                .isFirst(filterPage == 0)
-                .isLast((page == null) || (filterPage == totalPages - 1))
+                .totalPages(folderPage.getTotalPages())
+                .totalElements(folderPage.getTotalElements())
+                .isFirst(folderPage.isFirst())
+                .isLast(folderPage.isLast())
                 .build();
     }
 }
