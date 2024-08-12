@@ -27,10 +27,11 @@ public class FolderController {
     @GetMapping
     @Operation(summary = "폴더 목록 조회 API", description = "조회 성공 시, 해당 유저의 폴더 목록 반환 | page, size는 수정 가능")
     public ResponseEntity<FolderResponse.FolderListDTO> getAllFolders(
-            @RequestHeader("Authorization") String token,
+            // @RequestHeader("Authorization") String token,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size) {
-        Long userId = jwtUtil.extractUserId(token);
+        // Long userId = jwtUtil.extractUserId(token);
+        Long userId = 1L;
         FolderResponse.FolderListDTO folders = folderService.getFoldersByUserId(userId, page, size);
         return ResponseEntity.ok(folders);
     }
@@ -38,11 +39,12 @@ public class FolderController {
     @GetMapping("/sort")
     @Operation(summary = "폴더 정렬 기능 API", description = "성공 시 해당 유저의 폴더를 정렬해서 반환 | order = asc, desc, edit-newest, edit-oldest")
     public ResponseEntity<FolderResponse.sortFolderListDTO> sortFolders(
-            @RequestHeader("Authorization") String token,
+            // @RequestHeader("Authorization") String token,
             @RequestParam(required = false)  Integer page,
             @RequestParam(required = false)  Integer size,
             @RequestParam String order){
-        Long userId = jwtUtil.extractUserId(token);
+        //Long userId = jwtUtil.extractUserId(token);
+        Long userId = 1L;
         FolderResponse.sortFolderListDTO folders = folderService.sortFoldersByUserId(userId, page, size, order);
         return ResponseEntity.ok(folders);
     }
@@ -51,10 +53,11 @@ public class FolderController {
     @GetMapping("/notes")
     @Operation(summary = "노트 목록 조회 API", description = "조회 성공 시, 해당 유저의 노트 목록 반환(폴더 상관이 전체 노트) | 페이징 제한 없음")
     public ResponseEntity<NoteResponse.NoteListDTO> getAllNotes(
-            @RequestHeader("Authorization") String token,
+            // @RequestHeader("Authorization") String token,
             @RequestParam(required = false)  Integer page,
             @RequestParam(required = false)  Integer size) {
-        Long userId = jwtUtil.extractUserId(token);
+        // Long userId = jwtUtil.extractUserId(token);
+        Long userId = 1L;
         NoteResponse.NoteListDTO notes = noteService.getNotesByUserId(userId, page, size);
         return ResponseEntity.ok(notes);
     }
@@ -62,9 +65,10 @@ public class FolderController {
     @DeleteMapping("/{folderId}")
     @Operation(summary = "특정 폴더 삭제 API", description = "해당 유저의 특정 폴더 삭제 성공 시, true 응답 반환 | 삭제를 원하는 folderId 입력")
     public ResponseEntity<FolderResponse.deleteFolderResultDTO> deleteFolder(
-            @RequestHeader("Authorization") String token,
+            // @RequestHeader("Authorization") String token,
             @RequestParam Long folderId) {
-        Long userId = jwtUtil.extractUserId(token);
+        // Long userId = jwtUtil.extractUserId(token);
+        Long userId = 1L;
         folderService.deleteFolderById(userId, folderId);
         return ResponseEntity.ok(FolderResponse.deleteFolderResultDTO.builder().isSuccess(true).build());
     }
@@ -73,9 +77,10 @@ public class FolderController {
     @PostMapping("/addFolder")
     @Operation(summary = "폴더 추가 기능 API", description = "해당 유저의 폴더를 생성 시, 폴더 아이디, 이름, 색상, 생성일 반환 | 이름,색상 입력")
     public ResponseEntity<FolderResponse.addFolderResultDTO> addFolder(
-            @RequestHeader("Authorization") String token,
+            // @RequestHeader("Authorization") String token,
             @RequestBody @Valid FolderRequest.addFolderDto folderRequest) {
-        Long userId = jwtUtil.extractUserId(token);
+        //Long userId = jwtUtil.extractUserId(token);
+        Long userId = 1L;
         FolderResponse.addFolderResultDTO response = folderService.addFolder(userId, folderRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
 
@@ -84,10 +89,11 @@ public class FolderController {
     @PatchMapping("/{folderId}")
     @Operation(summary = "폴더 수정 기능 API", description = "해당 유저의 폴더를 수정 시, 수정된 이름과 색상, 수정일을 반환")
     public ResponseEntity<FolderResponse.editFolderResultDTO> editFolder(
-            @RequestHeader("Authorization") String token,
+            //@RequestHeader("Authorization") String token,
             @PathVariable Long folderId,
             @RequestBody @Valid FolderRequest.editFolderDto folderRequest) {
-        Long userId = jwtUtil.extractUserId(token);
+        //Long userId = jwtUtil.extractUserId(token);
+        Long userId = 1L;
         FolderResponse.editFolderResultDTO response = folderService.editFolder(userId, folderId, folderRequest);
         return ResponseEntity.ok(response);
     }
@@ -95,9 +101,10 @@ public class FolderController {
     @PatchMapping("/{folderId}/mark-folders")
     @Operation(summary = "특정 폴더 즐겨찾기 기능 API", description = "해당 유저의 특정 폴더를 즐겨찾기 시, 폴더의 markState 값에 따라서 ACTIVE/INACTIVE로 변경")
     public ResponseEntity<FolderResponse.markFolderResultDTO> markFolder(
-            @RequestHeader("Authorization") String token,
+            //@RequestHeader("Authorization") String token,
             @PathVariable Long folderId) {
-        Long userId = jwtUtil.extractUserId(token);
+        //Long userId = jwtUtil.extractUserId(token);
+        Long userId = 1L;
         FolderResponse.markFolderResultDTO response = folderService.markFolderById(userId, folderId);
         return ResponseEntity.ok(response);
     }
@@ -105,11 +112,12 @@ public class FolderController {
     @GetMapping("/filter")
     @Operation(summary = "폴더 필터링 기능 API", description = "해당 유저의 폴더를 색상으로 필터링하여 반환 | color값은 String으로 입력&반환")
     public ResponseEntity<FolderResponse.FolderListDTO> filterFolders(
-            @RequestHeader("Authorization") String token,
+            //@RequestHeader("Authorization") String token,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
             @RequestParam String color) {
-        Long userId = jwtUtil.extractUserId(token);
+        //Long userId = jwtUtil.extractUserId(token);
+        Long userId = 1L;
         FolderResponse.FolderListDTO folders = folderService.filterColorsByUserId(userId, page, size, color);
         return ResponseEntity.ok(folders);
     }
