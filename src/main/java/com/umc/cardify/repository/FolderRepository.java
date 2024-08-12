@@ -23,11 +23,9 @@ public interface FolderRepository extends JpaRepository<Folder, Long> {
             "CASE WHEN f.markState = 'ACTIVE' THEN 0 ELSE 1 END, " +
             "f.markDate ASC, " +
             "CASE WHEN :order = 'asc' THEN f.name " +
-            "WHEN :order = 'edit-oldest' THEN f.editDate " +
-            "END ASC, " +
-            "CASE WHEN :order = 'desc' THEN f.name " +
-            "WHEN :order = 'edit-newest' THEN f.editDate " +
-            "END DESC")
+            "WHEN :order = 'edit-oldest' THEN f.editDate END ASC, " +
+            "CASE WHEN :order = 'desc' THEN f.name END DESC, " +
+            "CASE WHEN :order = 'edit-newest' THEN f.editDate END DESC ")
     Page<Folder> findByUserAndSort(@Param("user") User user, @Param("order") String order, Pageable pageable);
 
     Optional<Folder> findByFolderIdAndUser(Long folderId, User userId);
