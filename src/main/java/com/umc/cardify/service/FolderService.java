@@ -14,7 +14,6 @@ import com.umc.cardify.repository.FolderRepository;
 import com.umc.cardify.repository.NoteRepository;
 import com.umc.cardify.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.apache.ibatis.jdbc.Null;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -65,7 +64,7 @@ public class FolderService {
                     if (latestNoteEditDate != null) {
                         if (folder.getEditDate() == null || latestNoteEditDate.after(folder.getEditDate())) {
                             folder.setEditDate(latestNoteEditDate);
-                            folderRepository.save(folder);
+                            folderRepository.save(folder); //비교해서 가장 최신 수정일로 저장함
                         }
                     }
 
@@ -93,7 +92,8 @@ public class FolderService {
                 .build();
     }
 
-    public FolderResponse.sortFolderListDTO sortFoldersByUserId(Long userId, Integer page, Integer size, String order){
+    @Transactional
+    public FolderResponse.FolderListDTO sortFoldersByUserId(Long userId, Integer page, Integer size, String order){
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
@@ -113,18 +113,33 @@ public class FolderService {
                 throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
         }
 
-        List<FolderResponse.sortFolderInfoDTO> folders = folderPage.getContent().stream()
-                .sorted(new FolderComparator())
-                .map(folder -> FolderResponse.sortFolderInfoDTO.builder()
-                        .folderId(folder.getFolderId())
-                        .name(folder.getName())
-                        .editDate(folder.getEditDate())
-                        .createdAt(folder.getCreatedAt())
-                        .build())
+        List<FolderResponse.FolderInfoDTO> folders = folderPage.getContent().stream()
+                .sorted(new FolderComparator(order))
+                .map(folder -> {
+                    Note latestNote = noteRepository.findTopByFolderOrderByEditDateDesc(folder);
+                    Timestamp latestNoteEditDate = latestNote != null ? latestNote.getEditDate() : null;
+
+                    if (latestNoteEditDate != null) {
+                        if (folder.getEditDate() == null || latestNoteEditDate.after(folder.getEditDate())) {
+                            folder.setEditDate(latestNoteEditDate);
+                            folderRepository.save(folder);
+                        }
+                    }
+
+                    return FolderResponse.FolderInfoDTO.builder()
+                            .folderId(folder.getFolderId())
+                            .name(folder.getName())
+                            .color(folder.getColor())
+                            .markState(folder.getMarkState())
+                            .getNoteCount(folder.getNoteCount())
+                            .markDate(folder.getMarkDate())
+                            .editDate(folder.getEditDate())
+                            .createdAt(folder.getCreatedAt())
+                            .build();})
                 .collect(Collectors.toList());
 
-        return FolderResponse.sortFolderListDTO.builder()
-                .sortFoldersList(folders)
+        return FolderResponse.FolderListDTO.builder()
+                .foldersList(folders)
                 .listSize(folderPage.getSize())
                 .currentPage(folderPage.getNumber() + 1)
                 .totalPages(folderPage.getTotalPages())
@@ -177,12 +192,13 @@ public class FolderService {
         Folder folder = folderRepository.findByFolderIdAndUser(folderId, user)
                 .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_EXIST_FOLDER));
 
-        if (folderRepository.existsByUserAndName(user, folderRequest.getName())) {
+        if (folderRepository.existsByUserAndName(user, folderRequest.getName()) && !folderId.equals(folder.getFolderId())) {
             throw new BadRequestException(ErrorResponseStatus.DUPLICATE_ERROR);
         }
 
-        folder.setName(folderRequest.getName());
-        folder.setColor(folderRequest.getColor());
+        folder.setEditDate(Timestamp.valueOf(LocalDateTime.now())); //수정된 시간을 저장
+        folder.setName(folderRequest.getName()); // 수정된 이름 저장
+        folder.setColor(folderRequest.getColor()); // 수정된 색상 저장
 
         folder = folderRepository.save(folder);
 
@@ -218,7 +234,7 @@ public class FolderService {
                 .build();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public FolderResponse.FolderListDTO filterColorsByUserId(Long userId, Integer page, Integer size, String colors) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
@@ -237,21 +253,35 @@ public class FolderService {
             throw new DatabaseException(ErrorResponseStatus.NOT_EXIST_FOLDER);
         }
 
-        List<FolderResponse.FolderInfoDTO> folders = folderPage.stream()
-                .map(folder -> FolderResponse.FolderInfoDTO.builder()
-                        .folderId(folder.getFolderId())
-                        .name(folder.getName())
-                        .color(folder.getColor())
-                        .markState(folder.getMarkState())
-                        .markDate(folder.getMarkDate())
-                        .createdAt(folder.getCreatedAt())
-                        .build())
+        List<FolderResponse.FolderInfoDTO> folders = folderPage.getContent().stream()
+                .map(folder -> {
+                    Note latestNote = noteRepository.findTopByFolderOrderByEditDateDesc(folder);
+                    Timestamp latestNoteEditDate = latestNote != null ? latestNote.getEditDate() : null;
+
+                    if (latestNoteEditDate != null) {
+                        if (folder.getEditDate() == null || latestNoteEditDate.after(folder.getEditDate())) {
+                            folder.setEditDate(latestNoteEditDate);
+                            folderRepository.save(folder); //비교해서 가장 최신 수정일로 저장함
+                        }
+                    }
+
+                    return FolderResponse.FolderInfoDTO.builder()
+                            .folderId(folder.getFolderId())
+                            .name(folder.getName())
+                            .color(folder.getColor())
+                            .markState(folder.getMarkState())
+                            .getNoteCount(folder.getNoteCount())
+                            .markDate(folder.getMarkDate())
+                            .editDate(folder.getEditDate())
+                            .createdAt(folder.getCreatedAt())
+                            .build();
+                })
                 .collect(Collectors.toList());
 
         return FolderResponse.FolderListDTO.builder()
                 .foldersList(folders)
-                .listSize(filterSize)
-                .currentPage(filterPage + 1)
+                .listSize(folderPage.getSize())
+                .currentPage(folderPage.getNumber()+1)
                 .totalPages(folderPage.getTotalPages())
                 .totalElements(folderPage.getTotalElements())
                 .isFirst(folderPage.isFirst())
