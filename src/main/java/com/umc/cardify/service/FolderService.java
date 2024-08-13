@@ -114,7 +114,7 @@ public class FolderService {
         }
 
         List<FolderResponse.FolderInfoDTO> folders = folderPage.getContent().stream()
-                .sorted(new FolderComparator())
+                .sorted(new FolderComparator(order))
                 .map(folder -> {
                     Note latestNote = noteRepository.findTopByFolderOrderByEditDateDesc(folder);
                     Timestamp latestNoteEditDate = latestNote != null ? latestNote.getEditDate() : null;

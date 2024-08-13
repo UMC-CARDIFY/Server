@@ -9,6 +9,11 @@ import java.util.regex.Pattern;
 
 public class FolderComparator implements Comparator<Folder> {
     private static final Pattern pattern = Pattern.compile("(\\D*)(\\d*)");
+    private final String order;
+
+    public FolderComparator(String order) {
+        this.order = order;
+    }
 
     @Override
     public int compare(Folder f1, Folder f2) {
@@ -21,6 +26,12 @@ public class FolderComparator implements Comparator<Folder> {
             return 0;
         }
 
+        if (order.equals("edit-oldest") || order.equals("edit-newest")) {
+            int dateCompare = f1.getEditDate().compareTo(f2.getEditDate());
+            return order.equals("edit-oldest") ? dateCompare : -dateCompare;
+        }
+
+        boolean isDescending = order.equals("desc");
         String name1 = f1.getName();
         String name2 = f2.getName();
 
@@ -30,25 +41,25 @@ public class FolderComparator implements Comparator<Folder> {
         while (m1.find() && m2.find()) {
             int nonDigitCompare = m1.group(1).compareTo(m2.group(1));
             if (nonDigitCompare != 0) {
-                return nonDigitCompare;
+                return isDescending ? -nonDigitCompare : nonDigitCompare;
             }
 
             if (m1.group(2).isEmpty() && m2.group(2).isEmpty()) {
                 continue;
             } else if (m1.group(2).isEmpty()) {
-                return -1;
+                return isDescending ? 1 : -1;
             } else if (m2.group(2).isEmpty()) {
-                return 1;
+                return isDescending ? -1 : 1;
             }
 
             int num1 = Integer.parseInt(m1.group(2));
             int num2 = Integer.parseInt(m2.group(2));
 
             if (num1 != num2) {
-                return Integer.compare(num1, num2);
+                return isDescending ? Integer.compare(num2, num1) : Integer.compare(num1, num2);
             }
         }
 
-        return name1.compareTo(name2);
+        return isDescending ? name2.compareTo(name1) : name1.compareTo(name2);
     }
 }
