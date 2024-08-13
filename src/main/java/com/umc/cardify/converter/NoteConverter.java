@@ -39,6 +39,7 @@ public class NoteConverter {
         return NoteResponse.NoteInfoDTO.builder()
                 .noteId(note.getNoteId())
                 .name(note.getName())
+                .folderColor(note.getFolder().getColor())
                 .folderName(note.getFolder().getName())
                 .markState(note.getMarkState())
                 .editDate(note.getEditDate().toLocalDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))

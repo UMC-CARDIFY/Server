@@ -38,14 +38,14 @@ public class FolderController {
 
     @GetMapping("/sort")
     @Operation(summary = "폴더 정렬 기능 API", description = "성공 시 해당 유저의 폴더를 정렬해서 반환 | order = asc, desc, edit-newest, edit-oldest")
-    public ResponseEntity<FolderResponse.sortFolderListDTO> sortFolders(
+    public ResponseEntity<FolderResponse.FolderListDTO> sortFolders(
             // @RequestHeader("Authorization") String token,
             @RequestParam(required = false)  Integer page,
             @RequestParam(required = false)  Integer size,
             @RequestParam String order){
         //Long userId = jwtUtil.extractUserId(token);
         Long userId = 1L;
-        FolderResponse.sortFolderListDTO folders = folderService.sortFoldersByUserId(userId, page, size, order);
+        FolderResponse.FolderListDTO folders = folderService.sortFoldersByUserId(userId, page, size, order);
         return ResponseEntity.ok(folders);
     }
 
@@ -112,12 +112,12 @@ public class FolderController {
     @GetMapping("/filter")
     @Operation(summary = "폴더 필터링 기능 API", description = "해당 유저의 폴더를 색상으로 필터링하여 반환 | color값은 String으로 입력&반환")
     public ResponseEntity<FolderResponse.FolderListDTO> filterFolders(
-            //@RequestHeader("Authorization") String token,
+            @RequestHeader("Authorization") String token,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
             @RequestParam String color) {
-        //Long userId = jwtUtil.extractUserId(token);
-        Long userId = 1L;
+        Long userId = jwtUtil.extractUserId(token);
+        //Long userId = 1L;
         FolderResponse.FolderListDTO folders = folderService.filterColorsByUserId(userId, page, size, color);
         return ResponseEntity.ok(folders);
     }
