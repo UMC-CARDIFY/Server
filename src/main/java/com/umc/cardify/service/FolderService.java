@@ -192,7 +192,7 @@ public class FolderService {
         Folder folder = folderRepository.findByFolderIdAndUser(folderId, user)
                 .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_EXIST_FOLDER));
 
-        if (folderRepository.existsByUserAndName(user, folderRequest.getName())) {
+        if (folderRepository.existsByUserAndName(user, folderRequest.getName()) && !folderId.equals(folder.getFolderId())) {
             throw new BadRequestException(ErrorResponseStatus.DUPLICATE_ERROR);
         }
 
