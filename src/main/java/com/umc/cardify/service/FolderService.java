@@ -46,7 +46,7 @@ public class FolderService {
 
         // 폴더 page, size에 값을 입력하지 않으면, 자동으로 0과 30으로 고정
         int getFolderPage = (page!=null) ? page:0;
-        int getFolderSize = (size!=null) ? size:30;
+        int getFolderSize = (size!=null) ? size:Integer.MAX_VALUE;
 
         Pageable pageable = PageRequest.of(getFolderPage, getFolderSize);
         Page<Folder> folderPage = folderRepository.findByUser(user, pageable);
@@ -98,7 +98,7 @@ public class FolderService {
                 .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
         int sortFolderPage = (page != null) ? page : 0;
-        int sortFolderSize = (size != null) ? size : 30;
+        int sortFolderSize = (size != null) ? size : Integer.MAX_VALUE;
 
         Pageable pageable = PageRequest.of(sortFolderPage, sortFolderSize);
         Page<Folder> folderPage = folderRepository.findByUserAndSort(user, order, pageable);
@@ -240,7 +240,7 @@ public class FolderService {
                 .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
         int filterPage = (page != null) ? page : 0;
-        int filterSize = (size != null) ? size : 30;
+        int filterSize = (size != null) ? size : Integer.MAX_VALUE;
 
         if (colors == null || colors.isEmpty()) {
             throw new DatabaseException(ErrorResponseStatus.NOT_EXIST_FOLDER);
