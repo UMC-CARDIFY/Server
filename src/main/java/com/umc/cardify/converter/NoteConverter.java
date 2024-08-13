@@ -26,7 +26,6 @@ public class NoteConverter {
         return Note.builder()
                 .folder(folder)
                 .name("제목없음")
-                .contents("빈 노트")
                 .build();
     }
     public static NoteResponse.AddNoteResultDTO toAddNoteResult(Note note){

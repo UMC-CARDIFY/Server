@@ -1,5 +1,6 @@
 package com.umc.cardify.dto.note;
 
+import com.umc.cardify.domain.ProseMirror.Node;
 import com.umc.cardify.dto.card.CardRequest;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
@@ -18,7 +19,7 @@ public class NoteRequest {
         @NotNull
         String name;
         @NotNull
-        String contents;
+        Node contents;
     }
     @Getter
     @Schema(title = "NOTE_REQ_03 : 특정 폴더 내 노트 조회 요청 DTO")

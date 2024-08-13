@@ -1,10 +1,13 @@
 package com.umc.cardify.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.DatabaseException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.converter.NoteConverter;
 import com.umc.cardify.domain.*;
+import com.umc.cardify.domain.ProseMirror.Node;
 import com.umc.cardify.domain.enums.MarkStatus;
 import com.umc.cardify.dto.card.CardRequest;
 import com.umc.cardify.dto.note.NoteRequest;
@@ -140,19 +143,38 @@ public class NoteService {
         else {
             note.setName(request.getName());
 
-            //저장되어 있는 노트 내용과 입력된 내용이 같을 시 카드를 저장하지 않음
-            if(!note.getContents().equals(request.getContents())) {
-                note.setContents(request.getContents());
-                //여기에 카드 작성이 들어가 있었음
-            }
-            noteRepository.save(note);
+            Node node = request.getContents();
+            searchCard(node);
 
+            ObjectMapper objectMapper = new ObjectMapper();
+            String jsonStr = null;
+            try {
+                jsonStr = objectMapper.writeValueAsString(node);
+            } catch (JsonProcessingException e) {
+                e.printStackTrace();
+            }
+            note.setContents(jsonStr);
+            //저장되어 있는 노트 내용과 입력된 내용이 같을 시 카드를 저장하지 않음
+            noteRepository.save(note);
             return true;
         }
     }
+    public void searchCard(Node node){
+        if(node.getType().endsWith("card")){
+            //카드 삽입 로직
+            System.out.println("card type: " + node.getType());
+            System.out.println("card front: " + node.getAttrs().getQuestion());
+            System.out.println("card back: " + node.getAttrs().getAnswer());
+            return;
+        }
+        if(node.getContent() == null){
+            return;
+        }
+        node.getContent().forEach(this::searchCard);
+    }
     public List<NoteResponse.SearchNoteResDTO> searchNote(Folder folder, String search){
         List<Note> notes = noteRepository.findByFolder(folder).stream()
-                .filter(note -> note.getContents().contains(search) || note.getName().contains(search))
+                .filter(note -> note.getName().contains(search))
                 .toList();
         List<NoteResponse.SearchNoteResDTO> searchList = notes.stream()
                 .map(list->noteConverter.toSearchNoteResult(list, search))
@@ -233,6 +255,7 @@ public class NoteService {
                             .build();
                 })
                 .toList();
+
         return NoteResponse.getNoteDTO.builder()
                 .noteId(note.getNoteId())
                 .noteName(note.getName())
