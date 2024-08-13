@@ -20,6 +20,8 @@ public class CorsConfig {
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setExposedHeaders(List.of("*"));
+        // config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        // config.setExposedHeaders(List.of("Authorization", "Set-Cookie"));  // Authorization과 Set-Cookie 헤더를 노출
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
