@@ -63,7 +63,7 @@ public class FolderController {
     @Operation(summary = "특정 폴더 삭제 API", description = "해당 유저의 특정 폴더 삭제 성공 시, true 응답 반환 | 삭제를 원하는 folderId 입력")
     public ResponseEntity<FolderResponse.deleteFolderResultDTO> deleteFolder(
             @RequestHeader("Authorization") String token,
-            @RequestParam Long folderId) {
+            @PathVariable Long folderId) {
         Long userId = jwtUtil.extractUserId(token);
         folderService.deleteFolderById(userId, folderId);
         return ResponseEntity.ok(FolderResponse.deleteFolderResultDTO.builder().isSuccess(true).build());
