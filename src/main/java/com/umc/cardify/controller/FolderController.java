@@ -27,11 +27,10 @@ public class FolderController {
     @GetMapping
     @Operation(summary = "폴더 목록 조회 API", description = "조회 성공 시, 해당 유저의 폴더 목록 반환 | page, size는 수정 가능")
     public ResponseEntity<FolderResponse.FolderListDTO> getAllFolders(
-            // @RequestHeader("Authorization") String token,
+            @RequestHeader("Authorization") String token,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size) {
-        // Long userId = jwtUtil.extractUserId(token);
-        Long userId = 1L;
+        Long userId = jwtUtil.extractUserId(token);
         FolderResponse.FolderListDTO folders = folderService.getFoldersByUserId(userId, page, size);
         return ResponseEntity.ok(folders);
     }
@@ -39,12 +38,11 @@ public class FolderController {
     @GetMapping("/sort")
     @Operation(summary = "폴더 정렬 기능 API", description = "성공 시 해당 유저의 폴더를 정렬해서 반환 | order = asc, desc, edit-newest, edit-oldest")
     public ResponseEntity<FolderResponse.FolderListDTO> sortFolders(
-            // @RequestHeader("Authorization") String token,
+            @RequestHeader("Authorization") String token,
             @RequestParam(required = false)  Integer page,
             @RequestParam(required = false)  Integer size,
             @RequestParam String order){
-        //Long userId = jwtUtil.extractUserId(token);
-        Long userId = 1L;
+        Long userId = jwtUtil.extractUserId(token);
         FolderResponse.FolderListDTO folders = folderService.sortFoldersByUserId(userId, page, size, order);
         return ResponseEntity.ok(folders);
     }
@@ -105,7 +103,7 @@ public class FolderController {
     }
 
     @GetMapping("/filter")
-    @Operation(summary = "폴더 필터링 기능 API", description = "해당 유저의 폴더를 색상으로 필터링하여 반환 | color값은 String으로 입력&반환")
+    @Operation(summary = "폴더 필터링 기능 API", description = "해당 유저의 폴더를 색상으로 필터링하여 반환 | 쉼표로 구분된 색상 문자열 입력")
     public ResponseEntity<FolderResponse.FolderListDTO> filterFolders(
             @RequestHeader("Authorization") String token,
             @RequestParam(required = false) Integer page,

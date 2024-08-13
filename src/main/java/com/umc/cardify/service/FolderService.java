@@ -246,8 +246,10 @@ public class FolderService {
             throw new DatabaseException(ErrorResponseStatus.NOT_EXIST_FOLDER);
         }
 
+        List<String> colorList = Arrays.asList(colors.split(","));
+
         Pageable pageable = PageRequest.of(filterPage, filterSize);
-        Page<Folder> folderPage = folderRepository.findByUserAndColor(user, colors, pageable);
+        Page<Folder> folderPage = folderRepository.findByUserAndColor(user, colorList, pageable);
 
         if(folderPage.isEmpty()){
             throw new DatabaseException(ErrorResponseStatus.NOT_EXIST_FOLDER);
