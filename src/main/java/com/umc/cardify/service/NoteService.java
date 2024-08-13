@@ -52,7 +52,7 @@ public class NoteService {
                 .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
         int getNotePage = (page != null) ? page : 0;
-        int getNoteSize = (size != null) ? size : 30;
+        int getNoteSize = (size != null) ? size : Integer.MAX_VALUE;
 
         Pageable pageable = PageRequest.of(getNotePage, getNoteSize);
         Page<Note> notePage = noteRepository.findByUser(user, pageable);
