@@ -1,14 +1,11 @@
 package com.umc.cardify.controller;
 
-import java.util.List;
-
-import com.umc.cardify.dto.card.CardResponse;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
@@ -35,21 +32,26 @@ public class CardController {
 
 	@PostMapping(value = "/add/Image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	@Operation(summary = "이미지 카드 생성", description = "이미지 및 가림판들의 크기와 위치 전송")
-	public ResponseEntity<String> addImageCard( @RequestHeader("Authorization") String token,
-		@RequestPart("image") MultipartFile image, @RequestPart("imageCard")CardRequest.addImageCard request){
+	public ResponseEntity<String> addImageCard(@RequestPart("image") MultipartFile image,
+		@RequestPart("imageCard") CardRequest.addImageCard request) {
 
-		Long userId = jwtUtil.extractUserId(token);
-
-		String imgUrl = cardService.addImageCard(userId, image, request);
+		String imgUrl = cardService.addImageCard(image, request);
 
 		return ResponseEntity.ok(imgUrl);
 	}
-
 	@GetMapping(value = "/view/{imgCardId}/Image")
-	@Operation(summary = "이미지 카드 조회", description = "이미지 및 가림판들의 크기와 위치 조회")
+	@Operation(summary = "이미지 카드 조회", description = "이미지 및 가림판 들의 크기와 위치 조회")
 	public ResponseEntity<CardResponse.getImageCard> viewImageCard(@PathVariable Long imgCardId) {
 
 		return ResponseEntity.ok(cardService.viewImageCard(imgCardId));
 	}
+	@PutMapping(value = "/edit/{imgCardId}/Image")
+	@Operation(summary = "이미지 카드 편집", description = "이미지 및 가림판 들의 크기와 위치 조회")
+	public ResponseEntity<String> editImageCard(@RequestPart("imageCard") CardRequest.addImageCard request,
+		@PathVariable Long imgCardId) {
 
+		String imgUrl = cardService.editImageCard(request, imgCardId);
+
+		return ResponseEntity.ok(imgUrl);
+	}
 }

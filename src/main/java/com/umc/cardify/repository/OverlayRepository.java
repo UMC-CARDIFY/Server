@@ -10,4 +10,6 @@ import com.umc.cardify.domain.Overlay;
 public interface OverlayRepository extends JpaRepository<Overlay, Long> {
 
 	List<Overlay> findByImageCard(ImageCard imageCard);
+
+	void deleteByImageCardId(Long imageCard_id);
 }

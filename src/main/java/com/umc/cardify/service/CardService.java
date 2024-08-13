@@ -16,6 +16,7 @@ import com.umc.cardify.dto.card.CardRequest;
 import com.umc.cardify.repository.ImageCardRepository;
 import com.umc.cardify.repository.OverlayRepository;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -31,7 +32,9 @@ public class CardService {
 	private final OverlayRepository overlayRepository;
 
 	private final CardRepository cardRepository;
-	public String addImageCard(Long userId, MultipartFile image, CardRequest.addImageCard request) {
+
+	@Transactional
+	public String addImageCard(MultipartFile image, CardRequest.addImageCard request) {
 		String imgUrl = s3Service.upload(image, "imageCards");
 
 		ImageCard imageCard = ImageCard.builder()
@@ -60,6 +63,7 @@ public class CardService {
 		return savedImageCard.getImageUrl();
 	}
 
+	@Transactional
 	public CardResponse.getImageCard viewImageCard(Long imageCardId) {
 		ImageCard imageCard = imageCardRepository.findById(imageCardId)
 			.orElseThrow(() -> new IllegalArgumentException("Image card not found with id: " + imageCardId));
@@ -83,6 +87,39 @@ public class CardService {
 			.baseImageHeight(imageCard.getHeight())
 			.overlays(overlayResponses)
 			.build();
+	}
+
+	@Transactional
+	public String editImageCard(CardRequest.addImageCard request, Long imgCardId) {
+		// 기존 이미지카드를 ID로 조회
+		ImageCard existingImageCard = imageCardRepository.findById(imgCardId)
+			.orElseThrow(() -> new IllegalArgumentException("ImageCard not found with ID: " + imgCardId));
+
+		// 기존 이미지카드의 필드를 새로운 값으로 업데이트
+		existingImageCard.setHeight(request.getBaseImageHeight());
+		existingImageCard.setWidth(request.getBaseImageWidth());
+
+		// 업데이트된 이미지카드를 저장
+		ImageCard savedImageCard = imageCardRepository.save(existingImageCard);
+
+		// 기존 오버레이를 삭제하고, 새로운 오버레이를 추가
+		overlayRepository.deleteByImageCardId(imgCardId);
+		if (request.getOverlays() != null) {
+			for (CardRequest.addImageCardOverlay overlayRequest : request.getOverlays()) {
+				Overlay overlay = Overlay.builder()
+					.xPosition(overlayRequest.getPositionOfX())
+					.yPosition(overlayRequest.getPositionOfY())
+					.width(overlayRequest.getWidth())
+					.height(overlayRequest.getHeight())
+					.imageCard(savedImageCard)
+					.build();
+
+				// 새로운 오버레이를 데이터베이스에 저장
+				overlayRepository.save(overlay);
+			}
+		}
+
+		return savedImageCard.getImageUrl();
 	}
 
 	public void addCard(CardRequest.WriteCardDto cardDto, Note note){
