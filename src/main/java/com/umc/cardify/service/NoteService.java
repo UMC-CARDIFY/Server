@@ -38,6 +38,7 @@ public class NoteService {
     private final LibraryRepository libraryRepository;
     private final CategoryRepository categoryRepository;
     private final LibraryCategoryRepository libraryCategoryRepository;
+    private final ObjectMapper objectMapper;
     public Note getNoteToID(long noteId){
         return noteRepository.findById(noteId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
     }
@@ -146,7 +147,7 @@ public class NoteService {
             Node node = request.getContents();
             searchCard(node);
 
-            ObjectMapper objectMapper = new ObjectMapper();
+
             String jsonStr = null;
             try {
                 jsonStr = objectMapper.writeValueAsString(node);
