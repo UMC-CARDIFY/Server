@@ -8,13 +8,18 @@ import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.converter.NoteConverter;
 import com.umc.cardify.domain.*;
 import com.umc.cardify.domain.ProseMirror.Node;
+import com.umc.cardify.domain.enums.CardType;
 import com.umc.cardify.domain.enums.MarkStatus;
 import com.umc.cardify.dto.card.CardRequest;
 import com.umc.cardify.dto.folder.FolderResponse;
 import com.umc.cardify.dto.note.NoteRequest;
 import com.umc.cardify.dto.note.NoteResponse;
 import com.umc.cardify.repository.*;
+
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +30,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class NoteService {
@@ -133,66 +139,116 @@ public class NoteService {
             return true;
         }
     }
-    public Boolean writeNote(NoteRequest.WriteNoteDto request, Long userId){
-        Note note = noteRepository.findById(request.getNoteId()).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
-        if(!(userId.equals(note.getFolder().getUser().getUserId())))
+
+    @Transactional
+    public Boolean writeNote(NoteRequest.WriteNoteDto request, Long userId) {
+        Note note = noteRepository.findById(request.getNoteId())
+            .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+
+        if (!userId.equals(note.getFolder().getUser().getUserId())) {
+            log.warn("Invalid userId: {}", userId);
             throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
-        else if(libraryRepository.findByNote(note) != null){
+        } else if (libraryRepository.findByNote(note) != null) {
+            log.warn("Attempt to insert a note that already exists in the library: {}", note.getNoteId());
             throw new BadRequestException(ErrorResponseStatus.DB_INSERT_ERROR);
         }
-        else {
-            StringBuilder totalText = new StringBuilder();
-            note.setName(request.getName());
 
-            Node node = request.getContents();
-            searchCard(node, totalText);
-            note.setTotalText(totalText.toString());
+        StringBuilder totalText = new StringBuilder();
+        note.setName(request.getName());
 
-            String jsonStr = null;
-            try {
-                jsonStr = objectMapper.writeValueAsString(node);
-            } catch (JsonProcessingException e) {
-                e.printStackTrace();
-            }
+        Node node = request.getContents();
+        searchCard(node, totalText, note);
+        note.setTotalText(totalText.toString());
+
+        try {
+            String jsonStr = objectMapper.writeValueAsString(node);
             note.setContents(jsonStr);
-            //저장되어 있는 노트 내용과 입력된 내용이 같을 시 카드를 저장하지 않음
-            noteRepository.save(note);
-            return true;
+        } catch (JsonProcessingException e) {
+            log.error("Failed to serialize note contents to JSON", e);
+            throw new BadRequestException(ErrorResponseStatus.JSON_PROCESSING_ERROR);
         }
+
+        noteRepository.save(note);
+        return true;
     }
-    public void searchCard(Node node, StringBuilder input) {
-        if (node.getType().endsWith("card")) {
-            //카드 삽입 로직 위치
-            System.out.println("card type: " + node.getType());
-            System.out.println("card front: " + node.getAttrs().getQuestion_front() + node.getAttrs().getQuestion_back());
-            System.out.println("card back: " + String.join(" ", node.getAttrs().getAnswer()));
 
-            //검색어 작업
-            String answer = String.join(" ", node.getAttrs().getAnswer());
-            String question_front = node.getAttrs().getQuestion_front();
-            String question_back = node.getAttrs().getQuestion_back();
-
-            if(question_front == null)
-                question_front = "";
-            if(question_back == null)
-                question_back = "";
-            String nodeText = question_front + answer + question_back;
-            if(!nodeText.endsWith("."))
-                nodeText += ".";
-            input.append(nodeText);
+    private void searchCard(Node node, StringBuilder input, Note note) {
+        if (isCardNode(node)) {
+            processCardNode(node, input, note);
         } else if (node.getType().equals("text")) {
-            //검색어 작업
-            String nodeText = node.getText();
-            if(!nodeText.endsWith("."))
-                nodeText += ".";
-            input.append(nodeText);
+            processTextNode(node, input);
         }
 
         if (node.getContent() != null) {
-            node.getContent().forEach(content -> searchCard(content, input));
+            node.getContent().forEach(content -> searchCard(content, input, note));
         }
-
     }
+
+    private boolean isCardNode(Node node) {
+        return node.getType().equals("word_card") ||
+            node.getType().equals("blank_card") ||
+            node.getType().equals("multi_card");
+    }
+
+    private void processCardNode(Node node, StringBuilder input, Note note) {
+        String answer = String.join(" ", node.getAttrs().getAnswer());
+        String questionFront = node.getAttrs().getQuestion_front();
+        String questionBack = node.getAttrs().getQuestion_back();
+
+        if (questionFront == null) questionFront = "";
+        if (questionBack == null) questionBack = "";
+
+        String nodeText = questionFront + answer + questionBack;
+        if (!nodeText.endsWith(".")) nodeText += ".";
+        input.append(nodeText);
+
+        if (node.getType().equals("blank_card")) {
+            // 빈칸 카드 처리 로직
+            Card card = createCard(node, note, questionFront, questionBack, answer);
+            cardRepository.save(card);
+        } else {
+            // 다른 카드 타입은 로그만 찍음
+            log.info("Card type detected: {}", node.getType());
+            log.info("Question front: {}", questionFront);
+            log.info("Question back: {}", questionBack);
+            log.info("Answer: {}", answer);
+        }
+    }
+
+    private Card createCard(Node node, Note note, String questionFront, String questionBack, String answer) {
+        return Card.builder()
+            .note(note)
+            .contentsFront(questionFront)
+            .contentsBack(questionBack)
+            .answer(answer)
+            .isLearn(false)
+            .countLearn(0L)
+            .type(CardType.BLANK.getValue()) // 빈칸 카드 타입만 저장
+            .build();
+    }
+
+    @Transactional
+    public void processWordCard(Node node, StringBuilder input) {
+        // word_card 로그만 출력
+        log.info("Processing word_card");
+        log.info("Question front: {}", node.getAttrs().getQuestion_front());
+        log.info("Answer: {}", String.join(" ", node.getAttrs().getAnswer()));
+    }
+
+    @Transactional
+    public void processMultiCard(Node node, StringBuilder input) {
+        // multi_card 로그만 출력
+        log.info("Processing multi_card");
+        log.info("Question front: {}", node.getAttrs().getQuestion_front());
+        log.info("Answers: {}", String.join(" ", node.getAttrs().getAnswer()));
+    }
+
+    public void processTextNode(Node node, StringBuilder input) {
+        String nodeText = node.getText();
+        if (!nodeText.endsWith(".")) nodeText += ".";
+        input.append(nodeText);
+    }
+
     public List<NoteResponse.SearchNoteResDTO> searchNote(Folder folder, String search){
         //문단 구분점인 .을 입력시 빈 리스트 반환
         if(search.trim().equals("."))
@@ -274,7 +330,7 @@ public class NoteService {
                 .map(card -> {
                     return NoteResponse.getNoteCardDTO.builder()
                             .cardId(card.getCardId())
-                            .cardName(card.getName())
+                            .cardName(note.getName())
                             .contentsFront(card.getContentsFront())
                             .contentsBack(card.getContentsBack())
                             .build();
