@@ -1,7 +1,11 @@
 package com.umc.cardify.controller;
 
+import java.util.List;
+
+import com.umc.cardify.dto.card.CardResponse;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -43,7 +47,7 @@ public class CardController {
 	}
 
 	@GetMapping(value = "/view/{imgCardId}/Image")
-	@Operation(summary = "이미지 카드 조회", description = "이미지 및 가림판 들의 크기와 위치 조회")
+	@Operation(summary = "이미지 카드 조회", description = "이미지 및 가림판들의 크기와 위치 조회")
 	public ResponseEntity<CardResponse.getImageCard> viewImageCard(@PathVariable Long imgCardId) {
 
 		return ResponseEntity.ok(cardService.viewImageCard(imgCardId));

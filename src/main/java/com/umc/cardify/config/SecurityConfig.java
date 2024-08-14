@@ -4,6 +4,7 @@ import com.umc.cardify.handler.CustomAuthenticationSuccessHandler;
 import com.umc.cardify.jwt.JwtFilter;
 import com.umc.cardify.jwt.JwtUtil;
 import com.umc.cardify.repository.UserRepository;
+import com.umc.cardify.service.KakaoService;
 import com.umc.cardify.service.security.CustomUserDetailsService;
 import com.umc.cardify.service.security.CustomOAuth2UserService;
 import org.springframework.context.annotation.Bean;
@@ -29,6 +30,7 @@ public class SecurityConfig {
     private final CorsConfigurationSource corsConfigurationSource;
     private final UserRepository userRepository;
     private final CustomOAuth2UserService customOAuth2UserService;
+
 
     public SecurityConfig(JwtUtil jwtUtil, CustomUserDetailsService customUserDetailsService, CorsConfigurationSource corsConfigurationSource, UserRepository userRepository, CustomOAuth2UserService customOAuth2UserService) {
         this.jwtUtil = jwtUtil;
@@ -59,6 +61,9 @@ public class SecurityConfig {
                                         .userInfoEndpoint(userInfoEndpoint ->
                                                 userInfoEndpoint.userService(customOAuth2UserService)
                                         )
+//                    .loginPage("/login")
+//                    .defaultSuccessUrl("/home")
+//                    .failureUrl("/loginFailure")
                                         .successHandler(authenticationSuccessHandler())
                 )
                 .addFilterBefore(new JwtFilter(jwtUtil, customUserDetailsService), UsernamePasswordAuthenticationFilter.class)
