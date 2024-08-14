@@ -241,7 +241,7 @@ public class FolderService {
         int filterSize = (size != null) ? size : Integer.MAX_VALUE;
 
         if (colors == null || colors.isEmpty()) {
-            throw new DatabaseException(ErrorResponseStatus.NOT_EXIST_FOLDER);
+            throw new DatabaseException(ErrorResponseStatus.REQUEST_ERROR);
         }
 
         List<String> colorList = Arrays.asList(colors.split(","));
