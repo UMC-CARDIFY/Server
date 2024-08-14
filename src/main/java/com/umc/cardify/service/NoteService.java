@@ -10,20 +10,19 @@ import com.umc.cardify.domain.*;
 import com.umc.cardify.domain.ProseMirror.Node;
 import com.umc.cardify.domain.enums.MarkStatus;
 import com.umc.cardify.dto.card.CardRequest;
+import com.umc.cardify.dto.folder.FolderResponse;
 import com.umc.cardify.dto.note.NoteRequest;
 import com.umc.cardify.dto.note.NoteResponse;
 import com.umc.cardify.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -289,4 +288,41 @@ public class NoteService {
                 .cardList(cardDTO)
                 .build();
     }
+
+    @Transactional(readOnly = true)
+    public NoteResponse.NoteListDTO filterColorsNotes(Long userId, Integer page, Integer size, String colors) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(()-> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+
+        int filterNotePage = (page != null) ? page : 0;
+        int filterNoteSize = (size != null) ? size : 30;
+
+        if (colors == null || colors.isEmpty()) {
+            throw new DatabaseException(ErrorResponseStatus.NOT_EXIST_NOTE);
+        }
+
+        List<String> colorList = Arrays.asList(colors.split(","));
+
+        Pageable pageable = PageRequest.of(filterNotePage, filterNoteSize);
+        Page<Note> notePage = noteRepository.findByNoteIdAndUser(user, colorList, pageable);
+
+        if(notePage.isEmpty()){
+            throw new DatabaseException(ErrorResponseStatus.NOT_EXIST_NOTE);
+        }
+
+        List<NoteResponse.NoteInfoDTO> notes = notePage.getContent().stream()
+                .map(noteConverter::toNoteInfoDTO)
+                .collect(Collectors.toList());
+
+        return NoteResponse.NoteListDTO.builder()
+                .noteList(notes)
+                .listsize(filterNoteSize)
+                .currentPage(filterNotePage + 1)
+                .totalPage(notePage.getTotalPages())
+                .totalElements(notePage.getTotalElements())
+                .isFirst(notePage.isFirst())
+                .isLast(notePage.isLast())
+                .build();
+    }
+
 }
