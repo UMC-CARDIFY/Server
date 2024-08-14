@@ -22,7 +22,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -345,13 +344,13 @@ public class NoteService {
                 .build();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public NoteResponse.NoteListDTO filterColorsNotes(Long userId, Integer page, Integer size, String colors) {
         User user = userRepository.findById(userId)
                 .orElseThrow(()-> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
         int filterNotePage = (page != null) ? page : 0;
-        int filterNoteSize = (size != null) ? size : 30;
+        int filterNoteSize = (size != null) ? size : Integer.MAX_VALUE;
 
         if (colors == null || colors.isEmpty()) {
             throw new DatabaseException(ErrorResponseStatus.NOT_EXIST_NOTE);
@@ -381,4 +380,43 @@ public class NoteService {
                 .build();
     }
 
+    @Transactional
+    public NoteResponse.NoteListDTO sortNotesByUserId(Long userId, Integer page, Integer size, String order) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(()-> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+
+        int sortNotePage = (page != null) ? page : 0;
+        int sortNoteSize = (size != null) ? size : Integer.MAX_VALUE;
+
+        Pageable pageable = PageRequest.of(sortNotePage, sortNoteSize);
+        Page<Note> notePage = noteRepository.findByUserAndSort(user, order, pageable);
+
+        switch (order) {
+            case "asc":
+            case "desc":
+            case "edit-newest":
+            case "edit-oldest":
+                break;
+            default:
+                throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+        }
+
+        if(notePage.isEmpty()){
+            throw new DatabaseException(ErrorResponseStatus.NOT_EXIST_NOTE);
+        }
+
+        List<NoteResponse.NoteInfoDTO> notes = notePage.getContent().stream()
+                .map(noteConverter::toNoteInfoDTO)
+                .collect(Collectors.toList());
+
+        return NoteResponse.NoteListDTO.builder()
+                .noteList(notes)
+                .listsize(sortNoteSize)
+                .currentPage(sortNotePage + 1)
+                .totalPage(notePage.getTotalPages())
+                .totalElements(notePage.getTotalElements())
+                .isFirst(notePage.isFirst())
+                .isLast(notePage.isLast())
+                .build();
+    }
 }
