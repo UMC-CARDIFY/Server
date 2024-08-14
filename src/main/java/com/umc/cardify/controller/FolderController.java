@@ -113,4 +113,16 @@ public class FolderController {
         FolderResponse.FolderListDTO folders = folderService.filterColorsByUserId(userId, page, size, color);
         return ResponseEntity.ok(folders);
     }
+
+    @GetMapping("/notes/filter")
+    @Operation(summary = "노트 필터링 기능 API", description = "사용자의 노트를 특정 색상으로 필터링하여 반환 | 쉼표로 구분된 색상 문자열 입력")
+    public ResponseEntity<NoteResponse.NoteListDTO> filterNotes(
+            @RequestHeader("Authorization") String token,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam String color) {
+        Long userId = jwtUtil.extractUserId(token);
+        NoteResponse.NoteListDTO notes = noteService.filterColorsNotes(userId, page, size, color);
+        return ResponseEntity.ok(notes);
+    }
 }
