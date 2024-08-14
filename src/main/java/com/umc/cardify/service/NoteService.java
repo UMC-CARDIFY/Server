@@ -103,15 +103,19 @@ public class NoteService {
         if(size == null) size = folder.getNotes().size();
 
         String order = request.getOrder();
-        if(order == null) order = "asc";
+        if(order == null) order = "create-newest";
 
         pageable = switch (order.toLowerCase()) {
             case "asc" -> PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.asc("name")));
             case "desc" -> PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.desc("name")));
             case "edit-newest" ->
-                    PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.asc("editDate")));
-            case "edit-oldest" ->
                     PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.desc("editDate")));
+            case "edit-oldest" ->
+                    PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.asc("editDate")));
+            case "create-newest" ->
+                    PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.desc("createdAt")));
+            case "create-oldest" ->
+                    PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.asc("createdAt")));
             default -> throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
         };
         Page<Note> notes_all = noteRepository.findByFolder(folder, pageable);

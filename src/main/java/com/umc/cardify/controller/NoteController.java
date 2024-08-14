@@ -44,7 +44,7 @@ public class NoteController {
     }
     @PostMapping("/getNoteToFolder")
     @Operation(summary = "특정 폴더 내 노트 조회 API" ,
-            description = "폴더 ID 입력, 성공 시 노트 리스트 반환 | order = asc, desc, edit-newest, edit-oldest |" +
+            description = "폴더 ID 입력, 성공 시 노트 리스트 반환 | order = asc, desc, edit-newest, edit-oldest, create-newest, create-oldest |" +
                     " 페이지 번호, 사이즈 미입력시 페이징 X | 정렬방식 미입력시 이름 오름차순")
     public ResponseEntity<NoteResponse.GetNoteToFolderResultDTO> getNoteToFolder(@RequestBody @Valid NoteRequest.GetNoteToFolderDto request){
         Folder folder = folderService.getFolder(request.getFolderId());
