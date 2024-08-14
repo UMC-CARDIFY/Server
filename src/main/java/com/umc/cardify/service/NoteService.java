@@ -28,6 +28,8 @@ import com.umc.cardify.domain.ProseMirror.Node;
 import com.umc.cardify.domain.User;
 import com.umc.cardify.domain.enums.CardType;
 import com.umc.cardify.domain.enums.MarkStatus;
+import com.umc.cardify.dto.card.CardRequest;
+import com.umc.cardify.dto.folder.FolderResponse;
 import com.umc.cardify.dto.note.NoteRequest;
 import com.umc.cardify.dto.note.NoteResponse;
 import com.umc.cardify.repository.CardRepository;
@@ -37,8 +39,18 @@ import com.umc.cardify.repository.LibraryRepository;
 import com.umc.cardify.repository.NoteRepository;
 import com.umc.cardify.repository.UserRepository;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.data.domain.*;
+import org.springframework.stereotype.Service;
+
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -352,6 +364,10 @@ public class NoteService {
 	public NoteResponse.NoteListDTO filterColorsNotes(Long userId, Integer page, Integer size, String colors) {
 		User user = userRepository.findById(userId)
 			.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+    @Transactional
+    public NoteResponse.NoteListDTO filterColorsNotes(Long userId, Integer page, Integer size, String colors) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(()-> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
 		int filterNotePage = (page != null) ? page : 0;
 		int filterNoteSize = (size != null) ? size : 30;
@@ -385,4 +401,54 @@ public class NoteService {
 			.build();
 	}
 
+        return NoteResponse.NoteListDTO.builder()
+                .noteList(notes)
+                .listsize(filterNoteSize)
+                .currentPage(filterNotePage + 1)
+                .totalPage(notePage.getTotalPages())
+                .totalElements(notePage.getTotalElements())
+                .isFirst(notePage.isFirst())
+                .isLast(notePage.isLast())
+                .build();
+    }
+
+    @Transactional
+    public NoteResponse.NoteListDTO sortNotesByUserId(Long userId, Integer page, Integer size, String order) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(()-> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+
+        int sortNotePage = (page != null) ? page : 0;
+        int sortNoteSize = (size != null) ? size : Integer.MAX_VALUE;
+
+        Pageable pageable = PageRequest.of(sortNotePage, sortNoteSize);
+        Page<Note> notePage = noteRepository.findByUserAndSort(user, order, pageable);
+
+        switch (order) {
+            case "asc":
+            case "desc":
+            case "edit-newest":
+            case "edit-oldest":
+                break;
+            default:
+                throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+        }
+
+        if(notePage.isEmpty()){
+            throw new DatabaseException(ErrorResponseStatus.NOT_EXIST_NOTE);
+        }
+
+        List<NoteResponse.NoteInfoDTO> notes = notePage.getContent().stream()
+                .map(noteConverter::toNoteInfoDTO)
+                .collect(Collectors.toList());
+
+        return NoteResponse.NoteListDTO.builder()
+                .noteList(notes)
+                .listsize(sortNoteSize)
+                .currentPage(sortNotePage + 1)
+                .totalPage(notePage.getTotalPages())
+                .totalElements(notePage.getTotalElements())
+                .isFirst(notePage.isFirst())
+                .isLast(notePage.isLast())
+                .build();
+    }
 }
