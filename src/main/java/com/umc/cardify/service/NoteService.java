@@ -1,10 +1,13 @@
 package com.umc.cardify.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.DatabaseException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.converter.NoteConverter;
 import com.umc.cardify.domain.*;
+import com.umc.cardify.domain.ProseMirror.Node;
 import com.umc.cardify.domain.enums.MarkStatus;
 import com.umc.cardify.dto.card.CardRequest;
 import com.umc.cardify.dto.note.NoteRequest;
@@ -35,6 +38,7 @@ public class NoteService {
     private final LibraryRepository libraryRepository;
     private final CategoryRepository categoryRepository;
     private final LibraryCategoryRepository libraryCategoryRepository;
+    private final ObjectMapper objectMapper;
     public Note getNoteToID(long noteId){
         return noteRepository.findById(noteId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
     }
@@ -138,21 +142,65 @@ public class NoteService {
             throw new BadRequestException(ErrorResponseStatus.DB_INSERT_ERROR);
         }
         else {
+            StringBuilder totalText = new StringBuilder();
             note.setName(request.getName());
 
-            //저장되어 있는 노트 내용과 입력된 내용이 같을 시 카드를 저장하지 않음
-            if(!note.getContents().equals(request.getContents())) {
-                note.setContents(request.getContents());
-                //여기에 카드 작성이 들어가 있었음
-            }
-            noteRepository.save(note);
+            Node node = request.getContents();
+            searchCard(node, totalText);
+            note.setTotalText(totalText.toString());
 
+            String jsonStr = null;
+            try {
+                jsonStr = objectMapper.writeValueAsString(node);
+            } catch (JsonProcessingException e) {
+                e.printStackTrace();
+            }
+            note.setContents(jsonStr);
+            //저장되어 있는 노트 내용과 입력된 내용이 같을 시 카드를 저장하지 않음
+            noteRepository.save(note);
             return true;
         }
     }
+    public void searchCard(Node node, StringBuilder input) {
+        if (node.getType().endsWith("card")) {
+            //카드 삽입 로직 위치
+            System.out.println("card type: " + node.getType());
+            System.out.println("card front: " + node.getAttrs().getQuestion_front() + node.getAttrs().getQuestion_back());
+            System.out.println("card back: " + String.join(" ", node.getAttrs().getAnswer()));
+
+            //검색어 작업
+            String answer = String.join(" ", node.getAttrs().getAnswer());
+            String question_front = node.getAttrs().getQuestion_front();
+            String question_back = node.getAttrs().getQuestion_back();
+
+            if(question_front == null)
+                question_front = "";
+            if(question_back == null)
+                question_back = "";
+            String nodeText = question_front + answer + question_back;
+            if(!nodeText.endsWith("."))
+                nodeText += ".";
+            input.append(nodeText);
+        } else if (node.getType().equals("text")) {
+            //검색어 작업
+            String nodeText = node.getText();
+            if(!nodeText.endsWith("."))
+                nodeText += ".";
+            input.append(nodeText);
+        }
+
+        if (node.getContent() != null) {
+            node.getContent().forEach(content -> searchCard(content, input));
+        }
+
+    }
     public List<NoteResponse.SearchNoteResDTO> searchNote(Folder folder, String search){
+        //문단 구분점인 .을 입력시 빈 리스트 반환
+        if(search.trim().equals("."))
+            return null;
+
         List<Note> notes = noteRepository.findByFolder(folder).stream()
-                .filter(note -> note.getContents().contains(search) || note.getName().contains(search))
+                .filter(note -> note.getName().contains(search) | note.getTotalText().contains(search))
                 .toList();
         List<NoteResponse.SearchNoteResDTO> searchList = notes.stream()
                 .map(list->noteConverter.toSearchNoteResult(list, search))
@@ -233,6 +281,7 @@ public class NoteService {
                             .build();
                 })
                 .toList();
+
         return NoteResponse.getNoteDTO.builder()
                 .noteId(note.getNoteId())
                 .noteName(note.getName())

@@ -138,7 +138,7 @@ public class NoteResponse {
     public static class getNoteDTO{
         Long noteId;
         String noteName;
-        String noteContent;
+        Object noteContent;
         List<getNoteCardDTO> cardList;
     }
 }

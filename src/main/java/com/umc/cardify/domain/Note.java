@@ -36,8 +36,12 @@ public class Note extends BaseEntity {
     private String name;
 
     @Setter
+    @Column(columnDefinition = "JSON")
+    private Object contents;
+
+    @Setter
     @Column(columnDefinition = "TEXT")
-    private String contents;
+    private String totalText;
 
     @Setter
     @Enumerated(EnumType.STRING)
