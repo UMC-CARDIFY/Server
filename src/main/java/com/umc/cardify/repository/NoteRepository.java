@@ -24,4 +24,10 @@ public interface NoteRepository extends JpaRepository<Note, Long> {
     void deleteByFolder(Folder folder);
 
     Note findTopByFolderOrderByEditDateDesc(Folder folder);
+
+    @Query("SELECT n FROM Note n WHERE n.folder.user = :user AND n.folder.color IN (:colors) ORDER BY " +
+            "CASE WHEN n.markState = 'ACTIVE' THEN 0 ELSE 1 END, " +
+            "CASE WHEN n.markState = 'ACTIVE' THEN n.markAt END ASC, " +
+            "CASE WHEN n.markState != 'ACTIVE' THEN n.createdAt END DESC")
+    Page<Note> findByNoteIdAndUser(@Param("user") User user, @Param("colors") List<String> colorList, Pageable pageable);
 }
