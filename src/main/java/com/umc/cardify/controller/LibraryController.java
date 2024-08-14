@@ -31,10 +31,10 @@ public class LibraryController {
     }
     @PostMapping("/download")
     @Operation(summary = "자료실 다운로드 API")
-    public ResponseEntity<LibraryResponse.IsSuccessLibDTO> downloadLib(@RequestHeader("Authorization") String token, @RequestBody @Valid LibraryRequest.DownloadLibDto request){
+    public ResponseEntity<LibraryResponse.DownloadLibDTO> downloadLib(@RequestHeader("Authorization") String token, @RequestBody @Valid LibraryRequest.DownloadLibDto request){
         Long userId = jwtUtil.extractUserId(token);
-        Boolean isSuccess = libraryService.downloadLib(userId, request);
-        return ResponseEntity.ok(LibraryResponse.IsSuccessLibDTO.builder().isSuccess(isSuccess).build());
+        LibraryResponse.DownloadLibDTO dto = libraryService.downloadLib(userId, request);
+        return ResponseEntity.ok(dto);
     }
     @GetMapping("/getTopNote")
     @Operation(summary = "추천 노트 조회 API")
@@ -57,17 +57,24 @@ public class LibraryController {
     }
     @GetMapping("/getNoteToCategory")
     @Operation(summary = "특정 카테고리 내 노트 조회 API",
-            description = "order = asc, desc, upload-newest, upload-oldest, download | 정렬방식 미입력시 이름 오름차순")
+            description = "order = asc, desc, upload-newest, upload-oldest, download")
     public ResponseEntity<List<LibraryResponse.LibInfoDTO>> getNoteToCategory(@RequestHeader("Authorization") String token, @RequestParam @Valid String category, @RequestParam @Valid String order){
         Long userId = jwtUtil.extractUserId(token);
         List<LibraryResponse.LibInfoDTO> resultNote = libraryService.getNoteToCategory(category, order, userId);
         return ResponseEntity.ok(resultNote);
     }
     @PostMapping("/searchLib")
-    @Operation(summary = "자료실 내 노트 검색 API")
+    @Operation(summary = "자료실 내 노트 검색 API", description = "카테고리 미입력시 전체 조회")
     public ResponseEntity<LibraryResponse.SearchLibDTO> searchLib(@RequestHeader("Authorization") String token, @RequestBody @Valid LibraryRequest.SearchLibDto request){
         Long userId = jwtUtil.extractUserId(token);
         LibraryResponse.SearchLibDTO resultDto = libraryService.searchLib(request, userId);
         return ResponseEntity.ok(resultDto);
+    }
+    @GetMapping("/checkDownload")
+    @Operation(summary = "자료실 노트 다운로드 방식 조회 API")
+    public ResponseEntity<LibraryResponse.CheckDownloadDTO> checkDownload(@RequestHeader("Authorization") String token, @RequestParam @Valid Long libraryId){
+        Long userId = jwtUtil.extractUserId(token);
+        String isDownload = libraryService.checkDownload(userId, libraryId);
+        return ResponseEntity.ok(LibraryResponse.CheckDownloadDTO.builder().isDownload(isDownload).build());
     }
 }

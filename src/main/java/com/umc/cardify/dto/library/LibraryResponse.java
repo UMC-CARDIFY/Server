@@ -26,8 +26,8 @@ public class LibraryResponse {
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(title = "Library_RES_02 : API 실행 성공 여부 응답 DTO")
-    public static class IsSuccessLibDTO{
-        Boolean isSuccess;
+    public static class DownloadLibDTO {
+        Long noteId;
     }
     @Getter
     @Builder
@@ -35,6 +35,7 @@ public class LibraryResponse {
     @AllArgsConstructor
     @Schema(title = "Library_RES_03 : 각종 노트 조회 DTO")
     public static class LibInfoDTO {
+        Long libraryId;
         Long noteId;
         String noteName;
         List<String> categoryName;
@@ -55,5 +56,14 @@ public class LibraryResponse {
         String searchTxt;
         List<String> searchCategory;
         List<LibInfoDTO> resultNote;
+    }
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "Library_RES_05 : 다운로드 방식 조회 DTO")
+    public static class CheckDownloadDTO {
+        Long noteId;
+        String isDownload;
     }
 }

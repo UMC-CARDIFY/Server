@@ -51,7 +51,7 @@ public class LibraryService {
                 .collect(Collectors.toList());
         return resultDTO;
     }
-    public Boolean downloadLib(Long userId, LibraryRequest.DownloadLibDto request){
+    public LibraryResponse.DownloadLibDTO downloadLib(Long userId, LibraryRequest.DownloadLibDto request){
         User user = userRepository.findById(userId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
         Folder folder = folderRepository.findById(request.getFolderId()).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
         if(!userId.equals(folder.getUser().getUserId())){
@@ -64,12 +64,7 @@ public class LibraryService {
             throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
         }
 
-        List<Download> downloadList = downloadRepository.findByUser(user);
-        Download download = null;
-        if(!downloadList.isEmpty())
-            download = downloadList.stream()
-                    .filter(download1 -> download1.getLibrary().getLibraryId().equals(library.getLibraryId()))
-                    .findAny().get();
+        Download download = downloadRepository.findByUserAndLibrary(user, library);
         List<Card> cardList = null;
         Note note_down = library.getNote();
         Integer point_current = user.getPoint();
@@ -79,7 +74,11 @@ public class LibraryService {
                     .user(user)
                     .library(library)
                     .build();
-            if (request.getIsContainCard() && !note_down.getCards().isEmpty()) {
+            if(note_down.getCards().isEmpty()){
+                user.setPoint(point_current - 200);
+                download.setIsContainCard(true);
+            }
+            if (request.getIsContainCard()) {
                 cardList = note_down.getCards();
                 user.setPoint(point_current - 300);
                 download.setIsContainCard(true);
@@ -113,7 +112,9 @@ public class LibraryService {
 
         if(cardList != null)
             cardList.forEach(card -> cardService.addCard(card, note_new));
-        return true;
+        return LibraryResponse.DownloadLibDTO.builder()
+                .noteId(note_new.getNoteId())
+                .build();
     }
     public List<LibraryResponse.LibInfoDTO> getTopNote(Long userId){
         List<Library> libraryList = libraryRepository.findAll();
@@ -215,5 +216,16 @@ public class LibraryService {
                 .searchCategory(categoryList.stream().map(Category::getName).toList())
                 .resultNote(resultList)
                 .build();
+    }
+    public String checkDownload(Long userId, Long libraryId){
+        User user = userRepository.findById(userId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));;
+        Library library = libraryRepository.findById(libraryId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));;
+        Download download = downloadRepository.findByUserAndLibrary(user, library);
+
+        if (download == null)
+            return "None";
+        else if(download.getIsContainCard())
+            return "ContainCard";
+        else return "NotContainCard";
     }
 }
