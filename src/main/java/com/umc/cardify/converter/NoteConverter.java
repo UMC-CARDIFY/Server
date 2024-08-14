@@ -69,12 +69,8 @@ public class NoteConverter {
     }
     public NoteResponse.SearchNoteResDTO toSearchNoteResult(Note note, String search){
         List<String> textList = new ArrayList<>();
-        String text = note.getName() + note.getContents();
-        text.replace(">>", "")
-                .replace("<<", "")
-                .replace("{{", "")
-                .replace("}}", "")
-                .replace("==", "");
+        String text = note.getName() + note.getTotalText();
+
         while(text.contains(search)){
             int index = text.indexOf(search);
 
@@ -83,7 +79,7 @@ public class NoteConverter {
             if(moreText < 0)
                 moreText = text.length();
             textList.add(text.substring(index, moreText));
-            text = text.substring(moreText, text.length());
+            text = text.substring(moreText);
         }
         return NoteResponse.SearchNoteResDTO.builder()
                 .noteId(note.getNoteId())

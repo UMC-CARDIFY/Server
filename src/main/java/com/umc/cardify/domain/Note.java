@@ -40,6 +40,10 @@ public class Note extends BaseEntity {
     private Object contents;
 
     @Setter
+    @Column(columnDefinition = "TEXT")
+    private String totalText;
+
+    @Setter
     @Enumerated(EnumType.STRING)
     @Column(columnDefinition = "VARCHAR(15) DEFAULT 'INACTIVE'")
     private MarkStatus markState;

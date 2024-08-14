@@ -142,11 +142,12 @@ public class NoteService {
             throw new BadRequestException(ErrorResponseStatus.DB_INSERT_ERROR);
         }
         else {
+            StringBuilder totalText = new StringBuilder();
             note.setName(request.getName());
 
             Node node = request.getContents();
-            searchCard(node);
-
+            searchCard(node, totalText);
+            note.setTotalText(totalText.toString());
 
             String jsonStr = null;
             try {
@@ -160,22 +161,46 @@ public class NoteService {
             return true;
         }
     }
-    public void searchCard(Node node){
-        if(node.getType().endsWith("card")){
-            //카드 삽입 로직
+    public void searchCard(Node node, StringBuilder input) {
+        if (node.getType().endsWith("card")) {
+            //카드 삽입 로직 위치
             System.out.println("card type: " + node.getType());
-            System.out.println("card front: " + node.getAttrs().getQuestion());
-            System.out.println("card back: " + node.getAttrs().getAnswer());
-            return;
+            System.out.println("card front: " + node.getAttrs().getQuestion_front() + node.getAttrs().getQuestion_back());
+            System.out.println("card back: " + String.join(" ", node.getAttrs().getAnswer()));
+
+            //검색어 작업
+            String answer = String.join(" ", node.getAttrs().getAnswer());
+            String question_front = node.getAttrs().getQuestion_front();
+            String question_back = node.getAttrs().getQuestion_back();
+
+            if(question_front == null)
+                question_front = "";
+            if(question_back == null)
+                question_back = "";
+            String nodeText = question_front + answer + question_back;
+            if(!nodeText.endsWith("."))
+                nodeText += ".";
+            input.append(nodeText);
+        } else if (node.getType().equals("text")) {
+            //검색어 작업
+            String nodeText = node.getText();
+            if(!nodeText.endsWith("."))
+                nodeText += ".";
+            input.append(nodeText);
         }
-        if(node.getContent() == null){
-            return;
+
+        if (node.getContent() != null) {
+            node.getContent().forEach(content -> searchCard(content, input));
         }
-        node.getContent().forEach(this::searchCard);
+
     }
     public List<NoteResponse.SearchNoteResDTO> searchNote(Folder folder, String search){
+        //문단 구분점인 .을 입력시 빈 리스트 반환
+        if(search.trim().equals("."))
+            return null;
+
         List<Note> notes = noteRepository.findByFolder(folder).stream()
-                .filter(note -> note.getName().contains(search))
+                .filter(note -> note.getName().contains(search) | note.getTotalText().contains(search))
                 .toList();
         List<NoteResponse.SearchNoteResDTO> searchList = notes.stream()
                 .map(list->noteConverter.toSearchNoteResult(list, search))
