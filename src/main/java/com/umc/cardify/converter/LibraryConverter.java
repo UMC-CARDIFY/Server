@@ -38,6 +38,7 @@ public class LibraryConverter {
         List<String> categoryName = library.getCategoryList().stream()
                 .map(libraryCategory -> libraryCategory.getCategory().getName()).toList();
         return LibraryResponse.LibInfoDTO.builder()
+                .libraryId(library.getLibraryId())
                 .userName(user.getName())
                 .userImgSrc(null)       //추후 유저 이미지 생성되면 삽입
                 .noteId(note.getNoteId())
