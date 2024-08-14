@@ -57,7 +57,7 @@ public class OAuth2Controller {
             return ResponseEntity.ok(tokenInfo);
         } catch (Exception e) {
             System.out.println("Error in kakao callback: " + e);
-            return ResponseEntity.badRequest().body(new UserResponse.tokenInfo("Bearer", "Error: " + e.getMessage(), null));
+            return ResponseEntity.badRequest().body(new UserResponse.tokenInfo("Bearer", "Error: " + e.getMessage(), "null"));
         }
     }
 }
