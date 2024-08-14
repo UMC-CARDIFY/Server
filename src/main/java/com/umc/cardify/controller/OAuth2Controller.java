@@ -31,6 +31,7 @@ public class OAuth2Controller {
     @Value("${spring.security.oauth2.client.registration.kakao.redirect-uri}")
     private String redirectUri;
 
+    // 인증 관련
     @GetMapping("/authorization/kakao")
     public ResponseEntity<Map<String, String>> getKakaoAuthorizationUrl() {
         String kakaoAuthUrl = UriComponentsBuilder
@@ -44,6 +45,7 @@ public class OAuth2Controller {
         return ResponseEntity.ok(Collections.singletonMap("authorizationUrl", kakaoAuthUrl));
     }
 
+    // 콜백
     @PostMapping("callback/kakao")
     public ResponseEntity<UserResponse.tokenInfo> kakaoCallback(@RequestBody Map<String, String> payload) throws JsonProcessingException {
         try {
