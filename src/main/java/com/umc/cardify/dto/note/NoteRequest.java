@@ -30,7 +30,7 @@ public class NoteRequest {
         Integer page;
         @Schema(description = "한 페이지 당 사이즈", example = "5")
         Integer size;
-        @Schema(description = "정렬 방식", example = "asc")
+        @Schema(description = "정렬 방식", example = "create-newest")
         String order;
     }
     @Getter
