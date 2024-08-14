@@ -38,6 +38,7 @@ public class NoteConverter {
         return NoteResponse.NoteInfoDTO.builder()
                 .noteId(note.getNoteId())
                 .name(note.getName())
+                .folderId(note.getFolder().getFolderId())
                 .folderColor(note.getFolder().getColor())
                 .folderName(note.getFolder().getName())
                 .markState(note.getMarkState())

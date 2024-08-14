@@ -122,20 +122,23 @@ public class NoteService {
 		if (size == null)
 			size = folder.getNotes().size();
 
-		String order = request.getOrder();
-		if (order == null)
-			order = "asc";
+        String order = request.getOrder();
+        if(order == null) order = "create-newest";
 
-		pageable = switch (order.toLowerCase()) {
-			case "asc" -> PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.asc("name")));
-			case "desc" -> PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.desc("name")));
-			case "edit-newest" ->
-				PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.asc("editDate")));
-			case "edit-oldest" ->
-				PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.desc("editDate")));
-			default -> throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
-		};
-		Page<Note> notes_all = noteRepository.findByFolder(folder, pageable);
+        pageable = switch (order.toLowerCase()) {
+            case "asc" -> PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.asc("name")));
+            case "desc" -> PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.desc("name")));
+            case "edit-newest" ->
+                    PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.desc("editDate")));
+            case "edit-oldest" ->
+                    PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.asc("editDate")));
+            case "create-newest" ->
+                    PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.desc("createdAt")));
+            case "create-oldest" ->
+                    PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.asc("createdAt")));
+            default -> throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+        };
+        Page<Note> notes_all = noteRepository.findByFolder(folder, pageable);
 
 		NoteResponse.GetNoteToFolderResultDTO noteDTO = noteConverter.toGetNoteToFolderResult(folder, notes_all);
 		return noteDTO;
@@ -384,5 +387,43 @@ public class NoteService {
 			.isLast(notePage.isLast())
 			.build();
 	}
+	@Transactional
+	public NoteResponse.NoteListDTO sortNotesByUserId(Long userId, Integer page, Integer size, String order) {
+		User user = userRepository.findById(userId)
+				.orElseThrow(()-> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
+		int sortNotePage = (page != null) ? page : 0;
+		int sortNoteSize = (size != null) ? size : Integer.MAX_VALUE;
+
+		Pageable pageable = PageRequest.of(sortNotePage, sortNoteSize);
+		Page<Note> notePage = noteRepository.findByUserAndSort(user, order, pageable);
+
+		switch (order) {
+			case "asc":
+			case "desc":
+			case "edit-newest":
+			case "edit-oldest":
+				break;
+			default:
+				throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+		}
+
+		if(notePage.isEmpty()){
+			throw new DatabaseException(ErrorResponseStatus.NOT_EXIST_NOTE);
+		}
+
+		List<NoteResponse.NoteInfoDTO> notes = notePage.getContent().stream()
+				.map(noteConverter::toNoteInfoDTO)
+				.collect(Collectors.toList());
+
+		return NoteResponse.NoteListDTO.builder()
+				.noteList(notes)
+				.listsize(sortNoteSize)
+				.currentPage(sortNotePage + 1)
+				.totalPage(notePage.getTotalPages())
+				.totalElements(notePage.getTotalElements())
+				.isFirst(notePage.isFirst())
+				.isLast(notePage.isLast())
+				.build();
+	}
 }
