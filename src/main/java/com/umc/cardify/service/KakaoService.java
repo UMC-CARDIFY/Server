@@ -69,15 +69,17 @@ public class KakaoService {
 
             // 사용자 정보 요청
             HttpEntity<MultiValueMap<String, String>> kakaoUserInfoRequest = new HttpEntity<>(createHeaders(kakaoToken.getAccess_token()));
-            ResponseEntity<String> response2 = restTemplate.exchange(userInfoUri, HttpMethod.GET, kakaoUserInfoRequest, String.class);
+            ResponseEntity<String> response2 = restTemplate.exchange(userInfoUri, HttpMethod.POST, kakaoUserInfoRequest, String.class);
 
             // 사용자 정보 파싱
             Map<String, Object> userInfo = objectMapper.readValue(response2.getBody(), HashMap.class);
             Map<String, Object> kakaoAccount = (Map<String, Object>) userInfo.get("kakao_account");
             String email = (String) kakaoAccount.get("email");
+            System.out.println(email);
 
             Map<String, Object> properties = (Map<String, Object>) userInfo.get("properties");
             String nickname = (String) properties.get("nickname");
+            System.out.println(nickname);
 
             // 사용자 처리 및 JWT 생성
             User user = userRepository.findByEmail(email)

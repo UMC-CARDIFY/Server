@@ -45,14 +45,14 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // 세션 비활성화
                 .authorizeRequests(authorizeRequests ->
                         authorizeRequests
-                                .requestMatchers("/oauth2/callback/kakao/**","/oauth2/authorization/kakao", "/login", "/api/v1/users/**", "/swagger-ui/**", "/v3/api-docs/**", "/error", "api/v1/folders/**").permitAll() // 인증 없이 접근 가능
+                                .requestMatchers("/oauth2/callback/kakao/**","/oauth2/authorization/kakao", "/login", "/api/v1/users/**", "/swagger-ui/**", "/v3/api-docs/**", "/error", "api/v1/folders/**", "/api/v1/oauth2/**").permitAll() // 인증 없이 접근 가능
                                 .anyRequest().authenticated() // 나머지 애들은 인증 필요
                 )
                 .oauth2Login(oauth2Login ->
                                 oauth2Login
-                                        .authorizationEndpoint(authorizationEndpoint ->
-                                                authorizationEndpoint.baseUri("/oauth2/authorization/kakao")
-                                        )
+//                                        .authorizationEndpoint(authorizationEndpoint ->
+//                                                authorizationEndpoint.baseUri("/oauth2/authorization/kakao")
+//                                        )
 //                                        .redirectionEndpoint(redirectionEndpoint ->
 //                                                redirectionEndpoint.baseUri("http://localhost:5173/dashboard")
 //                                        )
