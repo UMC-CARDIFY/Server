@@ -1,6 +1,5 @@
 package com.umc.cardify.service;
 
-import com.amazonaws.services.s3.transfer.Upload;
 import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.converter.LibraryConverter;
@@ -9,7 +8,6 @@ import com.umc.cardify.dto.library.LibraryRequest;
 import com.umc.cardify.dto.library.LibraryResponse;
 import com.umc.cardify.repository.*;
 import lombok.RequiredArgsConstructor;
-import org.joda.time.DateTime;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -53,7 +51,7 @@ public class LibraryService {
                 .collect(Collectors.toList());
         return resultDTO;
     }
-    public Boolean downloadLib(Long userId, LibraryRequest.DownloadLibDto request){
+    public LibraryResponse.DownloadLibDTO downloadLib(Long userId, LibraryRequest.DownloadLibDto request){
         User user = userRepository.findById(userId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
         Folder folder = folderRepository.findById(request.getFolderId()).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
         if(!userId.equals(folder.getUser().getUserId())){
@@ -66,12 +64,7 @@ public class LibraryService {
             throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
         }
 
-        List<Download> downloadList = downloadRepository.findByUser(user);
-        Download download = null;
-        if(!downloadList.isEmpty())
-            download = downloadList.stream()
-                    .filter(download1 -> download1.getLibrary().getLibraryId().equals(library.getLibraryId()))
-                    .findAny().get();
+        Download download = downloadRepository.findByUserAndLibrary(user, library);
         List<Card> cardList = null;
         Note note_down = library.getNote();
         Integer point_current = user.getPoint();
@@ -81,7 +74,11 @@ public class LibraryService {
                     .user(user)
                     .library(library)
                     .build();
-            if (request.getIsContainCard() && !note_down.getCards().isEmpty()) {
+            if(note_down.getCards().isEmpty()){
+                user.setPoint(point_current - 200);
+                download.setIsContainCard(true);
+            }
+            if (request.getIsContainCard()) {
                 cardList = note_down.getCards();
                 user.setPoint(point_current - 300);
                 download.setIsContainCard(true);
@@ -115,13 +112,15 @@ public class LibraryService {
 
         if(cardList != null)
             cardList.forEach(card -> cardService.addCard(card, note_new));
-        return true;
+        return LibraryResponse.DownloadLibDTO.builder()
+                .noteId(note_new.getNoteId())
+                .build();
     }
-    public List<LibraryResponse.NoteInfoDTO> getTopNote(){
+    public List<LibraryResponse.LibInfoDTO> getTopNote(Long userId){
         List<Library> libraryList = libraryRepository.findAll();
-        List<LibraryResponse.NoteInfoDTO> resultDto = libraryList.stream()
-                .map(libraryConverter::toLibInfo)
-                .sorted(Comparator.comparing(LibraryResponse.NoteInfoDTO::getCntDownloadWeek).reversed())
+        List<LibraryResponse.LibInfoDTO> resultDto = libraryList.stream()
+                .map(library ->  libraryConverter.toLibInfo(library, userId))
+                .sorted(Comparator.comparing(LibraryResponse.LibInfoDTO::getCntDownloadWeek).reversed())
                 .collect(Collectors.toList());
 
         return resultDto;
@@ -151,26 +150,26 @@ public class LibraryService {
                 .collect(Collectors.toList());
         return resultCateDTO;
     }
-    public List<LibraryResponse.NoteInfoDTO> getNoteToCategory(String input, String order) {
+    public List<LibraryResponse.LibInfoDTO> getNoteToCategory(String input, String order, Long userId) {
         Category category = categoryRepository.findByName(input);
-        Comparator<LibraryResponse.NoteInfoDTO> comparator;
+        Comparator<LibraryResponse.LibInfoDTO> comparator;
         if(category == null)
             throw new BadRequestException(ErrorResponseStatus.NOT_FOUND_CATEGORY);
         comparator = switch (order.toLowerCase()) {
-            case "asc" -> Comparator.comparing(LibraryResponse.NoteInfoDTO::getNoteName);
-            case "desc" -> Comparator.comparing(LibraryResponse.NoteInfoDTO::getNoteName).reversed();
-            case "upload-newest" -> Comparator.comparing(LibraryResponse.NoteInfoDTO::getUploadAt).reversed();
-            case "upload-oldest" -> Comparator.comparing(LibraryResponse.NoteInfoDTO::getUploadAt);
-            case "download" -> Comparator.comparing(LibraryResponse.NoteInfoDTO::getCntDownloadAll).reversed();
+            case "asc" -> Comparator.comparing(LibraryResponse.LibInfoDTO::getNoteName);
+            case "desc" -> Comparator.comparing(LibraryResponse.LibInfoDTO::getNoteName).reversed();
+            case "upload-newest" -> Comparator.comparing(LibraryResponse.LibInfoDTO::getUploadAt).reversed();
+            case "upload-oldest" -> Comparator.comparing(LibraryResponse.LibInfoDTO::getUploadAt);
+            case "download" -> Comparator.comparing(LibraryResponse.LibInfoDTO::getCntDownloadAll).reversed();
             default -> throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
         };
-        List<LibraryResponse.NoteInfoDTO> resultList = libraryCategoryRepository.findByCategory(category).stream()
-                .map(upload -> libraryConverter.toLibInfo(upload.getLibrary()))
+        List<LibraryResponse.LibInfoDTO> resultList = libraryCategoryRepository.findByCategory(category).stream()
+                .map(upload -> libraryConverter.toLibInfo(upload.getLibrary(), userId))
                 .sorted(comparator)
                 .toList();
         return resultList;
     }
-    public LibraryResponse.SearchLibDTO searchLib(LibraryRequest.SearchLibDto request){
+    public LibraryResponse.SearchLibDTO searchLib(LibraryRequest.SearchLibDto request, Long userId){
         String searchTxt;
         if(request.getSearchTxt() == null)
             searchTxt = "";
@@ -205,11 +204,11 @@ public class LibraryService {
             });
         }
 
-        List<LibraryResponse.NoteInfoDTO> resultList = resultLib.stream()
+        List<LibraryResponse.LibInfoDTO> resultList = resultLib.stream()
                 .distinct()
                 .filter(library -> library.getNote().getName().contains(searchTxt))
-                .map(libraryConverter::toLibInfo)
-                .sorted(Comparator.comparing(LibraryResponse.NoteInfoDTO::getCntDownloadWeek).reversed())
+                .map(library ->  libraryConverter.toLibInfo(library, userId))
+                .sorted(Comparator.comparing(LibraryResponse.LibInfoDTO::getCntDownloadWeek).reversed())
                 .toList();
 
         return LibraryResponse.SearchLibDTO.builder()
@@ -217,5 +216,16 @@ public class LibraryService {
                 .searchCategory(categoryList.stream().map(Category::getName).toList())
                 .resultNote(resultList)
                 .build();
+    }
+    public String checkDownload(Long userId, Long libraryId){
+        User user = userRepository.findById(userId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));;
+        Library library = libraryRepository.findById(libraryId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));;
+        Download download = downloadRepository.findByUserAndLibrary(user, library);
+
+        if (download == null)
+            return "None";
+        else if(download.getIsContainCard())
+            return "ContainCard";
+        else return "NotContainCard";
     }
 }

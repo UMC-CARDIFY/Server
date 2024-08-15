@@ -1,12 +1,10 @@
 package com.umc.cardify.dto.library;
 
-import com.umc.cardify.domain.enums.MarkStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.joda.time.DateTime;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -28,21 +26,23 @@ public class LibraryResponse {
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(title = "Library_RES_02 : API 실행 성공 여부 응답 DTO")
-    public static class IsSuccessLibDTO{
-        Boolean isSuccess;
+    public static class DownloadLibDTO {
+        Long noteId;
     }
     @Getter
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(title = "Library_RES_03 : 각종 노트 조회 DTO")
-    public static class NoteInfoDTO {
+    public static class LibInfoDTO {
+        Long libraryId;
         Long noteId;
         String noteName;
         List<String> categoryName;
         Integer cntCard;
         String userImgSrc;
         String userName;
+        Boolean isDownload;
         Integer cntDownloadAll;
         Integer cntDownloadWeek;
         LocalDateTime uploadAt;
@@ -55,6 +55,15 @@ public class LibraryResponse {
     public static class SearchLibDTO {
         String searchTxt;
         List<String> searchCategory;
-        List<NoteInfoDTO> resultNote;
+        List<LibInfoDTO> resultNote;
+    }
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "Library_RES_05 : 다운로드 방식 조회 DTO")
+    public static class CheckDownloadDTO {
+        Long noteId;
+        String isDownload;
     }
 }

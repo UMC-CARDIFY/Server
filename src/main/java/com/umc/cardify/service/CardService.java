@@ -5,8 +5,14 @@ import java.util.stream.Collectors;
 
 import com.umc.cardify.domain.Card;
 import com.umc.cardify.domain.Note;
+import com.umc.cardify.domain.StudyCardSet;
+import com.umc.cardify.domain.User;
 import com.umc.cardify.dto.card.CardResponse;
 import com.umc.cardify.repository.CardRepository;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -15,6 +21,8 @@ import com.umc.cardify.domain.Overlay;
 import com.umc.cardify.dto.card.CardRequest;
 import com.umc.cardify.repository.ImageCardRepository;
 import com.umc.cardify.repository.OverlayRepository;
+import com.umc.cardify.repository.StudyCardSetRepository;
+import com.umc.cardify.repository.UserRepository;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +40,11 @@ public class CardService {
 	private final OverlayRepository overlayRepository;
 
 	private final CardRepository cardRepository;
+
+	private final StudyCardSetRepository studyCardSetRepository;
+
+	private final UserRepository userRepository;
+
 
 	@Transactional
 	public String addImageCard(MultipartFile image, CardRequest.addImageCard request) {
@@ -55,7 +68,6 @@ public class CardService {
 					.imageCard(savedImageCard)
 					.build();
 
-				// Overlay를 데이터베이스에 저장
 				overlayRepository.save(overlay);
 			}
 		}
@@ -91,18 +103,14 @@ public class CardService {
 
 	@Transactional
 	public String editImageCard(CardRequest.addImageCard request, Long imgCardId) {
-		// 기존 이미지카드를 ID로 조회
 		ImageCard existingImageCard = imageCardRepository.findById(imgCardId)
 			.orElseThrow(() -> new IllegalArgumentException("ImageCard not found with ID: " + imgCardId));
 
-		// 기존 이미지카드의 필드를 새로운 값으로 업데이트
 		existingImageCard.setHeight(request.getBaseImageHeight());
 		existingImageCard.setWidth(request.getBaseImageWidth());
 
-		// 업데이트된 이미지카드를 저장
 		ImageCard savedImageCard = imageCardRepository.save(existingImageCard);
 
-		// 기존 오버레이를 삭제하고, 새로운 오버레이를 추가
 		overlayRepository.deleteByImageCardId(imgCardId);
 		if (request.getOverlays() != null) {
 			for (CardRequest.addImageCardOverlay overlayRequest : request.getOverlays()) {
@@ -114,7 +122,6 @@ public class CardService {
 					.imageCard(savedImageCard)
 					.build();
 
-				// 새로운 오버레이를 데이터베이스에 저장
 				overlayRepository.save(overlay);
 			}
 		}
@@ -122,30 +129,29 @@ public class CardService {
 		return savedImageCard.getImageUrl();
 	}
 
-	public void addCard(CardRequest.WriteCardDto cardDto, Note note){
-		String contents_front = cardDto.getText();
-		String contents_back = contents_front
-				.replace(">>", "")
-				.replace("<<", "")
-				.replace("{{", "")
-				.replace("}}", "")
-				.replace("==", "");
+	public Page<CardResponse.getCardLists> getCardLists(Long userId, Pageable pageable) {
+		User user = userRepository.findById(userId)
+			.orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
 
-		Card card = Card.builder()
-				.note(note)
-				.name(cardDto.getName())
-				.contentsFront(contents_front)
-				.contentsBack(contents_back)
-				.countLearn(0L)
-				.build();
+		Page<StudyCardSet> studyCardSets = studyCardSetRepository.findByUser(user, pageable);
 
-		cardRepository.save(card);
+		List<CardResponse.getCardLists> cardLists = studyCardSets.stream()
+			.map(studyCardSet -> CardResponse.getCardLists.builder()
+				.studyStatus(studyCardSet.getStudyStatus().getDescription())
+				.noteName(studyCardSet.getNoteName())
+				.color(studyCardSet.getColor())
+				.folderName(studyCardSet.getFolder().getName())
+				.recentStudyDate(studyCardSet.getRecentStudyDate())
+				.nextStudyDate(studyCardSet.getNextStudyDate())
+				.build())
+			.collect(Collectors.toList());
+
+		return new PageImpl<>(cardLists, pageable, studyCardSets.getTotalElements());
 	}
 
 	public void addCard(Card card, Note note){
 		Card card_new = Card.builder()
 				.note(note)
-				.name(card.getName())
 				.contentsFront(card.getContentsFront())
 				.contentsBack(card.getContentsBack())
 				.countLearn(0L)
@@ -153,4 +159,5 @@ public class CardService {
 
 		cardRepository.save(card_new);
 	}
+
 }

@@ -25,10 +25,10 @@ public class Folder extends BaseEntity {
     @JoinColumn(name = "user_id")
     private User user;
 
-    @Column(name = "name", columnDefinition = "varchar(30) NOT NULL")
+    @Column(name = "name")
     private String name;
 
-    @Column(name = "color", columnDefinition = "varchar(10) NOT NULL")
+    @Column(name = "color")
     private String color;
 
     @Enumerated(EnumType.STRING)

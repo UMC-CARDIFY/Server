@@ -26,7 +26,6 @@ public class NoteConverter {
         return Note.builder()
                 .folder(folder)
                 .name("제목없음")
-                .contents("빈 노트")
                 .build();
     }
     public static NoteResponse.AddNoteResultDTO toAddNoteResult(Note note){
@@ -39,6 +38,7 @@ public class NoteConverter {
         return NoteResponse.NoteInfoDTO.builder()
                 .noteId(note.getNoteId())
                 .name(note.getName())
+                .folderId(note.getFolder().getFolderId())
                 .folderColor(note.getFolder().getColor())
                 .folderName(note.getFolder().getName())
                 .markState(note.getMarkState())
@@ -70,12 +70,8 @@ public class NoteConverter {
     }
     public NoteResponse.SearchNoteResDTO toSearchNoteResult(Note note, String search){
         List<String> textList = new ArrayList<>();
-        String text = note.getName() + note.getContents();
-        text.replace(">>", "")
-                .replace("<<", "")
-                .replace("{{", "")
-                .replace("}}", "")
-                .replace("==", "");
+        String text = note.getName() + note.getTotalText();
+
         while(text.contains(search)){
             int index = text.indexOf(search);
 
@@ -84,7 +80,7 @@ public class NoteConverter {
             if(moreText < 0)
                 moreText = text.length();
             textList.add(text.substring(index, moreText));
-            text = text.substring(moreText, text.length());
+            text = text.substring(moreText);
         }
         return NoteResponse.SearchNoteResDTO.builder()
                 .noteId(note.getNoteId())

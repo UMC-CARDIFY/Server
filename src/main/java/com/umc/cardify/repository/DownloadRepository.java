@@ -10,4 +10,5 @@ import java.util.List;
 public interface DownloadRepository extends JpaRepository<Download, Long> {
     List<Download> findByUser(User user);
     List<Download> findByLibrary(Library library);
+    Download findByUserAndLibrary(User user, Library library);
 }

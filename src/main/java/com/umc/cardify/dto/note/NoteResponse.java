@@ -30,12 +30,14 @@ public class NoteResponse {
     public static class NoteInfoDTO {
         @Schema(description = "노트 아이디", example = "1")
         private Long noteId;
-        @Schema(description = "폴더 색상", example = "blue")
-        private String folderColor;
         @Schema(description = "노트 이름", example = "Sample Note")
         private String name;
         @Schema(description = "폴더 이름", example = "Sample Folder")
+        private Long folderId;
+        @Schema(description = "폴더 이름", example = "Sample Folder")
         private String folderName;
+        @Schema(description = "폴더 색상", example = "blue")
+        private String folderColor;
         @Schema(description = "노트 즐겨찾기", example = "ACTIVE")
         private MarkStatus markState;
         @Schema(description = "노트 수정일", example = "2023-07-18")
@@ -138,7 +140,7 @@ public class NoteResponse {
     public static class getNoteDTO{
         Long noteId;
         String noteName;
-        String noteContent;
+        Object noteContent;
         List<getNoteCardDTO> cardList;
     }
 }

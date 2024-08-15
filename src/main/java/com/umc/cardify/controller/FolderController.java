@@ -47,9 +47,21 @@ public class FolderController {
         return ResponseEntity.ok(folders);
     }
 
+    @GetMapping("/notes/sort")
+    @Operation(summary = "노트 정렬 기능 API", description = "성공 시 해당 유저의 전체 노트를 정렬해서 반환(폴더 상관없이 전체 노트 정렬) | order = asc, desc, edit-newest, edit-oldest")
+    public ResponseEntity<NoteResponse.NoteListDTO> sortNotes(
+            @RequestHeader("Authorization") String token,
+            @RequestParam(required = false)  Integer page,
+            @RequestParam(required = false)  Integer size,
+            @RequestParam String order){
+        Long userId = jwtUtil.extractUserId(token);
+        NoteResponse.NoteListDTO notes = noteService.sortNotesByUserId(userId, page, size, order);
+        return ResponseEntity.ok(notes);
+    }
+
 
     @GetMapping("/notes")
-    @Operation(summary = "노트 목록 조회 API", description = "조회 성공 시, 해당 유저의 노트 목록 반환(폴더 상관이 전체 노트) | 페이징 제한 없음")
+    @Operation(summary = "노트 목록 조회 API", description = "조회 성공 시, 해당 유저의 노트 목록 반환(폴더 상관없이 전체 노트) | 페이징 제한 없음")
     public ResponseEntity<NoteResponse.NoteListDTO> getAllNotes(
             @RequestHeader("Authorization") String token,
             @RequestParam(required = false)  Integer page,
@@ -112,5 +124,17 @@ public class FolderController {
         Long userId = jwtUtil.extractUserId(token);
         FolderResponse.FolderListDTO folders = folderService.filterColorsByUserId(userId, page, size, color);
         return ResponseEntity.ok(folders);
+    }
+
+    @GetMapping("/notes/filter")
+    @Operation(summary = "노트 필터링 기능 API", description = "사용자의 노트를 특정 색상으로 필터링하여 반환 | 쉼표로 구분된 색상 문자열 입력")
+    public ResponseEntity<NoteResponse.NoteListDTO> filterNotes(
+            @RequestHeader("Authorization") String token,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam String color) {
+        Long userId = jwtUtil.extractUserId(token);
+        NoteResponse.NoteListDTO notes = noteService.filterColorsNotes(userId, page, size, color);
+        return ResponseEntity.ok(notes);
     }
 }

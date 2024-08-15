@@ -22,9 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -44,7 +42,7 @@ public class FolderService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
-        // 폴더 page, size에 값을 입력하지 않으면, 자동으로 0과 30으로 고정
+        // 폴더 page, size에 값을 입력하지 않으면, 자동으로 0과 최대값으로 고정
         int getFolderPage = (page!=null) ? page:0;
         int getFolderSize = (size!=null) ? size:Integer.MAX_VALUE;
 
@@ -86,7 +84,7 @@ public class FolderService {
                 .listSize(folderPage.getSize())
                 .currentPage(folderPage.getNumber()+1)
                 .totalPages(folderPage.getTotalPages())
-                .totalElements(folderPage.getTotalElements())
+                .totalElements(folderPage.getNumberOfElements())
                 .isFirst(folderPage.isFirst())
                 .isLast(folderPage.isLast())
                 .build();
@@ -100,9 +98,6 @@ public class FolderService {
         int sortFolderPage = (page != null) ? page : 0;
         int sortFolderSize = (size != null) ? size : Integer.MAX_VALUE;
 
-        Pageable pageable = PageRequest.of(sortFolderPage, sortFolderSize);
-        Page<Folder> folderPage = folderRepository.findByUserAndSort(user, order, pageable);
-
         switch (order) {
             case "asc":
             case "desc":
@@ -113,8 +108,18 @@ public class FolderService {
                 throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
         }
 
-        List<FolderResponse.FolderInfoDTO> folders = folderPage.getContent().stream()
-                .sorted(new FolderComparator(order))
+        List<Folder> allFolders = folderRepository.findByUser(user);
+
+        List<Folder> sortedFolders = allFolders.stream()
+                .sorted(new FolderComparator(order)
+                        .thenComparing(Folder::getFolderId))
+                .collect(Collectors.toList());
+
+        int start = sortFolderPage * sortFolderSize;
+        int end = Math.min((sortFolderPage + 1) * sortFolderSize, sortedFolders.size());
+        List<Folder> pagedFolders = sortedFolders.subList(start, end);
+
+        List<FolderResponse.FolderInfoDTO> folders = pagedFolders.stream()
                 .map(folder -> {
                     Note latestNote = noteRepository.findTopByFolderOrderByEditDateDesc(folder);
                     Timestamp latestNoteEditDate = latestNote != null ? latestNote.getEditDate() : null;
@@ -138,14 +143,17 @@ public class FolderService {
                             .build();})
                 .collect(Collectors.toList());
 
+        int totalElements = sortedFolders.size();
+        int totalPages = (totalElements + sortFolderSize - 1) / sortFolderSize;
+
         return FolderResponse.FolderListDTO.builder()
                 .foldersList(folders)
-                .listSize(folderPage.getSize())
-                .currentPage(folderPage.getNumber() + 1)
-                .totalPages(folderPage.getTotalPages())
-                .totalElements(folderPage.getTotalElements())
-                .isFirst(folderPage.isFirst())
-                .isLast(folderPage.isLast())
+                .listSize(pagedFolders.size())
+                .currentPage(sortFolderPage + 1)
+                .totalPages(totalPages)
+                .totalElements(totalElements)
+                .isFirst(sortFolderPage == 0)
+                .isLast(sortFolderPage == totalPages - 1)
                 .build();
     }
 
@@ -243,7 +251,7 @@ public class FolderService {
         int filterSize = (size != null) ? size : Integer.MAX_VALUE;
 
         if (colors == null || colors.isEmpty()) {
-            throw new DatabaseException(ErrorResponseStatus.NOT_EXIST_FOLDER);
+            throw new DatabaseException(ErrorResponseStatus.REQUEST_ERROR);
         }
 
         List<String> colorList = Arrays.asList(colors.split(","));
@@ -285,7 +293,7 @@ public class FolderService {
                 .listSize(folderPage.getSize())
                 .currentPage(folderPage.getNumber()+1)
                 .totalPages(folderPage.getTotalPages())
-                .totalElements(folderPage.getTotalElements())
+                .totalElements(folderPage.getNumberOfElements())
                 .isFirst(folderPage.isFirst())
                 .isLast(folderPage.isLast())
                 .build();
