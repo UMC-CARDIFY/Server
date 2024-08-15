@@ -26,6 +26,10 @@ public class Card extends BaseEntity {
     @JoinColumn(name = "note_id")
     private Note note;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "study_card_set_id")
+    private StudyCardSet studyCardSet;
+
     @Column(columnDefinition = "TEXT")
     private String contentsFront;
 
@@ -57,5 +61,9 @@ public class Card extends BaseEntity {
     // Setter를 통해 enum을 int로 변환하여 설정
     public void setCardType(CardType cardType) {
         this.type = cardType.getValue();
+    }
+
+    public void setStudyCardSet(StudyCardSet studyCardSet) {
+        this.studyCardSet = studyCardSet;
     }
 }
