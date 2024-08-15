@@ -22,6 +22,8 @@ public class FolderComparator implements Comparator<Folder> {
             return -1;
         } else if (f1.getMarkState() != MarkStatus.ACTIVE && f2.getMarkState() == MarkStatus.ACTIVE) {
             return 1;
+        } else if (f1.getMarkState() == MarkStatus.ACTIVE && f2.getMarkState() == MarkStatus.ACTIVE) {
+            return f1.getMarkDate().compareTo(f2.getMarkDate());
         }
 
         // 날짜 기준 정렬
