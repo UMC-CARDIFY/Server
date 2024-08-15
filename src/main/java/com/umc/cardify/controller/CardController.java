@@ -1,10 +1,13 @@
 package com.umc.cardify.controller;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+
+import java.util.List;
+
+import com.umc.cardify.dto.card.CardResponse;
+
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.umc.cardify.dto.card.CardRequest;
@@ -25,6 +29,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
+@CrossOrigin(origins = "http://localhost:5173")
 @Tag(name = "CardController", description = "카드 관련 API")
 @RestController
 @RequiredArgsConstructor
@@ -46,7 +51,7 @@ public class CardController {
 	}
 
 	@GetMapping(value = "/view/{imgCardId}/Image")
-	@Operation(summary = "이미지 카드 조회", description = "이미지 및 가림판 들의 크기와 위치 조회")
+	@Operation(summary = "이미지 카드 조회", description = "이미지 및 가림판들의 크기와 위치 조회")
 	public ResponseEntity<CardResponse.getImageCard> viewImageCard(@PathVariable Long imgCardId) {
 
 		return ResponseEntity.ok(cardService.viewImageCard(imgCardId));

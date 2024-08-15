@@ -4,6 +4,7 @@ import com.umc.cardify.handler.CustomAuthenticationSuccessHandler;
 import com.umc.cardify.jwt.JwtFilter;
 import com.umc.cardify.jwt.JwtUtil;
 import com.umc.cardify.repository.UserRepository;
+import com.umc.cardify.service.KakaoService;
 import com.umc.cardify.service.security.CustomUserDetailsService;
 import com.umc.cardify.service.security.CustomOAuth2UserService;
 import org.springframework.context.annotation.Bean;
@@ -30,6 +31,7 @@ public class SecurityConfig {
     private final UserRepository userRepository;
     private final CustomOAuth2UserService customOAuth2UserService;
 
+
     public SecurityConfig(JwtUtil jwtUtil, CustomUserDetailsService customUserDetailsService, CorsConfigurationSource corsConfigurationSource, UserRepository userRepository, CustomOAuth2UserService customOAuth2UserService) {
         this.jwtUtil = jwtUtil;
         this.customUserDetailsService = customUserDetailsService;
@@ -45,17 +47,17 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // 세션 비활성화
                 .authorizeRequests(authorizeRequests ->
                         authorizeRequests
-                                .requestMatchers("/auth/oauth-response/**","/oauth2/callback/kakao/**","/oauth2/authorization/kakao", "/login", "/home", "/loginFailure","/api/v1/users/**", "/swagger-ui/**", "/v3/api-docs/**", "/error").permitAll() // 인증 없이 접근 가능
+                                .requestMatchers("/oauth2/callback/kakao/**","/oauth2/authorization/kakao", "/login", "/api/v1/users/**", "/swagger-ui/**", "/v3/api-docs/**", "/error", "api/v1/folders/**", "/api/v1/oauth2/**").permitAll() // 인증 없이 접근 가능
                                 .anyRequest().authenticated() // 나머지 애들은 인증 필요
                 )
                 .oauth2Login(oauth2Login ->
                                 oauth2Login
-                                        .authorizationEndpoint(authorizationEndpoint ->
-                                                authorizationEndpoint.baseUri("/oauth2/authorization/kakao")
-                                        )
-                                        .redirectionEndpoint(redirectionEndpoint ->
-                                                redirectionEndpoint.baseUri("http://localhost:5173/dashboard")
-                                        )
+//                                        .authorizationEndpoint(authorizationEndpoint ->
+//                                                authorizationEndpoint.baseUri("/oauth2/authorization/kakao")
+//                                        )
+//                                        .redirectionEndpoint(redirectionEndpoint ->
+//                                                redirectionEndpoint.baseUri("http://localhost:5173/dashboard")
+//                                        )
                                         .userInfoEndpoint(userInfoEndpoint ->
                                                 userInfoEndpoint.userService(customOAuth2UserService)
                                         )
