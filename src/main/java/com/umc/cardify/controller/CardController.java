@@ -1,8 +1,10 @@
 package com.umc.cardify.controller;
 
+
 import java.util.List;
 
 import com.umc.cardify.dto.card.CardResponse;
+
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -10,7 +12,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.*;
@@ -32,9 +36,9 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("api/v1/cards")
 public class CardController {
 
-	private final JwtUtil jwtUtil;
-
 	private final CardService cardService;
+
+	private final JwtUtil jwtUtil;
 
 	@PostMapping(value = "/add/Image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	@Operation(summary = "이미지 카드 생성", description = "이미지 및 가림판들의 크기와 위치 전송")
@@ -52,6 +56,7 @@ public class CardController {
 
 		return ResponseEntity.ok(cardService.viewImageCard(imgCardId));
 	}
+
 	@PutMapping(value = "/edit/{imgCardId}/Image")
 	@Operation(summary = "이미지 카드 편집", description = "이미지 및 가림판 들의 크기와 위치 조회")
 	public ResponseEntity<String> editImageCard(@RequestPart("imageCard") CardRequest.addImageCard request,
@@ -61,4 +66,17 @@ public class CardController {
 
 		return ResponseEntity.ok(imgUrl);
 	}
+
+	@GetMapping
+	@Operation(summary = "플래시 카드 목록 조회(메인 화면)", description = "유저 노트 중 플래시 카드가 포함된 노트 목록 조회")
+	public ResponseEntity<Page<CardResponse.getCardLists>> viewCardLists(@RequestHeader("Authorization") String token,
+		@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "4") int size) {
+		Long userId = jwtUtil.extractUserId(token);
+
+		Pageable pageable = PageRequest.of(page, size);
+		Page<CardResponse.getCardLists> cardListsPage = cardService.getCardLists(userId, pageable);
+
+		return ResponseEntity.ok(cardListsPage);
+	}
+
 }
