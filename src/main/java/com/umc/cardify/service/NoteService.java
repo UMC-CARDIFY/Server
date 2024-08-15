@@ -25,9 +25,11 @@ import com.umc.cardify.domain.Library;
 import com.umc.cardify.domain.LibraryCategory;
 import com.umc.cardify.domain.Note;
 import com.umc.cardify.domain.ProseMirror.Node;
+import com.umc.cardify.domain.StudyCardSet;
 import com.umc.cardify.domain.User;
 import com.umc.cardify.domain.enums.CardType;
 import com.umc.cardify.domain.enums.MarkStatus;
+import com.umc.cardify.domain.enums.StudyStatus;
 import com.umc.cardify.dto.note.NoteRequest;
 import com.umc.cardify.dto.note.NoteResponse;
 import com.umc.cardify.repository.CardRepository;
@@ -35,6 +37,7 @@ import com.umc.cardify.repository.CategoryRepository;
 import com.umc.cardify.repository.LibraryCategoryRepository;
 import com.umc.cardify.repository.LibraryRepository;
 import com.umc.cardify.repository.NoteRepository;
+import com.umc.cardify.repository.StudyCardSetRepository;
 import com.umc.cardify.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -50,6 +53,7 @@ public class NoteService {
 	private final LibraryRepository libraryRepository;
 	private final CategoryRepository categoryRepository;
 	private final LibraryCategoryRepository libraryCategoryRepository;
+	private final StudyCardSetRepository studyCardSetRepository;
 
 	private final NoteConverter noteConverter;
 
@@ -180,7 +184,7 @@ public class NoteService {
 		note.setName(request.getName());
 
 		Node node = request.getContents();
-		searchCard(node, totalText, note); // CardService의 searchCard 호출
+		searchCard(node, totalText, note);
 		note.setTotalText(totalText.toString());
 
 		try {
@@ -227,20 +231,48 @@ public class NoteService {
 			nodeText += ".";
 		input.append(nodeText);
 
+		Card card = null;
 		switch (node.getType()) {
 			case "blank_card" -> {
-				Card card = createCard(note, questionFront, questionBack, answer, CardType.BLANK);
-				cardRepository.save(card);
+				card = createCard(note, questionFront, questionBack, answer, CardType.BLANK);
 			}
 			case "multi_card" -> {
-				Card card = createCard(note, questionFront, null, answer, CardType.MULTI);
-				cardRepository.save(card);
+				card = createCard(note, questionFront, null, answer, CardType.MULTI);
 			}
 			case "word_card" -> {
-				Card card = createCard(note, questionFront, null, answer, CardType.WORD);
-				cardRepository.save(card);
+				card = createCard(note, questionFront, null, answer, CardType.WORD);
 			}
 		}
+
+		if (card != null) {
+			cardRepository.save(card);
+			addCardToStudyCardSet(card, note);
+		}
+	}
+
+	private void addCardToStudyCardSet(Card card, Note note) {
+		StudyCardSet studyCardSet = studyCardSetRepository.findByNote(note)
+			.orElseGet(() -> createNewStudyCardSet(note));
+
+		// 기존의 StudyCardSet이 있으면 새로 생성하지 않고 연관만 설정
+		card.setStudyCardSet(studyCardSet);
+
+		studyCardSetRepository.save(studyCardSet);
+	}
+
+	private StudyCardSet createNewStudyCardSet(Note note) {
+		Folder folder = note.getFolder();
+		User user = folder.getUser();
+		return studyCardSetRepository.save(StudyCardSet.builder()
+			.note(note)
+			.folder(folder)
+			.user(user)
+			.studyStatus(StudyStatus.BEFORE_STUDY)
+			.noteName(note.getName())
+			.color(folder.getColor())
+			.recentStudyDate(null)
+			.nextStudyDate(null)
+			.build());
 	}
 
 	private Card createCard(Note note, String questionFront, String questionBack, String answer, CardType cardType) {
