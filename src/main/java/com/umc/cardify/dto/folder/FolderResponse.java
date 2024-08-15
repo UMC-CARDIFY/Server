@@ -49,7 +49,7 @@ public class FolderResponse {
         @Schema(description = "총 페이지 수", example = "5")
         private Integer totalPages;
         @Schema(description = "총 폴더 수", example = "5")
-        private Long totalElements;
+        private Integer totalElements;
         @Schema(description = "첫 페이지인지 확인", example = "true")
         private Boolean isFirst;
         @Schema(description = "마지막 페이지인지 확인", example = "false")

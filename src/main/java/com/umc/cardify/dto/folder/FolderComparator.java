@@ -17,20 +17,22 @@ public class FolderComparator implements Comparator<Folder> {
 
     @Override
     public int compare(Folder f1, Folder f2) {
-        // markState가 ACTIVE인 것을 상단으로 고정하는 코드(없으면 쿼리 안돌아감)
+        // markState가 ACTIVE인 것을 상단으로 고정하는 코드(1순위)
         if (f1.getMarkState() == MarkStatus.ACTIVE && f2.getMarkState() != MarkStatus.ACTIVE) {
             return -1;
         } else if (f1.getMarkState() != MarkStatus.ACTIVE && f2.getMarkState() == MarkStatus.ACTIVE) {
             return 1;
         } else if (f1.getMarkState() == MarkStatus.ACTIVE && f2.getMarkState() == MarkStatus.ACTIVE) {
-            return 0;
+            return f1.getMarkDate().compareTo(f2.getMarkDate());
         }
 
+        // 날짜 기준 정렬
         if (order.equals("edit-oldest") || order.equals("edit-newest")) {
             int dateCompare = f1.getEditDate().compareTo(f2.getEditDate());
             return order.equals("edit-oldest") ? dateCompare : -dateCompare;
         }
 
+        // 이름 기준 정렬
         boolean isDescending = order.equals("desc");
         String name1 = f1.getName();
         String name2 = f2.getName();
