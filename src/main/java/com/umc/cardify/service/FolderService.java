@@ -120,7 +120,6 @@ public class FolderService {
         List<Folder> pagedFolders = sortedFolders.subList(start, end);
 
         List<FolderResponse.FolderInfoDTO> folders = pagedFolders.stream()
-                .sorted(new FolderComparator(order))
                 .map(folder -> {
                     Note latestNote = noteRepository.findTopByFolderOrderByEditDateDesc(folder);
                     Timestamp latestNoteEditDate = latestNote != null ? latestNote.getEditDate() : null;
