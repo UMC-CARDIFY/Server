@@ -112,7 +112,7 @@ public class FolderService {
 
         List<Folder> sortedFolders = allFolders.stream()
                 .sorted(new FolderComparator(order)
-                        .thenComparing(Folder::getFolderId)) // folderId로 추가 정렬
+                        .thenComparing(Folder::getFolderId))
                 .collect(Collectors.toList());
 
         int start = sortFolderPage * sortFolderSize;

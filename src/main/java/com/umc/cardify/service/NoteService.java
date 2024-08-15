@@ -370,7 +370,7 @@ public class NoteService {
                 .orElseThrow(()-> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
 		int filterNotePage = (page != null) ? page : 0;
-		int filterNoteSize = (size != null) ? size : 30;
+		int filterNoteSize = (size != null) ? size : Integer.MAX_VALUE;
 
 		if (colors == null || colors.isEmpty()) {
 			throw new DatabaseException(ErrorResponseStatus.NOT_EXIST_NOTE);
