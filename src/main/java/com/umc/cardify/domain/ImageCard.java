@@ -5,12 +5,13 @@ import java.util.List;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
-import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import lombok.Builder;
 import lombok.Getter;
@@ -21,7 +22,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class ImageCard extends BaseEntity{
+public class ImageCard extends BaseEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -36,14 +37,12 @@ public class ImageCard extends BaseEntity{
 	@Column(nullable = false)
 	private Long height;
 
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "study_card_set_id")
+	private StudyCardSet studyCardSet;
+
 	@OneToMany(mappedBy = "imageCard", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
 	private List<Overlay> overlays = new ArrayList<>();
-
-	// 연관관계 편의 메서드
-	public void addOverlay(Overlay overlay) {
-		overlays.add(overlay);
-		overlay.setImageCard(this);
-	}
 
 	@Builder
 
@@ -51,5 +50,11 @@ public class ImageCard extends BaseEntity{
 		this.imageUrl = imageUrl;
 		this.width = width;
 		this.height = height;
+	}
+
+	// 연관관계 편의 메서드
+	public void addOverlay(Overlay overlay) {
+		overlays.add(overlay);
+		overlay.setImageCard(this);
 	}
 }
