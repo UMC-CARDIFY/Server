@@ -3,26 +3,21 @@ package com.umc.cardify.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.umc.cardify.domain.Card;
-import com.umc.cardify.domain.Note;
-import com.umc.cardify.domain.StudyCardSet;
-import com.umc.cardify.domain.User;
-import com.umc.cardify.dto.card.CardResponse;
-import com.umc.cardify.repository.CardRepository;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.umc.cardify.domain.Card;
 import com.umc.cardify.domain.ImageCard;
+import com.umc.cardify.domain.Note;
 import com.umc.cardify.domain.Overlay;
+import com.umc.cardify.domain.StudyCardSet;
 import com.umc.cardify.dto.card.CardRequest;
+import com.umc.cardify.dto.card.CardResponse;
 import com.umc.cardify.repository.ImageCardRepository;
 import com.umc.cardify.repository.OverlayRepository;
-import com.umc.cardify.repository.StudyCardSetRepository;
-import com.umc.cardify.repository.UserRepository;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -31,20 +26,13 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class CardService {
-
+public class CardComponentService {
+	private final CardModuleService cardModuleService;
+	private final NoteModuleService noteModuleService;
 	private final S3Service s3Service;
 
 	private final ImageCardRepository imageCardRepository;
-
 	private final OverlayRepository overlayRepository;
-
-	private final CardRepository cardRepository;
-
-	private final StudyCardSetRepository studyCardSetRepository;
-
-	private final UserRepository userRepository;
-
 
 	@Transactional
 	public String addImageCard(MultipartFile image, CardRequest.addImageCard request) {
@@ -55,6 +43,13 @@ public class CardService {
 			.height(request.getBaseImageHeight())
 			.width(request.getBaseImageWidth())
 			.build();
+
+		Note note = noteModuleService.getNoteById(request.getNoteId());
+
+		StudyCardSet studyCardSet = cardModuleService.findStudyCardSetByNote(note);
+
+		imageCard.setStudyCardSet(studyCardSet);
+		cardModuleService.saveStudyCardSet(studyCardSet);
 
 		ImageCard savedImageCard = imageCardRepository.save(imageCard);
 
@@ -80,17 +75,15 @@ public class CardService {
 		ImageCard imageCard = imageCardRepository.findById(imageCardId)
 			.orElseThrow(() -> new IllegalArgumentException("Image card not found with id: " + imageCardId));
 
-		// 관련된 오버레이 정보를 가져오기
 		List<Overlay> overlays = overlayRepository.findByImageCard(imageCard);
 
-		// CardResponse.addImageCard의 오버레이 리스트를 생성
-		List<CardRequest.addImageCardOverlay> overlayResponses = overlays.stream().map(overlay ->
-				CardRequest.addImageCardOverlay.builder()
-					.positionOfX(overlay.getXPosition())
-					.positionOfY(overlay.getYPosition())
-					.width(overlay.getWidth())
-					.height(overlay.getHeight())
-					.build())
+		List<CardRequest.addImageCardOverlay> overlayResponses = overlays.stream()
+			.map(overlay -> CardRequest.addImageCardOverlay.builder()
+				.positionOfX(overlay.getXPosition())
+				.positionOfY(overlay.getYPosition())
+				.width(overlay.getWidth())
+				.height(overlay.getHeight())
+				.build())
 			.collect(Collectors.toList());
 
 		return CardResponse.getImageCard.builder()
@@ -112,6 +105,7 @@ public class CardService {
 		ImageCard savedImageCard = imageCardRepository.save(existingImageCard);
 
 		overlayRepository.deleteByImageCardId(imgCardId);
+
 		if (request.getOverlays() != null) {
 			for (CardRequest.addImageCardOverlay overlayRequest : request.getOverlays()) {
 				Overlay overlay = Overlay.builder()
@@ -129,11 +123,9 @@ public class CardService {
 		return savedImageCard.getImageUrl();
 	}
 
+	@Transactional
 	public Page<CardResponse.getCardLists> getCardLists(Long userId, Pageable pageable) {
-		User user = userRepository.findById(userId)
-			.orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
-
-		Page<StudyCardSet> studyCardSets = studyCardSetRepository.findByUser(user, pageable);
+		Page<StudyCardSet> studyCardSets = cardModuleService.getStudyCardSetsByUser(userId, pageable);
 
 		List<CardResponse.getCardLists> cardLists = studyCardSets.stream()
 			.map(studyCardSet -> CardResponse.getCardLists.builder()
@@ -149,15 +141,15 @@ public class CardService {
 		return new PageImpl<>(cardLists, pageable, studyCardSets.getTotalElements());
 	}
 
-	public void addCard(Card card, Note note){
-		Card card_new = Card.builder()
-				.note(note)
-				.contentsFront(card.getContentsFront())
-				.contentsBack(card.getContentsBack())
-				.countLearn(0L)
-				.build();
+	public void addCardToNote(Card card, Note note) {
+		Card newCard = Card.builder()
+			.note(note)
+			.contentsFront(card.getContentsFront())
+			.contentsBack(card.getContentsBack())
+			.countLearn(0L)
+			.build();
 
-		cardRepository.save(card_new);
+		cardModuleService.saveCard(newCard);
 	}
-
 }
+
