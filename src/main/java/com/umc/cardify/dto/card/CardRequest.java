@@ -50,11 +50,16 @@ public class CardRequest {
 		private Long height;
 	}
 
-	@Getter
-	@Schema(title = "CARD_REQ_03 : 노트 작성시 카드 양식 DTO")
-	public static class WriteCardDto {
-		@NotNull String name;
 
-		@NotNull String text;
+	@Getter
+	@Schema(title = "CARD_REQ_03 : 학습 카드 난이도 전달 DTO")
+	public static class difficulty {
+		@NotBlank(message = "카드 id 전달 필요")
+		@Schema(description = "카드 id")
+		private Long cardId;
+
+		@NotBlank(message = "난이도 정보 전달 필요")
+		@Schema(description = "난이도 (어려움 = 1, 알맞음 = 2, 쉬움 = 3 )", example = "1")
+		private int difficulty;
 	}
 }

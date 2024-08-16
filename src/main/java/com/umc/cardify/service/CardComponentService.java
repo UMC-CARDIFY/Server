@@ -1,5 +1,7 @@
 package com.umc.cardify.service;
 
+import static com.umc.cardify.config.exception.ErrorResponseStatus.*;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -10,6 +12,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.umc.cardify.config.exception.BadRequestException;
+import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.domain.Card;
 import com.umc.cardify.domain.ImageCard;
 import com.umc.cardify.domain.Note;
@@ -160,15 +164,24 @@ public class CardComponentService {
 
 		Page<Card> cardsPage = new PageImpl<>(pagedCards, pageable, totalCards);
 
-		Page<CardResponse.getCardLists> cardListsPage = cardsPage.map(card -> {
+		return cardsPage.map(card -> {
 			return CardResponse.getCardLists.builder()
 				.contentsFront(card.getContentsFront())
 				.contentsBack(card.getContentsBack())
 				.answer(card.getAnswer())
 				.build();
 		});
+	}
 
-		return cardListsPage;
+	public void updateCardDifficulty(Long cardId, int difficulty){
+		if(difficulty > 3 || difficulty < 1){
+			throw new BadRequestException(NOT_EXIST_DIFFICULTY_CODE);
+		}
+
+		Card card = cardModuleService.getCardById(cardId);
+		card.setDifficulty(difficulty);
+
+		cardModuleService.updateCardDifficulty(card);
 	}
 
 	public void addCardToNote(Card card, Note note) {

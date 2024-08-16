@@ -27,8 +27,8 @@ public class CardModuleService {
 	private final CardRepository cardRepository;
 	private final StudyCardSetRepository studyCardSetRepository;
 
-	public Card saveCard(Card card) {
-		return cardRepository.save(card);
+	public void saveCard(Card card) {
+		cardRepository.save(card);
 	}
 
 	public StudyCardSet findStudyCardSetByNote(Note note) {
@@ -127,4 +127,15 @@ public class CardModuleService {
 		return studyCardSetRepository.findById(id)
 			.orElseThrow(() -> new DatabaseException(ErrorResponseStatus.NOT_FOUND_ERROR));
 	}
+
+	public Card getCardById(Long id) {
+		return cardRepository.findById(id)
+			.orElseThrow(() -> new DatabaseException(ErrorResponseStatus.NOT_FOUND_ERROR));
+	}
+
+	public void updateCardDifficulty(Card card){
+
+		cardRepository.save(card);
+	}
+
 }
