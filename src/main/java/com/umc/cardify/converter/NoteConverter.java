@@ -84,4 +84,18 @@ public class NoteConverter {
                 .textList(textList)
                 .build();
     }
+    public NoteResponse.NoteInfoDTO recentNoteInfoDTO(Note note) {
+        return NoteResponse.NoteInfoDTO.builder()
+                .noteId(note.getNoteId())
+                .name(note.getName())
+                .folderId(note.getFolder().getFolderId())
+                .folderColor(note.getFolder().getColor())
+                .folderName(note.getFolder().getName())
+                .viewAt(note.getViewAt())
+                .editDate(note.getEditDate().toLocalDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
+                .createdAt(note.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
+                .isDownload(note.getDownloadLibId() != null)
+                .isUpload(libraryService.isUploadLib(note))
+                .build();
+    }
 }

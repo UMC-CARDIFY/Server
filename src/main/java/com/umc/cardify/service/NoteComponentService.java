@@ -373,4 +373,15 @@ public class NoteComponentService {
 			.isLast(notePage.isLast())
 			.build();
 	}
+
+	public List<NoteResponse.NoteInfoDTO> getRecentNotes(Long userId, int page, Integer size) {
+		User user = userRepository.findById(userId)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+		int recentNoteSize = (size != null) ? size : 5;
+		Pageable pageable = PageRequest.of(page, recentNoteSize);
+		Page<Note> notes = noteRepository.findByUserOrderByViewAtDesc(user,pageable);
+		return notes.stream()
+				.map(noteConverter::recentNoteInfoDTO)
+				.collect(Collectors.toList());
+	}
 }
