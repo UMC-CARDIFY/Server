@@ -18,26 +18,20 @@ import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.DatabaseException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.converter.NoteConverter;
-import com.umc.cardify.domain.Card;
 import com.umc.cardify.domain.Category;
 import com.umc.cardify.domain.Folder;
 import com.umc.cardify.domain.Library;
 import com.umc.cardify.domain.LibraryCategory;
 import com.umc.cardify.domain.Note;
 import com.umc.cardify.domain.ProseMirror.Node;
-import com.umc.cardify.domain.StudyCardSet;
 import com.umc.cardify.domain.User;
-import com.umc.cardify.domain.enums.CardType;
 import com.umc.cardify.domain.enums.MarkStatus;
-import com.umc.cardify.domain.enums.StudyStatus;
 import com.umc.cardify.dto.note.NoteRequest;
 import com.umc.cardify.dto.note.NoteResponse;
-import com.umc.cardify.repository.CardRepository;
 import com.umc.cardify.repository.CategoryRepository;
 import com.umc.cardify.repository.LibraryCategoryRepository;
 import com.umc.cardify.repository.LibraryRepository;
 import com.umc.cardify.repository.NoteRepository;
-import com.umc.cardify.repository.StudyCardSetRepository;
 import com.umc.cardify.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -46,23 +40,19 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class NoteService {
+public class NoteComponentService {
 	private final NoteRepository noteRepository;
 	private final UserRepository userRepository;
-	private final CardRepository cardRepository;
 	private final LibraryRepository libraryRepository;
 	private final CategoryRepository categoryRepository;
 	private final LibraryCategoryRepository libraryCategoryRepository;
-	private final StudyCardSetRepository studyCardSetRepository;
+
+	private final NoteModuleService noteModuleService;
+	private final CardModuleService cardModuleService;
 
 	private final NoteConverter noteConverter;
 
 	private final ObjectMapper objectMapper;
-
-	public Note getNoteToID(long noteId) {
-		return noteRepository.findById(noteId)
-			.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
-	}
 
 	public Note addNote(Folder folder, Long userId) {
 		if (!userId.equals(folder.getUser().getUserId()))
@@ -114,6 +104,7 @@ public class NoteService {
 		}
 	}
 
+	@Transactional
 	public NoteResponse.GetNoteToFolderResultDTO getNoteToFolder(Folder folder,
 		NoteRequest.GetNoteToFolderDto request) {
 		Pageable pageable;
@@ -126,23 +117,24 @@ public class NoteService {
 		if (size == null)
 			size = folder.getNotes().size();
 
-        String order = request.getOrder();
-        if(order == null) order = "create-newest";
+		String order = request.getOrder();
+		if (order == null)
+			order = "create-newest";
 
-        pageable = switch (order.toLowerCase()) {
-            case "asc" -> PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.asc("name")));
-            case "desc" -> PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.desc("name")));
-            case "edit-newest" ->
-                    PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.desc("editDate")));
-            case "edit-oldest" ->
-                    PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.asc("editDate")));
-            case "create-newest" ->
-                    PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.desc("createdAt")));
-            case "create-oldest" ->
-                    PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.asc("createdAt")));
-            default -> throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
-        };
-        Page<Note> notes_all = noteRepository.findByFolder(folder, pageable);
+		pageable = switch (order.toLowerCase()) {
+			case "asc" -> PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.asc("name")));
+			case "desc" -> PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.desc("name")));
+			case "edit-newest" ->
+				PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.desc("editDate")));
+			case "edit-oldest" ->
+				PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.asc("editDate")));
+			case "create-newest" ->
+				PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.desc("createdAt")));
+			case "create-oldest" ->
+				PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.asc("createdAt")));
+			default -> throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+		};
+		Page<Note> notes_all = noteRepository.findByFolder(folder, pageable);
 
 		NoteResponse.GetNoteToFolderResultDTO noteDTO = noteConverter.toGetNoteToFolderResult(folder, notes_all);
 		return noteDTO;
@@ -169,8 +161,7 @@ public class NoteService {
 
 	@Transactional
 	public Boolean writeNote(NoteRequest.WriteNoteDto request, Long userId) {
-		Note note = noteRepository.findById(request.getNoteId())
-			.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+		Note note = noteModuleService.getNoteById(request.getNoteId());
 
 		if (!userId.equals(note.getFolder().getUser().getUserId())) {
 			log.warn("Invalid userId: {}", userId);
@@ -195,13 +186,13 @@ public class NoteService {
 			throw new BadRequestException(ErrorResponseStatus.JSON_PROCESSING_ERROR);
 		}
 
-		noteRepository.save(note);
+		noteModuleService.saveNote(note);
 		return true;
 	}
 
 	public void searchCard(Node node, StringBuilder input, Note note) {
-		if (isCardNode(node)) {
-			processCardNode(node, input, note);
+		if (cardModuleService.isCardNode(node)) {
+			cardModuleService.processCardNode(node, input, note);
 		} else if (node.getType().equals("text")) {
 			processTextNode(node, input);
 		}
@@ -209,82 +200,6 @@ public class NoteService {
 		if (node.getContent() != null) {
 			node.getContent().forEach(content -> searchCard(content, input, note));
 		}
-	}
-
-	private boolean isCardNode(Node node) {
-		return node.getType().equals("word_card") || node.getType().equals("blank_card") || node.getType()
-			.equals("multi_card");
-	}
-
-	private void processCardNode(Node node, StringBuilder input, Note note) {
-		String answer = String.join(" ", node.getAttrs().getAnswer());
-		String questionFront = node.getAttrs().getQuestion_front();
-		String questionBack = node.getAttrs().getQuestion_back();
-
-		if (questionFront == null)
-			questionFront = "";
-		if (questionBack == null)
-			questionBack = "";
-
-		String nodeText = questionFront + answer + questionBack;
-		if (!nodeText.endsWith("."))
-			nodeText += ".";
-		input.append(nodeText);
-
-		Card card = null;
-		switch (node.getType()) {
-			case "blank_card" -> {
-				card = createCard(note, questionFront, questionBack, answer, CardType.BLANK);
-			}
-			case "multi_card" -> {
-				card = createCard(note, questionFront, null, answer, CardType.MULTI);
-			}
-			case "word_card" -> {
-				card = createCard(note, questionFront, null, answer, CardType.WORD);
-			}
-		}
-
-		if (card != null) {
-			cardRepository.save(card);
-			addCardToStudyCardSet(card, note);
-		}
-	}
-
-	private void addCardToStudyCardSet(Card card, Note note) {
-		StudyCardSet studyCardSet = studyCardSetRepository.findByNote(note)
-			.orElseGet(() -> createNewStudyCardSet(note));
-
-		// 기존의 StudyCardSet이 있으면 새로 생성하지 않고 연관만 설정
-		card.setStudyCardSet(studyCardSet);
-
-		studyCardSetRepository.save(studyCardSet);
-	}
-
-	private StudyCardSet createNewStudyCardSet(Note note) {
-		Folder folder = note.getFolder();
-		User user = folder.getUser();
-		return studyCardSetRepository.save(StudyCardSet.builder()
-			.note(note)
-			.folder(folder)
-			.user(user)
-			.studyStatus(StudyStatus.BEFORE_STUDY)
-			.noteName(note.getName())
-			.color(folder.getColor())
-			.recentStudyDate(null)
-			.nextStudyDate(null)
-			.build());
-	}
-
-	private Card createCard(Note note, String questionFront, String questionBack, String answer, CardType cardType) {
-		return Card.builder()
-			.note(note)
-			.contentsFront(questionFront)
-			.contentsBack(questionBack)
-			.answer(answer)
-			.isLearn(false)
-			.countLearn(0L)
-			.type(cardType.getValue())  // 카드 타입에 따라 저장
-			.build();
 	}
 
 	public void processTextNode(Node node, StringBuilder input) {
@@ -311,7 +226,7 @@ public class NoteService {
 	}
 
 	public Boolean shareLib(Long userId, NoteRequest.ShareLibDto request) {
-		Note note = getNoteToID(request.getNoteId());
+		Note note = noteModuleService.getNoteById(request.getNoteId());
 		if (!userId.equals(note.getFolder().getUser().getUserId()))
 			throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
 		if (note.getDownloadLibId() != null)
@@ -326,12 +241,10 @@ public class NoteService {
 		Library library_new = Library.builder().note(note).uploadAt(LocalDateTime.now()).build();
 		libraryRepository.save(library_new);
 
-		//카테고리 찾아서 Library에 삽입
 		List<Category> categoryList = null;
 		if (request.getCategory().size() > 0 && request.getCategory().size() <= 3) {
 			categoryList = request.getCategory().stream().map(categoryStr -> {
 				Category category = categoryRepository.findByName(categoryStr);
-				//요청한 카테고리가 없으면 에러
 				if (category == null)
 					throw new BadRequestException(ErrorResponseStatus.NOT_FOUND_CATEGORY);
 				return category;
@@ -350,7 +263,7 @@ public class NoteService {
 	}
 
 	public Boolean cancelShare(Long noteId, Long userId) {
-		Note note = getNoteToID(noteId);
+		Note note = noteModuleService.getNoteById(noteId);
 		if (!userId.equals(note.getFolder().getUser().getUserId()))
 			throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
 		Library library = note.getLibrary();
@@ -419,10 +332,11 @@ public class NoteService {
 			.isLast(notePage.isLast())
 			.build();
 	}
+
 	@Transactional
 	public NoteResponse.NoteListDTO sortNotesByUserId(Long userId, Integer page, Integer size, String order) {
 		User user = userRepository.findById(userId)
-				.orElseThrow(()-> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+			.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
 		int sortNotePage = (page != null) ? page : 0;
 		int sortNoteSize = (size != null) ? size : Integer.MAX_VALUE;
@@ -440,22 +354,23 @@ public class NoteService {
 				throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
 		}
 
-		if(notePage.isEmpty()){
+		if (notePage.isEmpty()) {
 			throw new DatabaseException(ErrorResponseStatus.NOT_EXIST_NOTE);
 		}
 
-		List<NoteResponse.NoteInfoDTO> notes = notePage.getContent().stream()
-				.map(noteConverter::toNoteInfoDTO)
-				.collect(Collectors.toList());
+		List<NoteResponse.NoteInfoDTO> notes = notePage.getContent()
+			.stream()
+			.map(noteConverter::toNoteInfoDTO)
+			.collect(Collectors.toList());
 
 		return NoteResponse.NoteListDTO.builder()
-				.noteList(notes)
-				.listsize(sortNoteSize)
-				.currentPage(sortNotePage + 1)
-				.totalPage(notePage.getTotalPages())
-				.totalElements(notePage.getTotalElements())
-				.isFirst(notePage.isFirst())
-				.isLast(notePage.isLast())
-				.build();
+			.noteList(notes)
+			.listsize(sortNoteSize)
+			.currentPage(sortNotePage + 1)
+			.totalPage(notePage.getTotalPages())
+			.totalElements(notePage.getTotalElements())
+			.isFirst(notePage.isFirst())
+			.isLast(notePage.isLast())
+			.build();
 	}
 }

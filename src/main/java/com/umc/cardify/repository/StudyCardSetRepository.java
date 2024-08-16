@@ -8,11 +8,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.umc.cardify.domain.Note;
 import com.umc.cardify.domain.StudyCardSet;
-import com.umc.cardify.domain.User;
 
 public interface StudyCardSetRepository extends JpaRepository<StudyCardSet, Long> {
 
 	Optional<StudyCardSet> findByNote(Note note);
 
-	Page<StudyCardSet> findByUser(User user, Pageable pageable);
+	Page<StudyCardSet> findByUserUserId(Long userId, Pageable pageable);
 }

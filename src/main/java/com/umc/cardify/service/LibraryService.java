@@ -27,7 +27,7 @@ public class LibraryService {
     private final LibraryCategoryRepository libraryCategoryRepository;
     private final DownloadRepository downloadRepository;
 
-    private final CardService cardService;
+    private final CardComponentService cardComponentService;
 
     private final LibraryConverter libraryConverter;
     public Boolean isUploadLib(Note note){
@@ -111,7 +111,7 @@ public class LibraryService {
         noteRepository.save(note_new);
 
         if(cardList != null)
-            cardList.forEach(card -> cardService.addCard(card, note_new));
+            cardList.forEach(card -> cardComponentService.addCardToNote(card, note_new));
         return LibraryResponse.DownloadLibDTO.builder()
                 .noteId(note_new.getNoteId())
                 .build();
