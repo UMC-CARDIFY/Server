@@ -2,16 +2,12 @@ package com.umc.cardify.converter;
 
 import com.umc.cardify.domain.Folder;
 import com.umc.cardify.domain.Note;
-import com.umc.cardify.dto.note.NoteRequest;
 import com.umc.cardify.dto.note.NoteResponse;
-import com.umc.cardify.repository.LibraryRepository;
 import com.umc.cardify.service.LibraryService;
-import com.umc.cardify.service.NoteService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;

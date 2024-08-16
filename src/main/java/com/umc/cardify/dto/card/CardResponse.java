@@ -26,9 +26,9 @@ public class CardResponse {
 	}
 
 	@Getter
-	@Schema(title = "CARD_RES_02 : 플래시 카드 리스트 조회 DTO")
+	@Schema(title = "CARD_RES_02 : 플래시 카드 메인 화면 조회 DTO")
 	@Builder
-	public static class getCardLists {
+	public static class getStudyCardSetLists {
 		@Schema(description = "학습 상태")
 		String studyStatus;
 
@@ -46,5 +46,24 @@ public class CardResponse {
 
 		@Schema(description = "다음 학습 시간")
 		LocalDateTime nextStudyDate;
+
+		@Schema(description = "학습 카드셋 id")
+		Long studyCardSetId;
+	}
+
+	@Getter
+	@Schema(title = "CARD_RES_03 : 일반 학습 DTO (카드 리스트)")
+	@Builder
+	public static class getCardLists
+	{
+		@Schema(description = "빈칸 앞")
+		String contentsFront;
+
+		@Schema(description = "빈칸 뒤 (빈칸 카드만 존재)")
+		String contentsBack;
+
+		@Schema(description = "정답")
+		String answer;
+
 	}
 }

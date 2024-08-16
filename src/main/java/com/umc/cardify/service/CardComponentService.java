@@ -5,6 +5,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -124,21 +125,50 @@ public class CardComponentService {
 	}
 
 	@Transactional
-	public Page<CardResponse.getCardLists> getCardLists(Long userId, Pageable pageable) {
+	public Page<CardResponse.getStudyCardSetLists> getStudyCardSetLists(Long userId, Pageable pageable) {
 		Page<StudyCardSet> studyCardSets = cardModuleService.getStudyCardSetsByUser(userId, pageable);
 
-		List<CardResponse.getCardLists> cardLists = studyCardSets.stream()
-			.map(studyCardSet -> CardResponse.getCardLists.builder()
+		List<CardResponse.getStudyCardSetLists> cardLists = studyCardSets.stream()
+			.map(studyCardSet -> CardResponse.getStudyCardSetLists.builder()
 				.studyStatus(studyCardSet.getStudyStatus().getDescription())
 				.noteName(studyCardSet.getNoteName())
 				.color(studyCardSet.getColor())
 				.folderName(studyCardSet.getFolder().getName())
 				.recentStudyDate(studyCardSet.getRecentStudyDate())
 				.nextStudyDate(studyCardSet.getNextStudyDate())
+				.studyCardSetId(studyCardSet.getId())
 				.build())
 			.collect(Collectors.toList());
 
 		return new PageImpl<>(cardLists, pageable, studyCardSets.getTotalElements());
+	}
+
+	@Transactional
+	public Page<CardResponse.getCardLists> getCardLists(Long studyCardSetId, int pageNumber) {
+		StudyCardSet studyCardSet = cardModuleService.getStudyCardSetById(studyCardSetId);
+
+		List<Card> cards = cardModuleService.getCardsByStudyCardSet(studyCardSet);
+
+		int totalCards = cards.size();
+
+		// 페이지당 1개의 카드만 보여주기 위해 PageRequest에서 size를 1로 설정
+		Pageable pageable = PageRequest.of(pageNumber, 1);
+
+		int start = (int) pageable.getOffset();
+		int end = Math.min((start + pageable.getPageSize()), totalCards);
+		List<Card> pagedCards = cards.subList(start, end);
+
+		Page<Card> cardsPage = new PageImpl<>(pagedCards, pageable, totalCards);
+
+		Page<CardResponse.getCardLists> cardListsPage = cardsPage.map(card -> {
+			return CardResponse.getCardLists.builder()
+				.contentsFront(card.getContentsFront())
+				.contentsBack(card.getContentsBack())
+				.answer(card.getAnswer())
+				.build();
+		});
+
+		return cardListsPage;
 	}
 
 	public void addCardToNote(Card card, Note note) {
