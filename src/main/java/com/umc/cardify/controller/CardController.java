@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -79,10 +80,18 @@ public class CardController {
 	}
 
 	@GetMapping(value = "/{studyCardSetId}")
-	@Operation(summary = "학습 카드 - 일반 학습", description = "해당 노트(StudyCardSet)의 학습 카드 전부를 Pageable 리스트로 전달")
-	public ResponseEntity<Page<CardResponse.getCardLists>> normalStudy(@PathVariable Long studyCardSetId, @RequestParam(defaultValue = "0") int page) {
+	@Operation(summary = "학습 카드 - 카드 학습", description = "해당 노트(StudyCardSet)의 학습 카드 전부를 Pageable 리스트로 전달")
+	public ResponseEntity<Page<CardResponse.getCardLists>> studyCard(@PathVariable Long studyCardSetId, @RequestParam(defaultValue = "0") int page) {
 		Page<CardResponse.getCardLists> getCardLists = cardComponentService.getCardLists(studyCardSetId, page);
 
 		return ResponseEntity.ok(getCardLists);
+	}
+
+	@PostMapping("/difficulty")
+	@Operation(summary = "학습 카드 - 난이도 선택", description = "해당 학습 카드 학습 후 난이도를 전달")
+	public ResponseEntity<?> recordDifficulty(@RequestBody CardRequest.difficulty request) {
+		cardComponentService.updateCardDifficulty(request.getCardId(), request.getDifficulty());
+
+		return ResponseEntity.ok().build();
 	}
 }
