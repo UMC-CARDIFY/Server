@@ -1,9 +1,13 @@
 package com.umc.cardify.service;
 
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import com.umc.cardify.config.exception.DatabaseException;
+import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.domain.Card;
 import com.umc.cardify.domain.Folder;
 import com.umc.cardify.domain.Note;
@@ -113,5 +117,14 @@ public class CardModuleService {
 
 	public Page<StudyCardSet> getStudyCardSetsByUser(Long userId, Pageable pageable) {
 		return studyCardSetRepository.findByUserUserId(userId, pageable);
+	}
+
+	public List<Card> getCardsByStudyCardSet(StudyCardSet studyCardSet) {
+		return cardRepository.findByStudyCardSet(studyCardSet);
+	}
+
+	public StudyCardSet getStudyCardSetById(Long id) {
+		return studyCardSetRepository.findById(id)
+			.orElseThrow(() -> new DatabaseException(ErrorResponseStatus.NOT_FOUND_ERROR));
 	}
 }
