@@ -95,4 +95,14 @@ public class NoteController {
     public ResponseEntity<NoteResponse.getNoteDTO> getNote(@RequestParam @Valid Long noteId){
         return ResponseEntity.ok(noteComponentService.getNote(noteId));
     }
+    @GetMapping("/recent-notes")
+    @Operation(summary = "최신 열람 노트 조회 API", description = "사용자의 최신 열람 노트 4개/3개 반환")
+    public ResponseEntity<List<NoteResponse.NoteInfoDTO>> gerRecentNote(
+            @RequestHeader("Authorization") String token,
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @RequestParam(required = false) Integer size) {
+        Long userId = jwtUtil.extractUserId(token);
+        List<NoteResponse.NoteInfoDTO> notes = noteComponentService.getRecentNotes(userId, page, size);
+        return ResponseEntity.ok(notes);
+    }
 }
