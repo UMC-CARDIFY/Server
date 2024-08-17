@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -22,6 +23,7 @@ public class NoteConverter {
         return Note.builder()
                 .folder(folder)
                 .name("제목없음")
+                .viewAt(LocalDateTime.now())
                 .build();
     }
     public static NoteResponse.AddNoteResultDTO toAddNoteResult(Note note){

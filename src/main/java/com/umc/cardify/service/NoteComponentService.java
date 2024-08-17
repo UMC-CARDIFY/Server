@@ -279,6 +279,11 @@ public class NoteComponentService {
 	public NoteResponse.getNoteDTO getNote(Long noteId) {
 		Note note = noteRepository.findById(noteId)
 			.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+		//노트 조회 시간 갱신
+		note.setViewAt(LocalDateTime.now());
+		noteRepository.save(note);
+
+		//노트 내용 반환
 		List<NoteResponse.getNoteCardDTO> cardDTO = note.getCards().stream().map(card -> {
 			return NoteResponse.getNoteCardDTO.builder()
 				.cardId(card.getCardId())

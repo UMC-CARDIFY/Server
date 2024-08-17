@@ -51,6 +51,7 @@ public class Note extends BaseEntity {
     @Setter
     private LocalDateTime markAt;
 
+    @Setter
     private LocalDateTime viewAt;
 
     @UpdateTimestamp
