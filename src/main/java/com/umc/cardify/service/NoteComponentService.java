@@ -296,6 +296,7 @@ public class NoteComponentService {
 		return NoteResponse.getNoteDTO.builder()
 			.noteId(note.getNoteId())
 			.noteName(note.getName())
+			.markState(note.getMarkState())
 			.noteContent(note.getContents())
 			.cardList(cardDTO)
 			.build();
