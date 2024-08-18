@@ -143,7 +143,7 @@ public class NoteResponse {
         Long noteId;
         String noteName;
         Object noteContent;
-        MarkStatus markState;
+        Boolean markState;
         List<getNoteCardDTO> cardList;
     }
 }
