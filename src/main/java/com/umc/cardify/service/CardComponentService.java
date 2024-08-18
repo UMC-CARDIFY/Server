@@ -1,6 +1,7 @@
 package com.umc.cardify.service;
 
 import static com.umc.cardify.config.exception.ErrorResponseStatus.*;
+import static com.umc.cardify.domain.enums.Difficulty.*;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -182,6 +183,54 @@ public class CardComponentService {
 		card.setDifficulty(difficulty);
 
 		cardModuleService.updateCardDifficulty(card);
+	}
+
+	public CardResponse.cardStudyGraph viewStudyCardGraph(Long studyCardSetId) {
+		StudyCardSet studyCardSet = cardModuleService.getStudyCardSetById(studyCardSetId);
+
+		List<Card> cards = cardModuleService.getCardsByStudyCardSet(studyCardSet);
+
+		int easyCardsCount = 0;
+		int normalCardsCount = 0;
+		int hardCardsCount = 0;
+		int passCardsCount = 0;
+
+		int totalCards = cards.size();
+
+		for (Card card : cards) {
+			switch (card.getDifficulty()) {
+				case NONE:
+					continue;
+				case EASY:
+					easyCardsCount++;
+					break;
+				case NORMAL:
+					normalCardsCount++;
+					break;
+				case HARD:
+					hardCardsCount++;
+					break;
+				case PASS:
+					passCardsCount++;
+					break;
+			}
+		}
+
+		int easyCardsPercent = (easyCardsCount * 100) / totalCards;
+		int normalCardsPercent = (normalCardsCount * 100) / totalCards;
+		int hardCardsPercent = (hardCardsCount * 100) / totalCards;
+		int passCardsPercent = (passCardsCount * 100) / totalCards;
+
+		return CardResponse.cardStudyGraph.builder()
+			.easyCardsNumber(easyCardsCount)
+			.normalCardsNumber(normalCardsCount)
+			.hardCardsNumber(hardCardsCount)
+			.passCardsNumber(passCardsCount)
+			.easyCardsPercent(easyCardsPercent)
+			.normalCardsPercent(normalCardsPercent)
+			.hardCardsPercent(hardCardsPercent)
+			.passCardsPercent(passCardsPercent)
+			.build();
 	}
 
 	public void addCardToNote(Card card, Note note) {

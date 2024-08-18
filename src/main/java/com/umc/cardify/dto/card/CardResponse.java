@@ -54,8 +54,7 @@ public class CardResponse {
 	@Getter
 	@Schema(title = "CARD_RES_03 : 일반 학습 DTO (카드 리스트)")
 	@Builder
-	public static class getCardLists
-	{
+	public static class getCardLists {
 		@Schema(description = "빈칸 앞")
 		String contentsFront;
 
@@ -64,6 +63,34 @@ public class CardResponse {
 
 		@Schema(description = "정답")
 		String answer;
+	}
 
+	@Getter
+	@Schema(title = "CARD_RES_04 : 카드 학습 그래프 DTO")
+	@Builder
+	public static class cardStudyGraph {
+		@Schema(description = "쉬움 카드 학습 개수")
+		int easyCardsNumber;
+
+		@Schema(description = "알맞음 카드 학습 개수")
+		int normalCardsNumber;
+
+		@Schema(description = "어려움 카드 학습 개수")
+		int hardCardsNumber;
+
+		@Schema(description = "패스 카드 학습 개수")
+		int passCardsNumber;
+
+		@Schema(description = "쉬움 카드 학습 비율")
+		int easyCardsPercent;
+
+		@Schema(description = "쉬움 카드 학습 비율")
+		int normalCardsPercent;
+
+		@Schema(description = "쉬움 카드 학습 비율")
+		int hardCardsPercent;
+
+		@Schema(description = "쉬움 카드 학습 비율")
+		int passCardsPercent;
 	}
 }
