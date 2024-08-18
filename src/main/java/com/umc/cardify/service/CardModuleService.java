@@ -134,7 +134,6 @@ public class CardModuleService {
 	}
 
 	public void updateCardDifficulty(Card card){
-
 		cardRepository.save(card);
 	}
 

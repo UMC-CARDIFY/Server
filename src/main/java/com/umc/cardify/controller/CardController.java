@@ -94,4 +94,13 @@ public class CardController {
 
 		return ResponseEntity.ok().build();
 	}
+
+	@GetMapping("/study-graph/{StudyCardSetId}")
+	@Operation(summary = "학습 통계 그래프 조회")
+	public ResponseEntity<CardResponse.cardStudyGraph> viewStudyCardGraph(@PathVariable Long StudyCardSetId){
+		CardResponse.cardStudyGraph cardStudyGraph = cardComponentService.viewStudyCardGraph(StudyCardSetId);
+
+		return ResponseEntity.ok(cardStudyGraph);
+	}
+
 }
