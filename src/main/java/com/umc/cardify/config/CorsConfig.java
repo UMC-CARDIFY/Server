@@ -16,7 +16,8 @@ public class CorsConfig {
         CorsConfiguration config = new CorsConfiguration();
 
         config.setAllowCredentials(true);
-        config.setAllowedOrigins(List.of("http://43.201.167.247:80", "http://localhost:5173"));
+        config.addAllowedOrigin("http://43.201.167.247");  // 포트 제거
+        config.addAllowedOrigin("http://localhost:5173");
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setExposedHeaders(List.of("*"));
