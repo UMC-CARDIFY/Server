@@ -52,18 +52,9 @@ public class SecurityConfig {
                 )
                 .oauth2Login(oauth2Login ->
                                 oauth2Login
-//                                        .authorizationEndpoint(authorizationEndpoint ->
-//                                                authorizationEndpoint.baseUri("/oauth2/authorization/kakao")
-//                                        )
-//                                        .redirectionEndpoint(redirectionEndpoint ->
-//                                                redirectionEndpoint.baseUri("http://localhost:5173/dashboard")
-//                                        )
                                         .userInfoEndpoint(userInfoEndpoint ->
                                                 userInfoEndpoint.userService(customOAuth2UserService)
                                         )
-//                    .loginPage("/login")
-//                    .defaultSuccessUrl("/home")
-//                    .failureUrl("/loginFailure")
                                         .successHandler(authenticationSuccessHandler())
                 )
                 .addFilterBefore(new JwtFilter(jwtUtil, customUserDetailsService), UsernamePasswordAuthenticationFilter.class)

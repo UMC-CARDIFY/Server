@@ -41,7 +41,7 @@ public class CardController {
 	@PostMapping(value = "/add/Image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	@Operation(summary = "이미지 카드 생성", description = "이미지 및 가림판들의 크기와 위치 전송")
 	public ResponseEntity<String> addImageCard(@RequestPart("image") MultipartFile image,
-		@RequestPart("imageCard") CardRequest.addImageCard request) {
+											   @RequestPart("imageCard") CardRequest.addImageCard request) {
 
 		String imgUrl = cardComponentService.addImageCard(image, request);
 
@@ -58,7 +58,7 @@ public class CardController {
 	@PutMapping(value = "/edit/{imgCardId}/Image")
 	@Operation(summary = "이미지 카드 편집", description = "이미지 및 가림판 들의 크기와 위치 조회")
 	public ResponseEntity<String> editImageCard(@RequestPart("imageCard") CardRequest.addImageCard request,
-		@PathVariable Long imgCardId) {
+												@PathVariable Long imgCardId) {
 
 		String imgUrl = cardComponentService.editImageCard(request, imgCardId);
 
@@ -68,18 +68,18 @@ public class CardController {
 	@GetMapping
 	@Operation(summary = "플래시 카드 목록 조회(메인 화면)", description = "유저 노트 중 플래시 카드가 포함된 노트 목록 조회")
 	public ResponseEntity<Page<CardResponse.getStudyCardSetLists>> viewStudyCardSetLists(
-		@RequestHeader("Authorization") String token, @RequestParam(defaultValue = "0") int page,
-		@RequestParam(defaultValue = "4") int size) {
+			@RequestHeader("Authorization") String token, @RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "4") int size) {
 		Long userId = jwtUtil.extractUserId(token);
 
 		Pageable pageable = PageRequest.of(page, size);
 		Page<CardResponse.getStudyCardSetLists> cardListsPage = cardComponentService.getStudyCardSetLists(userId,
-			pageable);
+				pageable);
 
 		return ResponseEntity.ok(cardListsPage);
 	}
 
-  @GetMapping(value = "/{studyCardSetId}")
+	@GetMapping(value = "/{studyCardSetId}")
 	@Operation(summary = "학습 카드 - 카드 학습", description = "해당 노트(StudyCardSet)의 학습 카드 전부를 Pageable 리스트로 전달")
 	public ResponseEntity<Page<Object>> studyCard(@PathVariable Long studyCardSetId, @RequestParam(defaultValue = "0") int page) {
 		Page<Object> getCardLists = cardComponentService.getCardLists(studyCardSetId, page);
@@ -114,7 +114,7 @@ public class CardController {
 	@GetMapping("{studyCardSetId}/study-log")
 	@Operation(summary = "분석 학습 기록 조회")
 	public ResponseEntity<?> viewStudyLog(@PathVariable Long studyCardSetId, @RequestParam(defaultValue = "0") int page,
-		@RequestParam(defaultValue = "4") int size) {
+										  @RequestParam(defaultValue = "4") int size) {
 		Page<CardResponse.getStudyLog> studyLogs = cardComponentService.viewStudyLog(studyCardSetId, page, size);
 		return ResponseEntity.ok(studyLogs);
 	}
