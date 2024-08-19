@@ -28,6 +28,12 @@ public class ImageCard extends BaseEntity {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "study_card_set_id")
+	private StudyCardSet studyCardSet;
+
+	private int difficulty = 0;
+
 	@Column(nullable = false)
 	private String imageUrl;
 
@@ -37,13 +43,8 @@ public class ImageCard extends BaseEntity {
 	@Column(nullable = false)
 	private Long height;
 
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "study_card_set_id")
-	private StudyCardSet studyCardSet;
-
 	@OneToMany(mappedBy = "imageCard", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
 	private List<Overlay> overlays = new ArrayList<>();
-
 
 	@Builder
 	public ImageCard(String imageUrl, Long width, Long height) {

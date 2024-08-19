@@ -3,6 +3,7 @@ package com.umc.cardify.service;
 import static com.umc.cardify.config.exception.ErrorResponseStatus.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -14,19 +15,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.umc.cardify.config.exception.BadRequestException;
-import com.umc.cardify.config.exception.DatabaseException;
 import com.umc.cardify.domain.Card;
 import com.umc.cardify.domain.ImageCard;
 import com.umc.cardify.domain.Note;
 import com.umc.cardify.domain.Overlay;
 import com.umc.cardify.domain.StudyCardSet;
-import com.umc.cardify.domain.StudyLog;
 import com.umc.cardify.dto.card.CardRequest;
 import com.umc.cardify.dto.card.CardResponse;
 import com.umc.cardify.repository.ImageCardRepository;
 import com.umc.cardify.repository.OverlayRepository;
-import com.umc.cardify.repository.StudyCardSetRepository;
-import com.umc.cardify.repository.StudyLogRepository;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -42,49 +39,6 @@ public class CardComponentService {
 
 	private final ImageCardRepository imageCardRepository;
 	private final OverlayRepository overlayRepository;
-	private final StudyLogRepository studyLogRepository;
-	private final StudyCardSetRepository studyCardSetRepository;
-
-	@Transactional
-	public Page<CardResponse.getStudyLog> viewStudyLog(Long studyCardSetId, int page, int size) {
-		Pageable pageable = PageRequest.of(page, size);
-
-		StudyCardSet studyCardSet = studyCardSetRepository.findById(studyCardSetId)
-			.orElseThrow(() -> new DatabaseException(NOT_FOUND_ERROR));
-
-		Page<StudyLog> studyLogsPage = studyLogRepository.findByStudyCardSet(studyCardSet, pageable);
-
-		return studyLogsPage.map(studyLog -> CardResponse.getStudyLog.builder()
-			.cardNumber(studyLog.getStudyCardNumber())
-			.studyDate(studyLog.getStudyDate())
-			.build());
-	}
-
-	@Transactional
-	public void completeStudy(Long studyCardSetId) {
-		StudyCardSet studyCardSet = cardModuleService.getStudyCardSetById(studyCardSetId);
-		List<Card> cards = cardModuleService.getCardsByStudyCardSet(studyCardSet);
-
-		int remainingCardsCount = cards.size();
-		StudyLog studyLog = StudyLog.builder()
-			.studyDate(LocalDateTime.now())
-			.studyCardNumber(remainingCardsCount)
-			.studyCardSet(studyCardSet)
-			.user(studyCardSet.getUser())
-			.build();
-
-		studyLogRepository.save(studyLog);
-
-		// 3. 난이도(difficulty)가 PASS 인 카드를 삭제
-		List<Card> cardsToRemove = cards.stream()
-			.filter(card -> card.getDifficulty().getValue() == 4)
-			.collect(Collectors.toList());
-		cardModuleService.deleteAll(cardsToRemove);
-
-		studyCardSet.setRecentStudyDate(LocalDateTime.now());
-
-		studyCardSetRepository.save(studyCardSet);
-	}
 
 	@Transactional
 	public String addImageCard(MultipartFile image, CardRequest.addImageCard request) {
@@ -195,34 +149,80 @@ public class CardComponentService {
 	}
 
 	@Transactional
-	public Page<CardResponse.getCardLists> getCardLists(Long studyCardSetId, int pageNumber) {
+	public Page<Object> getCardLists(Long studyCardSetId, int pageNumber) {
 		StudyCardSet studyCardSet = cardModuleService.getStudyCardSetById(studyCardSetId);
 
 		List<Card> cards = cardModuleService.getCardsByStudyCardSet(studyCardSet);
+		List<ImageCard> imageCards = cardModuleService.getImageCardsByStudyCardSet(studyCardSet);
 
-		int totalCards = cards.size();
+		// 카드와 이미지 카드 모두를 리스트에 추가
+		List<Object> allCards = new ArrayList<>();
+		allCards.addAll(cards);
+		allCards.addAll(imageCards);
+
+		// 생성일자 순으로 정렬
+		allCards.sort((a, b) -> {
+			LocalDateTime createdA = (a instanceof Card) ? ((Card) a).getCreatedAt() : ((ImageCard) a).getCreatedAt();
+			LocalDateTime createdB = (b instanceof Card) ? ((Card) b).getCreatedAt() : ((ImageCard) b).getCreatedAt();
+			return createdA.compareTo(createdB);
+		});
+
+		int totalCards = allCards.size();
 
 		// 페이지당 1개의 카드만 보여주기 위해 PageRequest에서 size를 1로 설정
 		Pageable pageable = PageRequest.of(pageNumber, 1);
 
-		int start = (int)pageable.getOffset();
+		int start = (int) pageable.getOffset();
 		int end = Math.min((start + pageable.getPageSize()), totalCards);
-		List<Card> pagedCards = cards.subList(start, end);
+		List<Object> pagedCards = allCards.subList(start, end);
 
-		Page<Card> cardsPage = new PageImpl<>(pagedCards, pageable, totalCards);
+		Page<Object> cardsPage = new PageImpl<>(pagedCards, pageable, totalCards);
 
 		return cardsPage.map(card -> {
-			return CardResponse.getCardLists.builder()
-				.contentsFront(card.getContentsFront())
-				.contentsBack(card.getContentsBack())
-				.answer(card.getAnswer())
-				.cardId(card.getCardId())
-				.build();
+			if (card instanceof Card) {
+				return mapToWordCardResponse((Card) card);
+			} else if (card instanceof ImageCard) {
+				return mapToImageCardResponse((ImageCard) card);
+			} else {
+				throw new IllegalStateException("Unexpected card type");
+			}
 		});
 	}
 
-	public void updateCardDifficulty(Long cardId, int difficulty) {
-		if (difficulty > 4 || difficulty < 1) {
+	private CardResponse.getCardLists mapToWordCardResponse(Card card) {
+		return CardResponse.getCardLists.builder()
+			.contentsFront(card.getContentsFront())
+			.contentsBack(card.getContentsBack())
+			.answer(card.getAnswer())
+			.build();
+	}
+
+	private CardResponse.getImageCard mapToImageCardResponse(ImageCard imageCard) {
+		return CardResponse.getImageCard.builder()
+			.imgUrl(imageCard.getImageUrl())
+			.baseImageWidth(imageCard.getWidth())
+			.baseImageHeight(imageCard.getHeight())
+			.overlays(convertOverlays(imageCard.getOverlays()))
+			.build();
+	}
+
+	private List<CardRequest.addImageCardOverlay> convertOverlays(List<Overlay> overlays) {
+		List<CardRequest.addImageCardOverlay> overlayDtos = new ArrayList<>();
+		for (Overlay overlay : overlays) {
+			overlayDtos.add(CardRequest.addImageCardOverlay.builder()
+				.positionOfX(overlay.getXPosition())
+				.positionOfY(overlay.getYPosition())
+				.width(overlay.getWidth())
+				.height(overlay.getHeight())
+				.build());
+		}
+		return overlayDtos;
+	}
+
+
+
+	public void updateCardDifficulty(Long cardId, int difficulty){
+		if(difficulty > 3 || difficulty < 1){
 			throw new BadRequestException(NOT_EXIST_DIFFICULTY_CODE);
 		}
 
