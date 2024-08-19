@@ -159,17 +159,19 @@ public class CardComponentService {
 		StudyCardSet studyCardSet = cardModuleService.getStudyCardSetById(studyCardSetId);
 
 		List<Card> cards = cardModuleService.getCardsByStudyCardSet(studyCardSet);
+
 		List<ImageCard> imageCards = cardModuleService.getImageCardsByStudyCardSet(studyCardSet);
 
 		// 카드와 이미지 카드 모두를 리스트에 추가
 		List<Object> allCards = new ArrayList<>();
 		allCards.addAll(cards);
 		allCards.addAll(imageCards);
+		log.debug("All cards combined: {}", allCards);
 
 		// 생성일자 순으로 정렬
 		allCards.sort((a, b) -> {
-			LocalDateTime createdA = (a instanceof Card) ? ((Card) a).getCreatedAt() : ((ImageCard) a).getCreatedAt();
-			LocalDateTime createdB = (b instanceof Card) ? ((Card) b).getCreatedAt() : ((ImageCard) b).getCreatedAt();
+			LocalDateTime createdA = (a instanceof Card) ? ((Card)a).getCreatedAt() : ((ImageCard)a).getCreatedAt();
+			LocalDateTime createdB = (b instanceof Card) ? ((Card)b).getCreatedAt() : ((ImageCard)b).getCreatedAt();
 			return createdA.compareTo(createdB);
 		});
 
@@ -178,18 +180,22 @@ public class CardComponentService {
 		// 페이지당 1개의 카드만 보여주기 위해 PageRequest에서 size를 1로 설정
 		Pageable pageable = PageRequest.of(pageNumber, 1);
 
-		int start = (int) pageable.getOffset();
+		int start = (int)pageable.getOffset();
 		int end = Math.min((start + pageable.getPageSize()), totalCards);
+
 		List<Object> pagedCards = allCards.subList(start, end);
 
 		Page<Object> cardsPage = new PageImpl<>(pagedCards, pageable, totalCards);
 
 		return cardsPage.map(card -> {
-			if (card instanceof Card) {
-				return mapToWordCardResponse((Card) card);
-			} else if (card instanceof ImageCard) {
-				return mapToImageCardResponse((ImageCard) card);
+			if (card instanceof Card wordCard) {
+				log.debug("Mapping WordCard: {}", wordCard.getCardId());
+				return mapToWordCardResponse(wordCard);
+			} else if (card instanceof ImageCard imageCard) {
+				log.debug("Mapping ImageCard: {}", imageCard.getId());
+				return mapToImageCardResponse(imageCard);
 			} else {
+				log.error("Unexpected card type encountered: {}", card.getClass().getName());
 				throw new IllegalStateException("Unexpected card type");
 			}
 		});
@@ -200,6 +206,7 @@ public class CardComponentService {
 			.contentsFront(card.getContentsFront())
 			.contentsBack(card.getContentsBack())
 			.answer(card.getAnswer())
+			.cardId(card.getCardId())
 			.build();
 	}
 
@@ -209,6 +216,7 @@ public class CardComponentService {
 			.baseImageWidth(imageCard.getWidth())
 			.baseImageHeight(imageCard.getHeight())
 			.overlays(convertOverlays(imageCard.getOverlays()))
+			.imageCardId(imageCard.getId())
 			.build();
 	}
 
@@ -225,10 +233,8 @@ public class CardComponentService {
 		return overlayDtos;
 	}
 
-
-
-	public void updateCardDifficulty(Long cardId, int difficulty){
-		if(difficulty > 3 || difficulty < 1){
+	public void updateCardDifficulty(Long cardId, int difficulty) {
+		if (difficulty > 4 || difficulty < 1) {
 			throw new BadRequestException(NOT_EXIST_DIFFICULTY_CODE);
 		}
 
@@ -301,7 +307,6 @@ public class CardComponentService {
 			.build());
 	}
 
-
 	@Transactional
 	public void completeStudy(Long studyCardSetId) {
 		StudyCardSet studyCardSet = cardModuleService.getStudyCardSetById(studyCardSetId);
@@ -327,7 +332,6 @@ public class CardComponentService {
 
 		studyCardSetRepository.save(studyCardSet);
 	}
-
 
 	public void addCardToNote(Card card, Note note) {
 		Card newCard = Card.builder()
