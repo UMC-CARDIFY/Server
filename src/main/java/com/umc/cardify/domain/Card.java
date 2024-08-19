@@ -39,9 +39,6 @@ public class Card extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String answer;
 
-    @Column(columnDefinition = "Boolean DEFAULT false")
-    private Boolean isLearn;
-
     private int difficulty = 0;
 
     private Long countLearn;

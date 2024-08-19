@@ -44,8 +44,8 @@ public class ImageCard extends BaseEntity {
 	@OneToMany(mappedBy = "imageCard", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
 	private List<Overlay> overlays = new ArrayList<>();
 
-	@Builder
 
+	@Builder
 	public ImageCard(String imageUrl, Long width, Long height) {
 		this.imageUrl = imageUrl;
 		this.width = width;

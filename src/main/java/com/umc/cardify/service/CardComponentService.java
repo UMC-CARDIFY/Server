@@ -1,8 +1,8 @@
 package com.umc.cardify.service;
 
 import static com.umc.cardify.config.exception.ErrorResponseStatus.*;
-import static com.umc.cardify.domain.enums.Difficulty.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -14,16 +14,21 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.umc.cardify.config.exception.BadRequestException;
-import com.umc.cardify.config.exception.ErrorResponseStatus;
+import com.umc.cardify.config.exception.DatabaseException;
 import com.umc.cardify.domain.Card;
 import com.umc.cardify.domain.ImageCard;
 import com.umc.cardify.domain.Note;
 import com.umc.cardify.domain.Overlay;
 import com.umc.cardify.domain.StudyCardSet;
+import com.umc.cardify.domain.StudyLog;
+import com.umc.cardify.domain.User;
 import com.umc.cardify.dto.card.CardRequest;
 import com.umc.cardify.dto.card.CardResponse;
 import com.umc.cardify.repository.ImageCardRepository;
 import com.umc.cardify.repository.OverlayRepository;
+import com.umc.cardify.repository.StudyCardSetRepository;
+import com.umc.cardify.repository.StudyLogRepository;
+import com.umc.cardify.repository.UserRepository;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +44,51 @@ public class CardComponentService {
 
 	private final ImageCardRepository imageCardRepository;
 	private final OverlayRepository overlayRepository;
+	private final StudyLogRepository studyLogRepository;
+	private final StudyCardSetRepository studyCardSetRepository;
+
+	@Transactional
+	public Page<CardResponse.getStudyLog> viewStudyLog(Long studyCardSetId, int page, int size) {
+		Pageable pageable = PageRequest.of(page, size);
+
+		StudyCardSet studyCardSet = studyCardSetRepository.findById(studyCardSetId)
+			.orElseThrow(() -> new DatabaseException(NOT_FOUND_ERROR));
+
+		Page<StudyLog> studyLogsPage = studyLogRepository.findByStudyCardSet(studyCardSet, pageable);
+
+		return studyLogsPage.map(studyLog -> CardResponse.getStudyLog.builder()
+			.cardNumber(studyLog.getStudyCardNumber())
+			.studyDate(studyLog.getStudyDate())
+			.build());
+	}
+
+
+	@Transactional
+	public void completeStudy(Long studyCardSetId) {
+		StudyCardSet studyCardSet = cardModuleService.getStudyCardSetById(studyCardSetId);
+		List<Card> cards = cardModuleService.getCardsByStudyCardSet(studyCardSet);
+
+		int remainingCardsCount = cards.size();
+		StudyLog studyLog = StudyLog.builder()
+			.studyDate(LocalDateTime.now())
+			.studyCardNumber(remainingCardsCount)
+			.studyCardSet(studyCardSet)
+			.user(studyCardSet.getUser())
+			.build();
+
+		studyLogRepository.save(studyLog);
+
+		// 3. 난이도(difficulty)가 PASS 인 카드를 삭제
+		List<Card> cardsToRemove = cards.stream()
+			.filter(card -> card.getDifficulty().getValue() == 4)
+			.collect(Collectors.toList());
+		cardModuleService.deleteAll(cardsToRemove);
+
+		studyCardSet.setRecentStudyDate(LocalDateTime.now());
+
+		studyCardSetRepository.save(studyCardSet);
+	}
+
 
 	@Transactional
 	public String addImageCard(MultipartFile image, CardRequest.addImageCard request) {
@@ -159,7 +209,7 @@ public class CardComponentService {
 		// 페이지당 1개의 카드만 보여주기 위해 PageRequest에서 size를 1로 설정
 		Pageable pageable = PageRequest.of(pageNumber, 1);
 
-		int start = (int) pageable.getOffset();
+		int start = (int)pageable.getOffset();
 		int end = Math.min((start + pageable.getPageSize()), totalCards);
 		List<Card> pagedCards = cards.subList(start, end);
 
@@ -174,8 +224,8 @@ public class CardComponentService {
 		});
 	}
 
-	public void updateCardDifficulty(Long cardId, int difficulty){
-		if(difficulty > 3 || difficulty < 1){
+	public void updateCardDifficulty(Long cardId, int difficulty) {
+		if (difficulty > 4 || difficulty < 1) {
 			throw new BadRequestException(NOT_EXIST_DIFFICULTY_CODE);
 		}
 
