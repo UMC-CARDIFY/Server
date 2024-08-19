@@ -31,10 +31,13 @@ public class StudyLog {
 	@JoinColumn(name = "study_card_set_id")
 	private StudyCardSet studyCardSet;
 
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "user_id")
+	private User user;
+
 	@Column(nullable = false)
 	private LocalDateTime studyDate;
 
 	@Column(nullable = false)
 	private int studyCardNumber;
-
 }

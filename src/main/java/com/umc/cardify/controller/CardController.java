@@ -81,7 +81,8 @@ public class CardController {
 
 	@GetMapping(value = "/{studyCardSetId}")
 	@Operation(summary = "학습 카드 - 카드 학습", description = "해당 노트(StudyCardSet)의 학습 카드 전부를 Pageable 리스트로 전달")
-	public ResponseEntity<Page<CardResponse.getCardLists>> studyCard(@PathVariable Long studyCardSetId, @RequestParam(defaultValue = "0") int page) {
+	public ResponseEntity<Page<CardResponse.getCardLists>> studyCard(@PathVariable Long studyCardSetId,
+		@RequestParam(defaultValue = "0") int page) {
 		Page<CardResponse.getCardLists> getCardLists = cardComponentService.getCardLists(studyCardSetId, page);
 
 		return ResponseEntity.ok(getCardLists);
@@ -97,7 +98,7 @@ public class CardController {
 
 	@GetMapping("/{studyCardSetId}/study-graph/")
 	@Operation(summary = "학습 통계 그래프 조회")
-	public ResponseEntity<CardResponse.cardStudyGraph> viewStudyCardGraph(@PathVariable Long studyCardSetId){
+	public ResponseEntity<CardResponse.cardStudyGraph> viewStudyCardGraph(@PathVariable Long studyCardSetId) {
 		CardResponse.cardStudyGraph cardStudyGraph = cardComponentService.viewStudyCardGraph(studyCardSetId);
 
 		return ResponseEntity.ok(cardStudyGraph);
@@ -105,13 +106,18 @@ public class CardController {
 
 	@GetMapping("{studyCardSetId}/study-completed")
 	@Operation(summary = "분석 학습 완료")
-	public ResponseEntity<?> completeStudy(@PathVariable Long studyCardSetId){
+	public ResponseEntity<?> completeStudy(@PathVariable Long studyCardSetId) {
 		cardComponentService.completeStudy(studyCardSetId);
 
 		return ResponseEntity.ok().build();
 	}
 
-
-
+	@GetMapping("{studyCardSetId}/study-log")
+	@Operation(summary = "분석 학습 기록 조회")
+	public ResponseEntity<?> viewStudyLog(@PathVariable Long studyCardSetId, @RequestParam(defaultValue = "0") int page,
+		@RequestParam(defaultValue = "4") int size) {
+		Page<CardResponse.getStudyLog> studyLogs = cardComponentService.viewStudyLog(studyCardSetId, page, size);
+		return ResponseEntity.ok(studyLogs);
+	}
 
 }

@@ -14,18 +14,21 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.umc.cardify.config.exception.BadRequestException;
+import com.umc.cardify.config.exception.DatabaseException;
 import com.umc.cardify.domain.Card;
 import com.umc.cardify.domain.ImageCard;
 import com.umc.cardify.domain.Note;
 import com.umc.cardify.domain.Overlay;
 import com.umc.cardify.domain.StudyCardSet;
 import com.umc.cardify.domain.StudyLog;
+import com.umc.cardify.domain.User;
 import com.umc.cardify.dto.card.CardRequest;
 import com.umc.cardify.dto.card.CardResponse;
 import com.umc.cardify.repository.ImageCardRepository;
 import com.umc.cardify.repository.OverlayRepository;
 import com.umc.cardify.repository.StudyCardSetRepository;
 import com.umc.cardify.repository.StudyLogRepository;
+import com.umc.cardify.repository.UserRepository;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -45,9 +48,24 @@ public class CardComponentService {
 	private final StudyCardSetRepository studyCardSetRepository;
 
 	@Transactional
+	public Page<CardResponse.getStudyLog> viewStudyLog(Long studyCardSetId, int page, int size) {
+		Pageable pageable = PageRequest.of(page, size);
+
+		StudyCardSet studyCardSet = studyCardSetRepository.findById(studyCardSetId)
+			.orElseThrow(() -> new DatabaseException(NOT_FOUND_ERROR));
+
+		Page<StudyLog> studyLogsPage = studyLogRepository.findByStudyCardSet(studyCardSet, pageable);
+
+		return studyLogsPage.map(studyLog -> CardResponse.getStudyLog.builder()
+			.cardNumber(studyLog.getStudyCardNumber())
+			.studyDate(studyLog.getStudyDate())
+			.build());
+	}
+
+
+	@Transactional
 	public void completeStudy(Long studyCardSetId) {
 		StudyCardSet studyCardSet = cardModuleService.getStudyCardSetById(studyCardSetId);
-
 		List<Card> cards = cardModuleService.getCardsByStudyCardSet(studyCardSet);
 
 		int remainingCardsCount = cards.size();
@@ -55,6 +73,7 @@ public class CardComponentService {
 			.studyDate(LocalDateTime.now())
 			.studyCardNumber(remainingCardsCount)
 			.studyCardSet(studyCardSet)
+			.user(studyCardSet.getUser())
 			.build();
 
 		studyLogRepository.save(studyLog);
