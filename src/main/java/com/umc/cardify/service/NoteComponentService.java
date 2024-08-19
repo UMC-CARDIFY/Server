@@ -2,7 +2,9 @@ package com.umc.cardify.service;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
@@ -11,6 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -160,7 +163,7 @@ public class NoteComponentService {
 	}
 
 	@Transactional
-	public Boolean writeNote(NoteRequest.WriteNoteDto request, Long userId) {
+	public Boolean writeNote(NoteRequest.WriteNoteDto request, Long userId, List<MultipartFile> images) {
 		Note note = noteModuleService.getNoteById(request.getNoteId());
 
 		if (!userId.equals(note.getFolder().getUser().getUserId())) {
@@ -174,8 +177,9 @@ public class NoteComponentService {
 		StringBuilder totalText = new StringBuilder();
 		note.setName(request.getName());
 
+		Queue<MultipartFile> imageQueue = new LinkedList<>(images);
 		Node node = request.getContents();
-		searchCard(node, totalText, note);
+		searchCard(node, totalText, note, imageQueue);
 		note.setTotalText(totalText.toString());
 
 		try {
@@ -190,15 +194,15 @@ public class NoteComponentService {
 		return true;
 	}
 
-	public void searchCard(Node node, StringBuilder input, Note note) {
-		if (cardModuleService.isCardNode(node)) {
-			cardModuleService.processCardNode(node, input, note);
+	public void searchCard(Node node, StringBuilder input, Note note, Queue<MultipartFile> imageQueue) {
+		if (node.getType().endsWith("card")) {
+			cardModuleService.processCardNode(node, input, note, imageQueue);
 		} else if (node.getType().equals("text")) {
 			processTextNode(node, input);
 		}
 
 		if (node.getContent() != null) {
-			node.getContent().forEach(content -> searchCard(content, input, note));
+			node.getContent().forEach(content -> searchCard(content, input, note, imageQueue));
 		}
 	}
 
@@ -296,6 +300,7 @@ public class NoteComponentService {
 		return NoteResponse.getNoteDTO.builder()
 			.noteId(note.getNoteId())
 			.noteName(note.getName())
+			.markState(note.getMarkState().equals(MarkStatus.ACTIVE))
 			.noteContent(note.getContents())
 			.cardList(cardDTO)
 			.build();

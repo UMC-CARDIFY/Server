@@ -1,6 +1,10 @@
 package com.umc.cardify.domain.ProseMirror;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.umc.cardify.dto.card.CardRequest;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
@@ -23,4 +27,10 @@ public class Attr {
     String color;
     @NotNull
     String backgroundColor;
+
+    Long baseImageWidth;
+
+    Long baseImageHeight;
+
+    List<CardRequest.addImageCardOverlay> overlays;
 }

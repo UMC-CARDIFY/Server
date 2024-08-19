@@ -63,6 +63,9 @@ public class CardResponse {
 
 		@Schema(description = "정답")
 		String answer;
+
+		@Schema(description = "카드 id")
+		Long cardId;
 	}
 
 	@Getter
@@ -92,5 +95,16 @@ public class CardResponse {
 
 		@Schema(description = "쉬움 카드 학습 비율")
 		int passCardsPercent;
+	}
+
+	@Getter
+	@Schema(title = "CARD_RES_05 : 분석 학습 기록 조회 DTO")
+	@Builder
+	public static class getStudyLog{
+		@Schema(description = "학습한 카드 개수")
+		int cardNumber;
+
+		@Schema(description = "학습 일자")
+		LocalDateTime studyDate;
 	}
 }
