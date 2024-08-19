@@ -63,6 +63,9 @@ public class CardResponse {
 
 		@Schema(description = "정답")
 		String answer;
+
+		@Schema(description = "카드 id")
+		Long cardId;
 	}
 
 	@Getter

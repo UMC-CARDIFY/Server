@@ -21,14 +21,12 @@ import com.umc.cardify.domain.Note;
 import com.umc.cardify.domain.Overlay;
 import com.umc.cardify.domain.StudyCardSet;
 import com.umc.cardify.domain.StudyLog;
-import com.umc.cardify.domain.User;
 import com.umc.cardify.dto.card.CardRequest;
 import com.umc.cardify.dto.card.CardResponse;
 import com.umc.cardify.repository.ImageCardRepository;
 import com.umc.cardify.repository.OverlayRepository;
 import com.umc.cardify.repository.StudyCardSetRepository;
 import com.umc.cardify.repository.StudyLogRepository;
-import com.umc.cardify.repository.UserRepository;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -62,7 +60,6 @@ public class CardComponentService {
 			.build());
 	}
 
-
 	@Transactional
 	public void completeStudy(Long studyCardSetId) {
 		StudyCardSet studyCardSet = cardModuleService.getStudyCardSetById(studyCardSetId);
@@ -88,7 +85,6 @@ public class CardComponentService {
 
 		studyCardSetRepository.save(studyCardSet);
 	}
-
 
 	@Transactional
 	public String addImageCard(MultipartFile image, CardRequest.addImageCard request) {
@@ -220,6 +216,7 @@ public class CardComponentService {
 				.contentsFront(card.getContentsFront())
 				.contentsBack(card.getContentsBack())
 				.answer(card.getAnswer())
+				.cardId(card.getCardId())
 				.build();
 		});
 	}
