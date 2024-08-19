@@ -36,8 +36,8 @@ public class User extends BaseEntity {
     @Column(name = "name", columnDefinition = "varchar(30)")
     private String name;
 
-//    @Column(name = "url_profile", columnDefinition = "text")
-//    private String urlProfile;Re
+    @Column(name = "url_profile", columnDefinition = "text")
+    private String urlProfile;
 
     @Column(name = "email", columnDefinition = "varchar(320)")
     private String email;

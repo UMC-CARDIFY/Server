@@ -25,9 +25,11 @@ import com.umc.cardify.domain.Library;
 import com.umc.cardify.domain.LibraryCategory;
 import com.umc.cardify.domain.Note;
 import com.umc.cardify.domain.ProseMirror.Node;
+import com.umc.cardify.domain.StudyCardSet;
 import com.umc.cardify.domain.User;
 import com.umc.cardify.domain.enums.CardType;
 import com.umc.cardify.domain.enums.MarkStatus;
+import com.umc.cardify.domain.enums.StudyStatus;
 import com.umc.cardify.dto.note.NoteRequest;
 import com.umc.cardify.dto.note.NoteResponse;
 import com.umc.cardify.repository.CardRepository;
@@ -35,6 +37,7 @@ import com.umc.cardify.repository.CategoryRepository;
 import com.umc.cardify.repository.LibraryCategoryRepository;
 import com.umc.cardify.repository.LibraryRepository;
 import com.umc.cardify.repository.NoteRepository;
+import com.umc.cardify.repository.StudyCardSetRepository;
 import com.umc.cardify.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -50,6 +53,7 @@ public class NoteService {
 	private final LibraryRepository libraryRepository;
 	private final CategoryRepository categoryRepository;
 	private final LibraryCategoryRepository libraryCategoryRepository;
+	private final StudyCardSetRepository studyCardSetRepository;
 
 	private final NoteConverter noteConverter;
 
@@ -57,7 +61,7 @@ public class NoteService {
 
 	public Note getNoteToID(long noteId) {
 		return noteRepository.findById(noteId)
-			.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
 	}
 
 	public Note addNote(Folder folder, Long userId) {
@@ -71,7 +75,7 @@ public class NoteService {
 
 	public NoteResponse.NoteListDTO getNotesByUserId(Long userId, Integer page, Integer size) {
 		User user = userRepository.findById(userId)
-			.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
 		int getNotePage = (page != null) ? page : 0;
 		int getNoteSize = (size != null) ? size : Integer.MAX_VALUE;
@@ -84,24 +88,24 @@ public class NoteService {
 		}
 
 		List<NoteResponse.NoteInfoDTO> notes = notePage.getContent()
-			.stream()
-			.map(noteConverter::toNoteInfoDTO)
-			.collect(Collectors.toList());
+				.stream()
+				.map(noteConverter::toNoteInfoDTO)
+				.collect(Collectors.toList());
 
 		return NoteResponse.NoteListDTO.builder()
-			.noteList(notes)
-			.listsize(notePage.getSize())
-			.currentPage(notePage.getNumber() + 1)
-			.totalPage(notePage.getTotalPages())
-			.totalElements(notePage.getTotalElements())
-			.isFirst(notePage.isFirst())
-			.isLast(notePage.isLast())
-			.build();
+				.noteList(notes)
+				.listsize(notePage.getSize())
+				.currentPage(notePage.getNumber() + 1)
+				.totalPage(notePage.getTotalPages())
+				.totalElements(notePage.getTotalElements())
+				.isFirst(notePage.isFirst())
+				.isLast(notePage.isLast())
+				.build();
 	}
 
 	public Boolean deleteNote(Long noteId, Long userId) {
 		Note note_del = noteRepository.findById(noteId)
-			.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
 		if (!userId.equals(note_del.getFolder().getUser().getUserId()))
 			throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
 		else {
@@ -111,7 +115,7 @@ public class NoteService {
 	}
 
 	public NoteResponse.GetNoteToFolderResultDTO getNoteToFolder(Folder folder,
-		NoteRequest.GetNoteToFolderDto request) {
+																 NoteRequest.GetNoteToFolderDto request) {
 		Pageable pageable;
 
 		Integer page = request.getPage();
@@ -123,16 +127,19 @@ public class NoteService {
 			size = folder.getNotes().size();
 
 		String order = request.getOrder();
-		if (order == null)
-			order = "asc";
+		if(order == null) order = "create-newest";
 
 		pageable = switch (order.toLowerCase()) {
 			case "asc" -> PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.asc("name")));
 			case "desc" -> PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.desc("name")));
 			case "edit-newest" ->
-				PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.asc("editDate")));
+					PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.desc("editDate")));
 			case "edit-oldest" ->
-				PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.desc("editDate")));
+					PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.asc("editDate")));
+			case "create-newest" ->
+					PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.desc("createdAt")));
+			case "create-oldest" ->
+					PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.asc("createdAt")));
 			default -> throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
 		};
 		Page<Note> notes_all = noteRepository.findByFolder(folder, pageable);
@@ -143,7 +150,7 @@ public class NoteService {
 
 	public Boolean markNote(Long noteId, Boolean isMark, Long userId) {
 		Note note_mark = noteRepository.findById(noteId)
-			.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
 		if (!userId.equals(note_mark.getFolder().getUser().getUserId()))
 			throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
 		else {
@@ -163,7 +170,7 @@ public class NoteService {
 	@Transactional
 	public Boolean writeNote(NoteRequest.WriteNoteDto request, Long userId) {
 		Note note = noteRepository.findById(request.getNoteId())
-			.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
 
 		if (!userId.equals(note.getFolder().getUser().getUserId())) {
 			log.warn("Invalid userId: {}", userId);
@@ -177,7 +184,7 @@ public class NoteService {
 		note.setName(request.getName());
 
 		Node node = request.getContents();
-		searchCard(node, totalText, note); // CardService의 searchCard 호출
+		searchCard(node, totalText, note);
 		note.setTotalText(totalText.toString());
 
 		try {
@@ -206,7 +213,7 @@ public class NoteService {
 
 	private boolean isCardNode(Node node) {
 		return node.getType().equals("word_card") || node.getType().equals("blank_card") || node.getType()
-			.equals("multi_card");
+				.equals("multi_card");
 	}
 
 	private void processCardNode(Node node, StringBuilder input, Note note) {
@@ -224,32 +231,60 @@ public class NoteService {
 			nodeText += ".";
 		input.append(nodeText);
 
+		Card card = null;
 		switch (node.getType()) {
 			case "blank_card" -> {
-				Card card = createCard(note, questionFront, questionBack, answer, CardType.BLANK);
-				cardRepository.save(card);
+				card = createCard(note, questionFront, questionBack, answer, CardType.BLANK);
 			}
 			case "multi_card" -> {
-				Card card = createCard(note, questionFront, null, answer, CardType.MULTI);
-				cardRepository.save(card);
+				card = createCard(note, questionFront, null, answer, CardType.MULTI);
 			}
 			case "word_card" -> {
-				Card card = createCard(note, questionFront, null, answer, CardType.WORD);
-				cardRepository.save(card);
+				card = createCard(note, questionFront, null, answer, CardType.WORD);
 			}
 		}
+
+		if (card != null) {
+			cardRepository.save(card);
+			addCardToStudyCardSet(card, note);
+		}
+	}
+
+	private void addCardToStudyCardSet(Card card, Note note) {
+		StudyCardSet studyCardSet = studyCardSetRepository.findByNote(note)
+				.orElseGet(() -> createNewStudyCardSet(note));
+
+		// 기존의 StudyCardSet이 있으면 새로 생성하지 않고 연관만 설정
+		card.setStudyCardSet(studyCardSet);
+
+		studyCardSetRepository.save(studyCardSet);
+	}
+
+	private StudyCardSet createNewStudyCardSet(Note note) {
+		Folder folder = note.getFolder();
+		User user = folder.getUser();
+		return studyCardSetRepository.save(StudyCardSet.builder()
+				.note(note)
+				.folder(folder)
+				.user(user)
+				.studyStatus(StudyStatus.BEFORE_STUDY)
+				.noteName(note.getName())
+				.color(folder.getColor())
+				.recentStudyDate(null)
+				.nextStudyDate(null)
+				.build());
 	}
 
 	private Card createCard(Note note, String questionFront, String questionBack, String answer, CardType cardType) {
 		return Card.builder()
-			.note(note)
-			.contentsFront(questionFront)
-			.contentsBack(questionBack)
-			.answer(answer)
-			.isLearn(false)
-			.countLearn(0L)
-			.type(cardType.getValue())  // 카드 타입에 따라 저장
-			.build();
+				.note(note)
+				.contentsFront(questionFront)
+				.contentsBack(questionBack)
+				.answer(answer)
+				.isLearn(false)
+				.countLearn(0L)
+				.type(cardType.getValue())  // 카드 타입에 따라 저장
+				.build();
 	}
 
 	public void processTextNode(Node node, StringBuilder input) {
@@ -265,12 +300,12 @@ public class NoteService {
 			return null;
 
 		List<Note> notes = noteRepository.findByFolder(folder)
-			.stream()
-			.filter(note -> note.getName().contains(search) | note.getTotalText().contains(search))
-			.toList();
+				.stream()
+				.filter(note -> note.getName().contains(search) | note.getTotalText().contains(search))
+				.toList();
 		List<NoteResponse.SearchNoteResDTO> searchList = notes.stream()
-			.map(list -> noteConverter.toSearchNoteResult(list, search))
-			.collect(Collectors.toList());
+				.map(list -> noteConverter.toSearchNoteResult(list, search))
+				.collect(Collectors.toList());
 
 		return searchList;
 	}
@@ -305,9 +340,9 @@ public class NoteService {
 			throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
 		if (categoryList != null) {
 			categoryList.stream()
-				.map(category -> libraryCategoryRepository.save(
-					LibraryCategory.builder().category(category).library(library_new).build()))
-				.toList();
+					.map(category -> libraryCategoryRepository.save(
+							LibraryCategory.builder().category(category).library(library_new).build()))
+					.toList();
 		}
 
 		noteRepository.save(note);
@@ -330,31 +365,31 @@ public class NoteService {
 
 	public NoteResponse.getNoteDTO getNote(Long noteId) {
 		Note note = noteRepository.findById(noteId)
-			.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
 		List<NoteResponse.getNoteCardDTO> cardDTO = note.getCards().stream().map(card -> {
 			return NoteResponse.getNoteCardDTO.builder()
-				.cardId(card.getCardId())
-				.cardName(note.getName())
-				.contentsFront(card.getContentsFront())
-				.contentsBack(card.getContentsBack())
-				.build();
+					.cardId(card.getCardId())
+					.cardName(note.getName())
+					.contentsFront(card.getContentsFront())
+					.contentsBack(card.getContentsBack())
+					.build();
 		}).toList();
 
 		return NoteResponse.getNoteDTO.builder()
-			.noteId(note.getNoteId())
-			.noteName(note.getName())
-			.noteContent(note.getContents())
-			.cardList(cardDTO)
-			.build();
+				.noteId(note.getNoteId())
+				.noteName(note.getName())
+				.noteContent(note.getContents())
+				.cardList(cardDTO)
+				.build();
 	}
 
 	@Transactional(readOnly = true)
 	public NoteResponse.NoteListDTO filterColorsNotes(Long userId, Integer page, Integer size, String colors) {
 		User user = userRepository.findById(userId)
-			.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
 		int filterNotePage = (page != null) ? page : 0;
-		int filterNoteSize = (size != null) ? size : 30;
+		int filterNoteSize = (size != null) ? size : Integer.MAX_VALUE;
 
 		if (colors == null || colors.isEmpty()) {
 			throw new DatabaseException(ErrorResponseStatus.NOT_EXIST_NOTE);
@@ -370,19 +405,57 @@ public class NoteService {
 		}
 
 		List<NoteResponse.NoteInfoDTO> notes = notePage.getContent()
-			.stream()
-			.map(noteConverter::toNoteInfoDTO)
-			.collect(Collectors.toList());
+				.stream()
+				.map(noteConverter::toNoteInfoDTO)
+				.collect(Collectors.toList());
 
 		return NoteResponse.NoteListDTO.builder()
-			.noteList(notes)
-			.listsize(filterNoteSize)
-			.currentPage(filterNotePage + 1)
-			.totalPage(notePage.getTotalPages())
-			.totalElements(notePage.getTotalElements())
-			.isFirst(notePage.isFirst())
-			.isLast(notePage.isLast())
-			.build();
+				.noteList(notes)
+				.listsize(filterNoteSize)
+				.currentPage(filterNotePage + 1)
+				.totalPage(notePage.getTotalPages())
+				.totalElements(notePage.getTotalElements())
+				.isFirst(notePage.isFirst())
+				.isLast(notePage.isLast())
+				.build();
 	}
+	@Transactional
+	public NoteResponse.NoteListDTO sortNotesByUserId(Long userId, Integer page, Integer size, String order) {
+		User user = userRepository.findById(userId)
+				.orElseThrow(()-> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
+		int sortNotePage = (page != null) ? page : 0;
+		int sortNoteSize = (size != null) ? size : Integer.MAX_VALUE;
+
+		Pageable pageable = PageRequest.of(sortNotePage, sortNoteSize);
+		Page<Note> notePage = noteRepository.findByUserAndSort(user, order, pageable);
+
+		switch (order) {
+			case "asc":
+			case "desc":
+			case "edit-newest":
+			case "edit-oldest":
+				break;
+			default:
+				throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+		}
+
+		if(notePage.isEmpty()){
+			throw new DatabaseException(ErrorResponseStatus.NOT_EXIST_NOTE);
+		}
+
+		List<NoteResponse.NoteInfoDTO> notes = notePage.getContent().stream()
+				.map(noteConverter::toNoteInfoDTO)
+				.collect(Collectors.toList());
+
+		return NoteResponse.NoteListDTO.builder()
+				.noteList(notes)
+				.listsize(sortNoteSize)
+				.currentPage(sortNotePage + 1)
+				.totalPage(notePage.getTotalPages())
+				.totalElements(notePage.getTotalElements())
+				.isFirst(notePage.isFirst())
+				.isLast(notePage.isLast())
+				.build();
+	}
 }

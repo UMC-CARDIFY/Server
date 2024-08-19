@@ -61,9 +61,6 @@ public class SecurityConfig {
                                         .userInfoEndpoint(userInfoEndpoint ->
                                                 userInfoEndpoint.userService(customOAuth2UserService)
                                         )
-//                    .loginPage("/login")
-//                    .defaultSuccessUrl("/home")
-//                    .failureUrl("/loginFailure")
                                         .successHandler(authenticationSuccessHandler())
                 )
                 .addFilterBefore(new JwtFilter(jwtUtil, customUserDetailsService), UsernamePasswordAuthenticationFilter.class)
