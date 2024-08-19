@@ -1,8 +1,9 @@
 package com.umc.cardify.service;
 
 import static com.umc.cardify.config.exception.ErrorResponseStatus.*;
-import static com.umc.cardify.domain.enums.Difficulty.*;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -14,7 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.umc.cardify.config.exception.BadRequestException;
-import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.domain.Card;
 import com.umc.cardify.domain.ImageCard;
 import com.umc.cardify.domain.Note;
@@ -149,30 +149,77 @@ public class CardComponentService {
 	}
 
 	@Transactional
-	public Page<CardResponse.getCardLists> getCardLists(Long studyCardSetId, int pageNumber) {
+	public Page<Object> getCardLists(Long studyCardSetId, int pageNumber) {
 		StudyCardSet studyCardSet = cardModuleService.getStudyCardSetById(studyCardSetId);
 
 		List<Card> cards = cardModuleService.getCardsByStudyCardSet(studyCardSet);
+		List<ImageCard> imageCards = cardModuleService.getImageCardsByStudyCardSet(studyCardSet);
 
-		int totalCards = cards.size();
+		// 카드와 이미지 카드 모두를 리스트에 추가
+		List<Object> allCards = new ArrayList<>();
+		allCards.addAll(cards);
+		allCards.addAll(imageCards);
+
+		// 생성일자 순으로 정렬
+		allCards.sort((a, b) -> {
+			LocalDateTime createdA = (a instanceof Card) ? ((Card) a).getCreatedAt() : ((ImageCard) a).getCreatedAt();
+			LocalDateTime createdB = (b instanceof Card) ? ((Card) b).getCreatedAt() : ((ImageCard) b).getCreatedAt();
+			return createdA.compareTo(createdB);
+		});
+
+		int totalCards = allCards.size();
 
 		// 페이지당 1개의 카드만 보여주기 위해 PageRequest에서 size를 1로 설정
 		Pageable pageable = PageRequest.of(pageNumber, 1);
 
 		int start = (int) pageable.getOffset();
 		int end = Math.min((start + pageable.getPageSize()), totalCards);
-		List<Card> pagedCards = cards.subList(start, end);
+		List<Object> pagedCards = allCards.subList(start, end);
 
-		Page<Card> cardsPage = new PageImpl<>(pagedCards, pageable, totalCards);
+		Page<Object> cardsPage = new PageImpl<>(pagedCards, pageable, totalCards);
 
 		return cardsPage.map(card -> {
-			return CardResponse.getCardLists.builder()
-				.contentsFront(card.getContentsFront())
-				.contentsBack(card.getContentsBack())
-				.answer(card.getAnswer())
-				.build();
+			if (card instanceof Card) {
+				return mapToWordCardResponse((Card) card);
+			} else if (card instanceof ImageCard) {
+				return mapToImageCardResponse((ImageCard) card);
+			} else {
+				throw new IllegalStateException("Unexpected card type");
+			}
 		});
 	}
+
+	private CardResponse.getCardLists mapToWordCardResponse(Card card) {
+		return CardResponse.getCardLists.builder()
+			.contentsFront(card.getContentsFront())
+			.contentsBack(card.getContentsBack())
+			.answer(card.getAnswer())
+			.build();
+	}
+
+	private CardResponse.getImageCard mapToImageCardResponse(ImageCard imageCard) {
+		return CardResponse.getImageCard.builder()
+			.imgUrl(imageCard.getImageUrl())
+			.baseImageWidth(imageCard.getWidth())
+			.baseImageHeight(imageCard.getHeight())
+			.overlays(convertOverlays(imageCard.getOverlays()))
+			.build();
+	}
+
+	private List<CardRequest.addImageCardOverlay> convertOverlays(List<Overlay> overlays) {
+		List<CardRequest.addImageCardOverlay> overlayDtos = new ArrayList<>();
+		for (Overlay overlay : overlays) {
+			overlayDtos.add(CardRequest.addImageCardOverlay.builder()
+				.positionOfX(overlay.getXPosition())
+				.positionOfY(overlay.getYPosition())
+				.width(overlay.getWidth())
+				.height(overlay.getHeight())
+				.build());
+		}
+		return overlayDtos;
+	}
+
+
 
 	public void updateCardDifficulty(Long cardId, int difficulty){
 		if(difficulty > 3 || difficulty < 1){

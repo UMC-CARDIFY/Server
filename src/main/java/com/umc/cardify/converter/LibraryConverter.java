@@ -3,12 +3,11 @@ package com.umc.cardify.converter;
 import com.umc.cardify.domain.*;
 import com.umc.cardify.dto.library.LibraryResponse;
 import com.umc.cardify.repository.DownloadRepository;
-import com.umc.cardify.repository.UserRepository;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 @Component

@@ -81,8 +81,8 @@ public class CardController {
 
 	@GetMapping(value = "/{studyCardSetId}")
 	@Operation(summary = "학습 카드 - 카드 학습", description = "해당 노트(StudyCardSet)의 학습 카드 전부를 Pageable 리스트로 전달")
-	public ResponseEntity<Page<CardResponse.getCardLists>> studyCard(@PathVariable Long studyCardSetId, @RequestParam(defaultValue = "0") int page) {
-		Page<CardResponse.getCardLists> getCardLists = cardComponentService.getCardLists(studyCardSetId, page);
+	public ResponseEntity<Page<Object>> studyCard(@PathVariable Long studyCardSetId, @RequestParam(defaultValue = "0") int page) {
+		Page<Object> getCardLists = cardComponentService.getCardLists(studyCardSetId, page);
 
 		return ResponseEntity.ok(getCardLists);
 	}

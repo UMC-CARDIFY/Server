@@ -10,6 +10,7 @@ import com.umc.cardify.config.exception.DatabaseException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.domain.Card;
 import com.umc.cardify.domain.Folder;
+import com.umc.cardify.domain.ImageCard;
 import com.umc.cardify.domain.Note;
 import com.umc.cardify.domain.ProseMirror.Node;
 import com.umc.cardify.domain.StudyCardSet;
@@ -17,6 +18,7 @@ import com.umc.cardify.domain.User;
 import com.umc.cardify.domain.enums.CardType;
 import com.umc.cardify.domain.enums.StudyStatus;
 import com.umc.cardify.repository.CardRepository;
+import com.umc.cardify.repository.ImageCardRepository;
 import com.umc.cardify.repository.StudyCardSetRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -26,6 +28,7 @@ import lombok.RequiredArgsConstructor;
 public class CardModuleService {
 	private final CardRepository cardRepository;
 	private final StudyCardSetRepository studyCardSetRepository;
+	private final ImageCardRepository imageCardRepository;
 
 	public void saveCard(Card card) {
 		cardRepository.save(card);
@@ -105,7 +108,6 @@ public class CardModuleService {
 			.contentsFront(questionFront)
 			.contentsBack(questionBack)
 			.answer(answer)
-			.isLearn(false)
 			.countLearn(0L)
 			.type(cardType.getValue())  // 카드 타입에 따라 저장
 			.build();
@@ -121,6 +123,10 @@ public class CardModuleService {
 
 	public List<Card> getCardsByStudyCardSet(StudyCardSet studyCardSet) {
 		return cardRepository.findByStudyCardSet(studyCardSet);
+	}
+
+	public List<ImageCard> getImageCardsByStudyCardSet(StudyCardSet studyCardSet){
+		return imageCardRepository.findByStudyCardSet(studyCardSet);
 	}
 
 	public StudyCardSet getStudyCardSetById(Long id) {
