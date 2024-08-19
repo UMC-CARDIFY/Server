@@ -13,8 +13,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -58,13 +60,14 @@ public class NoteController {
         Boolean isSuccess = noteComponentService.markNote(noteId, isMark, userId);
         return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(isSuccess));
     }
-    @PostMapping("/write")
+    @PostMapping(value = "/write",  consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "노트 작성 API" , description = "노트 UUID 입력, 성공 시 작성 성공 여부 반환")
-    public ResponseEntity<NoteResponse.IsSuccessNoteDTO> writeNote(@RequestHeader("Authorization") String token, @RequestBody @Valid NoteRequest.WriteNoteDto request){
+    public ResponseEntity<NoteResponse.IsSuccessNoteDTO> writeNote(@RequestHeader("Authorization") String token, @RequestPart("images") List<MultipartFile> images,  @RequestPart @Valid NoteRequest.WriteNoteDto request){
         Long userId = jwtUtil.extractUserId(token);
-        Boolean isSuccess = noteComponentService.writeNote(request, userId);
+        Boolean isSuccess = noteComponentService.writeNote(request, userId, images);
         return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(isSuccess));
     }
+
     @PostMapping("/search")
     @Operation(summary = "노트 검색 API" , description = "폴더 ID와 검색어 입력, 성공 시 검색 결과 반환")
     public ResponseEntity<NoteResponse.SearchNoteDTO> searchNote(@RequestBody @Valid NoteRequest.SearchNoteDto request){
