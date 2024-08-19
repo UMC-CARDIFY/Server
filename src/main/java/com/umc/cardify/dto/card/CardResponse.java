@@ -23,6 +23,9 @@ public class CardResponse {
 
 		@Schema(description = "가림판 배열")
 		List<CardRequest.addImageCardOverlay> overlays;
+
+		@Schema(description = "이미지 카드 id")
+		Long imageCardId;
 	}
 
 	@Getter
