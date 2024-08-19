@@ -2,11 +2,8 @@ package com.umc.cardify.converter;
 
 import com.umc.cardify.domain.Folder;
 import com.umc.cardify.domain.Note;
-import com.umc.cardify.dto.note.NoteRequest;
 import com.umc.cardify.dto.note.NoteResponse;
-import com.umc.cardify.repository.LibraryRepository;
 import com.umc.cardify.service.LibraryService;
-import com.umc.cardify.service.NoteService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
@@ -26,6 +23,7 @@ public class NoteConverter {
         return Note.builder()
                 .folder(folder)
                 .name("제목없음")
+                .viewAt(LocalDateTime.now())
                 .build();
     }
     public static NoteResponse.AddNoteResultDTO toAddNoteResult(Note note){
@@ -86,6 +84,20 @@ public class NoteConverter {
                 .noteId(note.getNoteId())
                 .noteName(note.getName())
                 .textList(textList)
+                .build();
+    }
+    public NoteResponse.NoteInfoDTO recentNoteInfoDTO(Note note) {
+        return NoteResponse.NoteInfoDTO.builder()
+                .noteId(note.getNoteId())
+                .name(note.getName())
+                .folderId(note.getFolder().getFolderId())
+                .folderColor(note.getFolder().getColor())
+                .folderName(note.getFolder().getName())
+                .viewAt(note.getViewAt())
+                .editDate(note.getEditDate().toLocalDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
+                .createdAt(note.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
+                .isDownload(note.getDownloadLibId() != null)
+                .isUpload(libraryService.isUploadLib(note))
                 .build();
     }
 }

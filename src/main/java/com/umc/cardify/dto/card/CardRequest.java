@@ -12,7 +12,11 @@ public class CardRequest {
 
 	@Getter
 	@Schema(title = "CARD_REQ_01 : 이미지 카드 생성 요청 DTO")
-	public static class addImageCard{
+	public static class addImageCard {
+		@NotBlank(message = "noteId 입력 필요")
+		@Schema(description = "노트 id", example = "4")
+		Long noteId;
+
 		@NotBlank(message = "이미지 너비 입력 필요")
 		@Schema(description = "이미지 너비", example = "800")
 		Long baseImageWidth;
@@ -28,7 +32,7 @@ public class CardRequest {
 	@Getter
 	@Schema(title = "CARD_REQ_02 : 이미지 카드 생성 요청 내부 가림판 정보 DTO")
 	@Builder
-	public static class addImageCardOverlay{
+	public static class addImageCardOverlay {
 		@NotBlank(message = "가림판 x 좌표 입력 필요")
 		@Schema(description = "가림판 x좌표", example = "400")
 		private Long positionOfX;
@@ -41,17 +45,21 @@ public class CardRequest {
 		@Schema(description = "가림판 너비", example = "100")
 		private Long width;
 
-
 		@NotBlank(message = "가림판 높이 입력 필요")
 		@Schema(description = "가림판 높이", example = "50")
 		private Long height;
 	}
+
+
 	@Getter
-	@Schema(title = "CARD_REQ_03 : 노트 작성시 카드 양식 DTO")
-	public static class WriteCardDto{
-		@NotNull
-		String name;
-		@NotNull
-		String text;
+	@Schema(title = "CARD_REQ_03 : 학습 카드 난이도 전달 DTO")
+	public static class difficulty {
+		@NotBlank(message = "카드 id 전달 필요")
+		@Schema(description = "카드 id")
+		private Long cardId;
+
+		@NotBlank(message = "난이도 정보 전달 필요")
+		@Schema(description = "난이도 (어려움 = 1, 알맞음 = 2, 쉬움 = 3 )", example = "1")
+		private int difficulty;
 	}
 }

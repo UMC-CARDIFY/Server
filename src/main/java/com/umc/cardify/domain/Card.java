@@ -39,10 +39,7 @@ public class Card extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String answer;
 
-    @Column(columnDefinition = "Boolean DEFAULT false")
-    private Boolean isLearn;
-
-    private Difficulty difficulty;
+    private int difficulty = 0;
 
     private Long countLearn;
 
@@ -66,4 +63,12 @@ public class Card extends BaseEntity {
     public void setStudyCardSet(StudyCardSet studyCardSet) {
         this.studyCardSet = studyCardSet;
     }
+    public Difficulty getDifficulty() {
+        return Difficulty.fromValue(this.difficulty);
+    }
+
+    public void setDifficulty(int difficulty) {
+        this.difficulty = difficulty;
+    }
+
 }

@@ -10,6 +10,7 @@ public enum ErrorResponseStatus {
 	INVALID_PWD(2002, "비밀번호가 올바르지 않습니다."),
 	INVALID_USERID(2003, "유효하지 않는 USERID 입니다."),
 	INVALID_NOTE_TEXT(2004, "입력된 노트 정보에 존재하지 않는 카드 정보입니다."),
+	NOT_EXIST_DIFFICULTY_CODE(2005, "존재하지 않는 난이도 코드 입니다. (어려움 = 1, 보통 = 2, 쉬움 = 3)"),
 
 	// 3000 : Response 오류
 	RESPONSE_ERROR(3000, "값을 불러오는데 실패하였습니다."),
@@ -28,6 +29,7 @@ public enum ErrorResponseStatus {
 	NOT_FOUND_CATEGORY(4010, "해당 카테고리는 존재하지 않습니다."),
 	NOT_EXIST_NOTE(4011, "노트가 존재하지 않습니다."),
 	JSON_PROCESSING_ERROR(4012, "JSON 처리 중 오류가 발생했습니다."),
+	NOT_FOUND_IMAGE(4013, "업로드할 이미지가 존재하지 않습니다."),
 
 	// 5000 : Server connection 오류
 	SERVER_ERROR(5000, "서버와의 연결에 실패하였습니다.");

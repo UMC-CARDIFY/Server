@@ -23,12 +23,15 @@ public class CardResponse {
 
 		@Schema(description = "가림판 배열")
 		List<CardRequest.addImageCardOverlay> overlays;
+
+		@Schema(description = "이미지 카드 id")
+		Long imageCardId;
 	}
 
 	@Getter
-	@Schema(title = "CARD_RES_02 : 플래시 카드 리스트 조회 DTO")
+	@Schema(title = "CARD_RES_02 : 플래시 카드 메인 화면 조회 DTO")
 	@Builder
-	public static class getCardLists {
+	public static class getStudyCardSetLists {
 		@Schema(description = "학습 상태")
 		String studyStatus;
 
@@ -46,5 +49,65 @@ public class CardResponse {
 
 		@Schema(description = "다음 학습 시간")
 		LocalDateTime nextStudyDate;
+
+		@Schema(description = "학습 카드셋 id")
+		Long studyCardSetId;
+	}
+
+	@Getter
+	@Schema(title = "CARD_RES_03 : 일반 학습 DTO (카드 리스트)")
+	@Builder
+	public static class getCardLists {
+		@Schema(description = "빈칸 앞")
+		String contentsFront;
+
+		@Schema(description = "빈칸 뒤 (빈칸 카드만 존재)")
+		String contentsBack;
+
+		@Schema(description = "정답")
+		String answer;
+
+		@Schema(description = "카드 id")
+		Long cardId;
+	}
+
+	@Getter
+	@Schema(title = "CARD_RES_04 : 카드 학습 그래프 DTO")
+	@Builder
+	public static class cardStudyGraph {
+		@Schema(description = "쉬움 카드 학습 개수")
+		int easyCardsNumber;
+
+		@Schema(description = "알맞음 카드 학습 개수")
+		int normalCardsNumber;
+
+		@Schema(description = "어려움 카드 학습 개수")
+		int hardCardsNumber;
+
+		@Schema(description = "패스 카드 학습 개수")
+		int passCardsNumber;
+
+		@Schema(description = "쉬움 카드 학습 비율")
+		int easyCardsPercent;
+
+		@Schema(description = "쉬움 카드 학습 비율")
+		int normalCardsPercent;
+
+		@Schema(description = "쉬움 카드 학습 비율")
+		int hardCardsPercent;
+
+		@Schema(description = "쉬움 카드 학습 비율")
+		int passCardsPercent;
+	}
+
+	@Getter
+	@Schema(title = "CARD_RES_05 : 분석 학습 기록 조회 DTO")
+	@Builder
+	public static class getStudyLog{
+		@Schema(description = "학습한 카드 개수")
+		int cardNumber;
+
+		@Schema(description = "학습 일자")
+		LocalDateTime studyDate;
 	}
 }

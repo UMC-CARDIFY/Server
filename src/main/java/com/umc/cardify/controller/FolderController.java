@@ -4,7 +4,7 @@ import com.umc.cardify.dto.folder.FolderRequest;
 import com.umc.cardify.dto.folder.FolderResponse;
 import com.umc.cardify.dto.note.NoteResponse;
 import com.umc.cardify.service.FolderService;
-import com.umc.cardify.service.NoteService;
+import com.umc.cardify.service.NoteComponentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.*;
 public class FolderController {
 
     private final FolderService folderService;
-    private final NoteService noteService;
+    private final NoteComponentService noteComponentService;
     private final JwtUtil jwtUtil;
 
     @GetMapping
@@ -55,7 +55,7 @@ public class FolderController {
             @RequestParam(required = false)  Integer size,
             @RequestParam String order){
         Long userId = jwtUtil.extractUserId(token);
-        NoteResponse.NoteListDTO notes = noteService.sortNotesByUserId(userId, page, size, order);
+        NoteResponse.NoteListDTO notes = noteComponentService.sortNotesByUserId(userId, page, size, order);
         return ResponseEntity.ok(notes);
     }
 
@@ -67,7 +67,7 @@ public class FolderController {
             @RequestParam(required = false)  Integer page,
             @RequestParam(required = false)  Integer size) {
         Long userId = jwtUtil.extractUserId(token);
-        NoteResponse.NoteListDTO notes = noteService.getNotesByUserId(userId, page, size);
+        NoteResponse.NoteListDTO notes = noteComponentService.getNotesByUserId(userId, page, size);
         return ResponseEntity.ok(notes);
     }
 
@@ -134,7 +134,7 @@ public class FolderController {
             @RequestParam(required = false) Integer size,
             @RequestParam String color) {
         Long userId = jwtUtil.extractUserId(token);
-        NoteResponse.NoteListDTO notes = noteService.filterColorsNotes(userId, page, size, color);
+        NoteResponse.NoteListDTO notes = noteComponentService.filterColorsNotes(userId, page, size, color);
         return ResponseEntity.ok(notes);
     }
 }

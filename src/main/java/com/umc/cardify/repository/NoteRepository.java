@@ -39,4 +39,8 @@ public interface NoteRepository extends JpaRepository<Note, Long> {
             "CASE WHEN :order = 'desc' THEN n.name END DESC, " +
             "CASE WHEN :order = 'edit-newest' THEN n.editDate END DESC")
     Page<Note> findByUserAndSort(@Param("user") User user, @Param("order") String order, Pageable pageable); // 전체 노트 정렬 - 아카이브
+
+    @Query("SELECT n FROM Note n WHERE n.folder.user = :user ORDER BY " +
+            "n.viewAt DESC ")
+    Page<Note> findByUserOrderByViewAtDesc(User user, Pageable pageable);
 }
