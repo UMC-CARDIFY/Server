@@ -95,12 +95,23 @@ public class CardController {
 		return ResponseEntity.ok().build();
 	}
 
-	@GetMapping("/study-graph/{StudyCardSetId}")
+	@GetMapping("/{studyCardSetId}/study-graph/")
 	@Operation(summary = "학습 통계 그래프 조회")
-	public ResponseEntity<CardResponse.cardStudyGraph> viewStudyCardGraph(@PathVariable Long StudyCardSetId){
-		CardResponse.cardStudyGraph cardStudyGraph = cardComponentService.viewStudyCardGraph(StudyCardSetId);
+	public ResponseEntity<CardResponse.cardStudyGraph> viewStudyCardGraph(@PathVariable Long studyCardSetId){
+		CardResponse.cardStudyGraph cardStudyGraph = cardComponentService.viewStudyCardGraph(studyCardSetId);
 
 		return ResponseEntity.ok(cardStudyGraph);
 	}
+
+	@GetMapping("{studyCardSetId}/study-completed")
+	@Operation(summary = "분석 학습 완료")
+	public ResponseEntity<?> completeStudy(@PathVariable Long studyCardSetId){
+		cardComponentService.completeStudy(studyCardSetId);
+
+		return ResponseEntity.ok().build();
+	}
+
+
+
 
 }

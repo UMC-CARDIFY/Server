@@ -105,7 +105,6 @@ public class CardModuleService {
 			.contentsFront(questionFront)
 			.contentsBack(questionBack)
 			.answer(answer)
-			.isLearn(false)
 			.countLearn(0L)
 			.type(cardType.getValue())  // 카드 타입에 따라 저장
 			.build();
@@ -135,6 +134,10 @@ public class CardModuleService {
 
 	public void updateCardDifficulty(Card card){
 		cardRepository.save(card);
+	}
+
+	public void deleteAll(List<Card> cards){
+		cardRepository.deleteAll(cards);
 	}
 
 }

@@ -14,4 +14,5 @@ public interface CardRepository extends JpaRepository<Card, Long> {
     List<Card> findByNote(Note note);
 
     List<Card> findByStudyCardSet(StudyCardSet studyCardSet);
+
 }
