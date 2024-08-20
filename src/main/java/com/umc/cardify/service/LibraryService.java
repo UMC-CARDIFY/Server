@@ -217,15 +217,26 @@ public class LibraryService {
                 .resultNote(resultList)
                 .build();
     }
-    public String checkDownload(Long userId, Long libraryId){
+    public LibraryResponse.CheckDownloadDTO checkDownload(Long userId, Long libraryId){
         User user = userRepository.findById(userId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));;
         Library library = libraryRepository.findById(libraryId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));;
         Download download = downloadRepository.findByUserAndLibrary(user, library);
 
+        Note note = library.getNote();
+        Folder folder = note.getFolder();
+
+        String isDownload = "Error";
         if (download == null)
-            return "None";
+            isDownload = "None";
         else if(download.getIsContainCard())
-            return "ContainCard";
-        else return "NotContainCard";
+            isDownload = "ContainCard";
+        else
+            isDownload = "NotContainCard";
+
+        return LibraryResponse.CheckDownloadDTO.builder()
+                .folderId(folder.getFolderId())
+                .noteId(note.getNoteId())
+                .isDownload(isDownload)
+                .build();
     }
 }

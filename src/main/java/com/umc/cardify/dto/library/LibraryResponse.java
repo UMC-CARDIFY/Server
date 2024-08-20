@@ -63,6 +63,7 @@ public class LibraryResponse {
     @AllArgsConstructor
     @Schema(title = "Library_RES_05 : 다운로드 방식 조회 DTO")
     public static class CheckDownloadDTO {
+        Long folderId;
         Long noteId;
         String isDownload;
     }
