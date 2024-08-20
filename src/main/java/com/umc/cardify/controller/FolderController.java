@@ -24,19 +24,8 @@ public class FolderController {
     private final NoteComponentService noteComponentService;
     private final JwtUtil jwtUtil;
 
-    @GetMapping
-    @Operation(summary = "폴더 목록 조회 API", description = "조회 성공 시, 해당 유저의 폴더 목록 반환 | page, size는 수정 가능")
-    public ResponseEntity<FolderResponse.FolderListDTO> getAllFolders(
-            @RequestHeader("Authorization") String token,
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size) {
-        Long userId = jwtUtil.extractUserId(token);
-        FolderResponse.FolderListDTO folders = folderService.getFoldersByUserId(userId, page, size);
-        return ResponseEntity.ok(folders);
-    }
-
     @GetMapping("/sort-filter")
-    @Operation(summary = "폴더 정렬과 필터링 기능 API", description = "성공 시 해당 유저의 폴더를 정렬 혹은 필터링해서 반환 | 정렬 order = asc, desc, edit-newest, edit-oldest | 필터링 쉼표로 구분된 색상 문자열 입력")
+    @Operation(summary = "폴더 정렬과 필터링 기능 API", description = "성공 시 해당 유저의 폴더를 정렬 혹은 필터링해서 반환, 아무것도 입력 안하면 일반 조회 기능 | 정렬 order = asc, desc, edit-newest, edit-oldest | 필터링 쉼표로 구분된 색상 문자열 입력")
     public ResponseEntity<FolderResponse.FolderListDTO> foldersBySortFilter(
             @RequestHeader("Authorization") String token,
             @RequestParam(required = false)  Integer page,
@@ -47,9 +36,9 @@ public class FolderController {
         FolderResponse.FolderListDTO folders = folderService.getFoldersBySortFilter(userId, page, size, order, color);
         return ResponseEntity.ok(folders);
     }
-/*
+
     @GetMapping("/notes/sort-filter")
-    @Operation(summary = "노트 정렬과 필터링 기능 API", description = "성공 시 해당 유저의 전체 노트를 정렬해서 반환(폴더 상관없이 전체 노트 정렬) | order = asc, desc, edit-newest, edit-oldest | 쉼표로 구분된 색상 문자열 입력")
+    @Operation(summary = "노트 정렬과 필터링 기능 API", description = "성공 시 해당 유저의 전체 노트를 정렬해서 반환, 아무것도 입력 안하면 일반 조회 기능 | order = asc, desc, edit-newest, edit-oldest | 쉼표로 구분된 색상 문자열 입력")
     public ResponseEntity<NoteResponse.NoteListDTO> notesBySortFilter(
             @RequestHeader("Authorization") String token,
             @RequestParam(required = false)  Integer page,
@@ -58,17 +47,6 @@ public class FolderController {
             @RequestParam(required = false) String color){
         Long userId = jwtUtil.extractUserId(token);
         NoteResponse.NoteListDTO notes = noteComponentService.getNotesBySortFilter(userId, page, size, order, color);
-        return ResponseEntity.ok(notes);
-    }
-*/
-    @GetMapping("/notes")
-    @Operation(summary = "노트 목록 조회 API", description = "조회 성공 시, 해당 유저의 노트 목록 반환(폴더 상관없이 전체 노트) | 페이징 제한 없음")
-    public ResponseEntity<NoteResponse.NoteListDTO> getAllNotes(
-            @RequestHeader("Authorization") String token,
-            @RequestParam(required = false)  Integer page,
-            @RequestParam(required = false)  Integer size) {
-        Long userId = jwtUtil.extractUserId(token);
-        NoteResponse.NoteListDTO notes = noteComponentService.getNotesByUserId(userId, page, size);
         return ResponseEntity.ok(notes);
     }
 
