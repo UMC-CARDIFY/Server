@@ -69,7 +69,7 @@ public class NoteComponentService {
 
 	public NoteResponse.NoteListDTO getNotesByUserId(Long userId, Integer page, Integer size) {
 		User user = userRepository.findById(userId)
-				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+			.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
 		int getNotePage = (page != null) ? page : 0;
 		int getNoteSize = (size != null) ? size : Integer.MAX_VALUE;
@@ -82,24 +82,24 @@ public class NoteComponentService {
 		}
 
 		List<NoteResponse.NoteInfoDTO> notes = notePage.getContent()
-				.stream()
-				.map(noteConverter::toNoteInfoDTO)
-				.collect(Collectors.toList());
+			.stream()
+			.map(noteConverter::toNoteInfoDTO)
+			.collect(Collectors.toList());
 
 		return NoteResponse.NoteListDTO.builder()
-				.noteList(notes)
-				.listsize(notePage.getSize())
-				.currentPage(notePage.getNumber() + 1)
-				.totalPage(notePage.getTotalPages())
-				.totalElements(notePage.getTotalElements())
-				.isFirst(notePage.isFirst())
-				.isLast(notePage.isLast())
-				.build();
+			.noteList(notes)
+			.listsize(notePage.getSize())
+			.currentPage(notePage.getNumber() + 1)
+			.totalPage(notePage.getTotalPages())
+			.totalElements(notePage.getTotalElements())
+			.isFirst(notePage.isFirst())
+			.isLast(notePage.isLast())
+			.build();
 	}
 
 	public Boolean deleteNote(Long noteId, Long userId) {
 		Note note_del = noteRepository.findById(noteId)
-				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+			.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
 		if (!userId.equals(note_del.getFolder().getUser().getUserId()))
 			throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
 		else {
@@ -110,7 +110,7 @@ public class NoteComponentService {
 
 	@Transactional
 	public NoteResponse.GetNoteToFolderResultDTO getNoteToFolder(Folder folder,
-																 NoteRequest.GetNoteToFolderDto request) {
+		NoteRequest.GetNoteToFolderDto request) {
 		Pageable pageable;
 
 		Integer page = request.getPage();
@@ -129,13 +129,13 @@ public class NoteComponentService {
 			case "asc" -> PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.asc("name")));
 			case "desc" -> PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.desc("name")));
 			case "edit-newest" ->
-					PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.desc("editDate")));
+				PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.desc("editDate")));
 			case "edit-oldest" ->
-					PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.asc("editDate")));
+				PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.asc("editDate")));
 			case "create-newest" ->
-					PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.desc("createdAt")));
+				PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.desc("createdAt")));
 			case "create-oldest" ->
-					PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.asc("createdAt")));
+				PageRequest.of(page, size, Sort.by(Sort.Order.asc("markAt"), Sort.Order.asc("createdAt")));
 			default -> throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
 		};
 		Page<Note> notes_all = noteRepository.findByFolder(folder, pageable);
@@ -146,7 +146,7 @@ public class NoteComponentService {
 
 	public Boolean markNote(Long noteId, Boolean isMark, Long userId) {
 		Note note_mark = noteRepository.findById(noteId)
-				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+			.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
 		if (!userId.equals(note_mark.getFolder().getUser().getUserId()))
 			throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
 		else {
@@ -220,12 +220,12 @@ public class NoteComponentService {
 			return null;
 
 		List<Note> notes = noteRepository.findByFolder(folder)
-				.stream()
-				.filter(note -> note.getName().contains(search) | note.getTotalText().contains(search))
-				.toList();
+			.stream()
+			.filter(note -> note.getName().contains(search) | note.getTotalText().contains(search))
+			.toList();
 		List<NoteResponse.SearchNoteResDTO> searchList = notes.stream()
-				.map(list -> noteConverter.toSearchNoteResult(list, search))
-				.collect(Collectors.toList());
+			.map(list -> noteConverter.toSearchNoteResult(list, search))
+			.collect(Collectors.toList());
 
 		return searchList;
 	}
@@ -258,9 +258,9 @@ public class NoteComponentService {
 			throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
 		if (categoryList != null) {
 			categoryList.stream()
-					.map(category -> libraryCategoryRepository.save(
-							LibraryCategory.builder().category(category).library(library_new).build()))
-					.toList();
+				.map(category -> libraryCategoryRepository.save(
+					LibraryCategory.builder().category(category).library(library_new).build()))
+				.toList();
 		}
 
 		noteRepository.save(note);
@@ -283,7 +283,7 @@ public class NoteComponentService {
 
 	public NoteResponse.getNoteDTO getNote(Long noteId) {
 		Note note = noteRepository.findById(noteId)
-				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+			.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
 		//노트 조회 시간 갱신
 		note.setViewAt(LocalDateTime.now());
 		noteRepository.save(note);
@@ -291,26 +291,26 @@ public class NoteComponentService {
 		//노트 내용 반환
 		List<NoteResponse.getNoteCardDTO> cardDTO = note.getCards().stream().map(card -> {
 			return NoteResponse.getNoteCardDTO.builder()
-					.cardId(card.getCardId())
-					.cardName(note.getName())
-					.contentsFront(card.getContentsFront())
-					.contentsBack(card.getContentsBack())
-					.build();
+				.cardId(card.getCardId())
+				.cardName(note.getName())
+				.contentsFront(card.getContentsFront())
+				.contentsBack(card.getContentsBack())
+				.build();
 		}).toList();
 
 		return NoteResponse.getNoteDTO.builder()
-				.noteId(note.getNoteId())
-				.noteName(note.getName())
-				.markState(note.getMarkState().equals(MarkStatus.ACTIVE))
-				.noteContent(note.getContents())
-				.cardList(cardDTO)
-				.build();
+			.noteId(note.getNoteId())
+			.noteName(note.getName())
+			.markState(note.getMarkState().equals(MarkStatus.ACTIVE))
+			.noteContent(note.getContents())
+			.cardList(cardDTO)
+			.build();
 	}
 
 	@Transactional(readOnly = true)
 	public NoteResponse.NoteListDTO filterColorsNotes(Long userId, Integer page, Integer size, String colors) {
 		User user = userRepository.findById(userId)
-				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+			.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
 		int filterNotePage = (page != null) ? page : 0;
 		int filterNoteSize = (size != null) ? size : Integer.MAX_VALUE;
@@ -329,25 +329,25 @@ public class NoteComponentService {
 		}
 
 		List<NoteResponse.NoteInfoDTO> notes = notePage.getContent()
-				.stream()
-				.map(noteConverter::toNoteInfoDTO)
-				.collect(Collectors.toList());
+			.stream()
+			.map(noteConverter::toNoteInfoDTO)
+			.collect(Collectors.toList());
 
 		return NoteResponse.NoteListDTO.builder()
-				.noteList(notes)
-				.listsize(filterNoteSize)
-				.currentPage(filterNotePage + 1)
-				.totalPage(notePage.getTotalPages())
-				.totalElements(notePage.getTotalElements())
-				.isFirst(notePage.isFirst())
-				.isLast(notePage.isLast())
-				.build();
+			.noteList(notes)
+			.listsize(filterNoteSize)
+			.currentPage(filterNotePage + 1)
+			.totalPage(notePage.getTotalPages())
+			.totalElements(notePage.getTotalElements())
+			.isFirst(notePage.isFirst())
+			.isLast(notePage.isLast())
+			.build();
 	}
 
 	@Transactional
 	public NoteResponse.NoteListDTO sortNotesByUserId(Long userId, Integer page, Integer size, String order) {
 		User user = userRepository.findById(userId)
-				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+			.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
 		int sortNotePage = (page != null) ? page : 0;
 		int sortNoteSize = (size != null) ? size : Integer.MAX_VALUE;
@@ -370,29 +370,27 @@ public class NoteComponentService {
 		}
 
 		List<NoteResponse.NoteInfoDTO> notes = notePage.getContent()
-				.stream()
-				.map(noteConverter::toNoteInfoDTO)
-				.collect(Collectors.toList());
+			.stream()
+			.map(noteConverter::toNoteInfoDTO)
+			.collect(Collectors.toList());
 
 		return NoteResponse.NoteListDTO.builder()
-				.noteList(notes)
-				.listsize(sortNoteSize)
-				.currentPage(sortNotePage + 1)
-				.totalPage(notePage.getTotalPages())
-				.totalElements(notePage.getTotalElements())
-				.isFirst(notePage.isFirst())
-				.isLast(notePage.isLast())
-				.build();
+			.noteList(notes)
+			.listsize(sortNoteSize)
+			.currentPage(sortNotePage + 1)
+			.totalPage(notePage.getTotalPages())
+			.totalElements(notePage.getTotalElements())
+			.isFirst(notePage.isFirst())
+			.isLast(notePage.isLast())
+			.build();
 	}
 
 	public List<NoteResponse.NoteInfoDTO> getRecentNotes(Long userId, int page, Integer size) {
 		User user = userRepository.findById(userId)
-				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+			.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 		int recentNoteSize = (size != null) ? size : 5;
 		Pageable pageable = PageRequest.of(page, recentNoteSize);
-		Page<Note> notes = noteRepository.findByUserOrderByViewAtDesc(user,pageable);
-		return notes.stream()
-				.map(noteConverter::recentNoteInfoDTO)
-				.collect(Collectors.toList());
+		Page<Note> notes = noteRepository.findByUserOrderByViewAtDesc(user, pageable);
+		return notes.stream().map(noteConverter::recentNoteInfoDTO).collect(Collectors.toList());
 	}
 }

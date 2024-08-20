@@ -29,5 +29,5 @@ public interface FolderRepository extends JpaRepository<Folder, Long> {
             "CASE WHEN f.markState = 'ACTIVE' THEN 0 ELSE 1 END, " +
             "CASE WHEN f.markState = 'ACTIVE' THEN f.markDate END ASC, " +
             "CASE WHEN f.markState != 'ACTIVE' THEN f.createdAt END DESC")
-    Page<Folder> findByUserAndColor(@Param("user") User user, @Param("color") List<String> color, Pageable pageable);
+    List<Folder> findByUserAndColor(@Param("user") User user, @Param("color") List<String> color);
 }
