@@ -14,4 +14,5 @@ public interface StudyCardSetRepository extends JpaRepository<StudyCardSet, Long
 	Optional<StudyCardSet> findByNote(Note note);
 
 	Page<StudyCardSet> findByUserUserId(Long userId, Pageable pageable);
+
 }

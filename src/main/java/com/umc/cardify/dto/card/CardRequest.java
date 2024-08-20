@@ -1,10 +1,11 @@
 package com.umc.cardify.dto.card;
 
+import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.util.List;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -50,7 +51,6 @@ public class CardRequest {
 		private Long height;
 	}
 
-
 	@Getter
 	@Schema(title = "CARD_REQ_03 : 학습 카드 난이도 전달 DTO")
 	public static class difficulty {
@@ -67,4 +67,5 @@ public class CardRequest {
 		private int cardType;
 
 	}
+
 }
