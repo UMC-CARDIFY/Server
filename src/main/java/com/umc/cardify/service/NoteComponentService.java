@@ -67,36 +67,6 @@ public class NoteComponentService {
 		}
 	}
 
-	public NoteResponse.NoteListDTO getNotesByUserId(Long userId, Integer page, Integer size) {
-		User user = userRepository.findById(userId)
-			.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
-
-		int getNotePage = (page != null) ? page : 0;
-		int getNoteSize = (size != null) ? size : Integer.MAX_VALUE;
-
-		Pageable pageable = PageRequest.of(getNotePage, getNoteSize);
-		Page<Note> notePage = noteRepository.findByUser(user, pageable);
-
-		if (notePage == null) {
-			throw new DatabaseException(ErrorResponseStatus.NOT_EXIST_NOTE);
-		}
-
-		List<NoteResponse.NoteInfoDTO> notes = notePage.getContent()
-			.stream()
-			.map(noteConverter::toNoteInfoDTO)
-			.collect(Collectors.toList());
-
-		return NoteResponse.NoteListDTO.builder()
-			.noteList(notes)
-			.listsize(notePage.getSize())
-			.currentPage(notePage.getNumber() + 1)
-			.totalPage(notePage.getTotalPages())
-			.totalElements(notePage.getTotalElements())
-			.isFirst(notePage.isFirst())
-			.isLast(notePage.isLast())
-			.build();
-	}
-
 	public Boolean deleteNote(Long noteId, Long userId) {
 		Note note_del = noteRepository.findById(noteId)
 			.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
@@ -307,84 +277,6 @@ public class NoteComponentService {
 			.build();
 	}
 
-	@Transactional(readOnly = true)
-	public NoteResponse.NoteListDTO filterColorsNotes(Long userId, Integer page, Integer size, String colors) {
-		User user = userRepository.findById(userId)
-			.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
-
-		int filterNotePage = (page != null) ? page : 0;
-		int filterNoteSize = (size != null) ? size : Integer.MAX_VALUE;
-
-		if (colors == null || colors.isEmpty()) {
-			throw new DatabaseException(ErrorResponseStatus.NOT_EXIST_NOTE);
-		}
-
-		List<String> colorList = Arrays.asList(colors.split(","));
-
-		Pageable pageable = PageRequest.of(filterNotePage, filterNoteSize);
-		Page<Note> notePage = noteRepository.findByNoteIdAndUser(user, colorList, pageable);
-
-		if (notePage.isEmpty()) {
-			throw new DatabaseException(ErrorResponseStatus.NOT_EXIST_NOTE);
-		}
-
-		List<NoteResponse.NoteInfoDTO> notes = notePage.getContent()
-			.stream()
-			.map(noteConverter::toNoteInfoDTO)
-			.collect(Collectors.toList());
-
-		return NoteResponse.NoteListDTO.builder()
-			.noteList(notes)
-			.listsize(filterNoteSize)
-			.currentPage(filterNotePage + 1)
-			.totalPage(notePage.getTotalPages())
-			.totalElements(notePage.getTotalElements())
-			.isFirst(notePage.isFirst())
-			.isLast(notePage.isLast())
-			.build();
-	}
-
-	@Transactional
-	public NoteResponse.NoteListDTO sortNotesByUserId(Long userId, Integer page, Integer size, String order) {
-		User user = userRepository.findById(userId)
-			.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
-
-		int sortNotePage = (page != null) ? page : 0;
-		int sortNoteSize = (size != null) ? size : Integer.MAX_VALUE;
-
-		Pageable pageable = PageRequest.of(sortNotePage, sortNoteSize);
-		Page<Note> notePage = noteRepository.findByUserAndSort(user, order, pageable);
-
-		switch (order) {
-			case "asc":
-			case "desc":
-			case "edit-newest":
-			case "edit-oldest":
-				break;
-			default:
-				throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
-		}
-
-		if (notePage.isEmpty()) {
-			throw new DatabaseException(ErrorResponseStatus.NOT_EXIST_NOTE);
-		}
-
-		List<NoteResponse.NoteInfoDTO> notes = notePage.getContent()
-			.stream()
-			.map(noteConverter::toNoteInfoDTO)
-			.collect(Collectors.toList());
-
-		return NoteResponse.NoteListDTO.builder()
-			.noteList(notes)
-			.listsize(sortNoteSize)
-			.currentPage(sortNotePage + 1)
-			.totalPage(notePage.getTotalPages())
-			.totalElements(notePage.getTotalElements())
-			.isFirst(notePage.isFirst())
-			.isLast(notePage.isLast())
-			.build();
-	}
-
 	public List<NoteResponse.NoteInfoDTO> getRecentNotes(Long userId, int page, Integer size) {
 		User user = userRepository.findById(userId)
 			.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
@@ -392,5 +284,67 @@ public class NoteComponentService {
 		Pageable pageable = PageRequest.of(page, recentNoteSize);
 		Page<Note> notes = noteRepository.findByUserOrderByViewAtDesc(user, pageable);
 		return notes.stream().map(noteConverter::recentNoteInfoDTO).collect(Collectors.toList());
+	}
+
+	// 노트 조회, 정렬, 필터링 통합 Service
+	public NoteResponse.NoteListDTO getNotesBySortFilter(Long userId, Integer page, Integer size, String order, String color) {
+		User user = userRepository.findById(userId)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+
+		int getNotePage = (page != null) ? page : 0;
+		int getNoteSize = (size != null) ? size : Integer.MAX_VALUE;
+		Pageable pageable = PageRequest.of(getNotePage, getNoteSize);
+
+		// 잘못된 order 파라미터 처리
+		if (order != null && !order.isEmpty()) {
+			if (!Arrays.asList("asc", "desc", "edit-newest", "edit-oldest").contains(order)) {
+				throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+			}
+		}
+
+		Page<Note> notePage;
+		// color 파라미터 주어질 때와 아닐때, order가 같이 주어질 때
+		if (color != null && !color.isEmpty()) {
+			List<String> colorList = Arrays.asList(color.split(","));
+
+			// cardify 규격 색상, 잘못 입력하면 error처리
+			List<String> allowedColors = Arrays.asList("blue", "ocean", "lavender", "mint", "sage", "gray", "orange", "coral", "rose", "plum");
+
+			for (String c : colorList) {
+				if (!allowedColors.contains(c)) {
+					throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+				}
+			}
+
+			if (order != null && !order.isEmpty()) {
+				notePage = noteRepository.findByUserColorAndSort(user, colorList, order, pageable);
+			} else {
+				notePage = noteRepository.findByNoteIdAndUser(user, colorList, pageable);
+			}
+		}
+		else if (order != null && !order.isEmpty()) {
+			notePage = noteRepository.findByUserAndSort(user, order, pageable);
+		}
+		else {
+			notePage = noteRepository.findByUser(user, pageable);
+		}
+
+		if (notePage.isEmpty()) {
+			throw new DatabaseException(ErrorResponseStatus.NOT_EXIST_NOTE);
+		}
+
+		List<NoteResponse.NoteInfoDTO> notes = notePage.getContent().stream()
+				.map(noteConverter::toNoteInfoDTO)
+				.collect(Collectors.toList());
+
+		return NoteResponse.NoteListDTO.builder()
+				.noteList(notes)
+				.listsize(getNoteSize)
+				.currentPage(getNotePage + 1)
+				.totalPage(notePage.getTotalPages())
+				.totalElements(notePage.getTotalElements())
+				.isFirst(notePage.isFirst())
+				.isLast(notePage.isLast())
+				.build();
 	}
 }
