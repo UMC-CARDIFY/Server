@@ -99,19 +99,22 @@ public class FolderService {
         int folderPage = (page != null) ? page : 0;
         int folderSize = (size != null) ? size : Integer.MAX_VALUE;
 
+        //색상 필터링
         List<Folder> filteredFolders = filterFoldersByColor(user, color);
 
+        //이름,수정일 정렬
         List<Folder> sortedFolders = sortFolders(filteredFolders, order);
 
-        List<Folder> pagedFolders = paginateFolders(sortedFolders, folderPage, folderSize);
+        //페이징 처리
+        List<Folder> pagedFolders = pagingFolders(sortedFolders, folderPage, folderSize);
 
-        List<FolderResponse.FolderInfoDTO> folderInfoDTOS = convertToFolderInfoDTOs(pagedFolders);
+        List<FolderResponse.FolderInfoDTO> foldersInfo = convertToFolderInfoDTOs(pagedFolders);
 
         int totalElements = sortedFolders.size();
         int totalPages = (totalElements + folderSize - 1) / folderSize;
 
         return FolderResponse.FolderListDTO.builder()
-                .foldersList(folderInfoDTOS)
+                .foldersList(foldersInfo)
                 .listSize(pagedFolders.size())
                 .currentPage(folderPage + 1)
                 .totalPages(totalPages)
@@ -140,7 +143,7 @@ public class FolderService {
                 .collect(Collectors.toList());
     }
 
-    private List<Folder> paginateFolders(List<Folder> folders, int page, int size) {
+    private List<Folder> pagingFolders(List<Folder> folders, int page, int size) {
         int start = page * size;
         int end = Math.min((page + 1) * size, folders.size());
         return folders.subList(start, end);
@@ -155,7 +158,7 @@ public class FolderService {
                     if (latestNoteEditDate != null) {
                         if (folder.getEditDate() == null || latestNoteEditDate.after(folder.getEditDate())) {
                             folder.setEditDate(latestNoteEditDate);
-                            folderRepository.save(folder);
+                            folderRepository.save(folder); //비교해서 가장 최신 수정일로 저장함
                         }
                     }
 
