@@ -35,15 +35,16 @@ public class FolderController {
         return ResponseEntity.ok(folders);
     }
 
-    @GetMapping("/sort")
-    @Operation(summary = "폴더 정렬 기능 API", description = "성공 시 해당 유저의 폴더를 정렬해서 반환 | order = asc, desc, edit-newest, edit-oldest")
-    public ResponseEntity<FolderResponse.FolderListDTO> sortFolders(
+    @GetMapping("/sort-filter")
+    @Operation(summary = "폴더 정렬과 필터링 기능 API", description = "성공 시 해당 유저의 폴더를 정렬 혹은 필터링해서 반환 | 정렬 order = asc, desc, edit-newest, edit-oldest | 필터링 쉼표로 구분된 색상 문자열 입력")
+    public ResponseEntity<FolderResponse.FolderListDTO> getFoldersBySortFilter(
             @RequestHeader("Authorization") String token,
             @RequestParam(required = false)  Integer page,
             @RequestParam(required = false)  Integer size,
-            @RequestParam String order){
+            @RequestParam(required = false) String order,
+            @RequestParam(required = false) String color){
         Long userId = jwtUtil.extractUserId(token);
-        FolderResponse.FolderListDTO folders = folderService.sortFoldersByUserId(userId, page, size, order);
+        FolderResponse.FolderListDTO folders = folderService.getFoldersBySortFilter(userId, page, size, order, color);
         return ResponseEntity.ok(folders);
     }
 
@@ -112,18 +113,6 @@ public class FolderController {
         Long userId = jwtUtil.extractUserId(token);
         FolderResponse.markFolderResultDTO response = folderService.markFolderById(userId, folderId);
         return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/filter")
-    @Operation(summary = "폴더 필터링 기능 API", description = "해당 유저의 폴더를 색상으로 필터링하여 반환 | 쉼표로 구분된 색상 문자열 입력")
-    public ResponseEntity<FolderResponse.FolderListDTO> filterFolders(
-            @RequestHeader("Authorization") String token,
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size,
-            @RequestParam String color) {
-        Long userId = jwtUtil.extractUserId(token);
-        FolderResponse.FolderListDTO folders = folderService.filterColorsByUserId(userId, page, size, color);
-        return ResponseEntity.ok(folders);
     }
 
     @GetMapping("/notes/filter")
