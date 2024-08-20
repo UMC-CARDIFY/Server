@@ -12,6 +12,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -139,6 +140,14 @@ public class CardController {
 		List<CardResponse.getStudySuggestion> suggestions = cardComponentService.suggestionAnalyzeStudy(userId, date);
 
 		return ResponseEntity.ok(suggestions);
+	}
+
+	@DeleteMapping("{studyCardSetId}")
+	@Operation(summary = "학습 카드셋 삭제")
+	public ResponseEntity<?> deleteStudyCardSet(@PathVariable Long studyCardSetId){
+		cardComponentService.deleteStudyCardSet(studyCardSetId);
+
+		return ResponseEntity.ok().build();
 	}
 
 }

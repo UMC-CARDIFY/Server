@@ -3,7 +3,6 @@ package com.umc.cardify.service;
 import static com.umc.cardify.config.exception.ErrorResponseStatus.*;
 
 import java.sql.Timestamp;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -49,8 +48,16 @@ public class CardComponentService {
 	private final OverlayRepository overlayRepository;
 	private final StudyCardSetRepository studyCardSetRepository;
 	private final StudyLogRepository studyLogRepository;
+	@Transactional
+	public void deleteStudyCardSet(Long studyCardSetId) {
+		StudyCardSet studyCardSet = cardModuleService.getStudyCardSetById(studyCardSetId);
+		cardModuleService.deleteCardSet(studyCardSetId);
+		noteModuleService.deleteNoteById(studyCardSet.getNote().getNoteId());
 
-	public List<CardResponse.getStudySuggestion> suggestionAnalyzeStudy(Long userId, Timestamp date){
+	}
+
+	@Transactional
+	public List<CardResponse.getStudySuggestion> suggestionAnalyzeStudy(Long userId, Timestamp date) {
 		List<Card> cards = cardModuleService.findAllByUserIdAndLearnNextTimeAfter(userId, date);
 
 		// 조회된 카드를 CardResponse.getStudySuggestion DTO로 변환
@@ -62,7 +69,6 @@ public class CardComponentService {
 				.build())
 			.collect(Collectors.toList());
 	}
-
 
 	@Transactional
 	public String addImageCard(MultipartFile image, CardRequest.addImageCard request) {
@@ -194,7 +200,7 @@ public class CardComponentService {
 		int totalCards = allCards.size();
 		Pageable pageable = PageRequest.of(pageNumber, 1);
 
-		int start = (int) pageable.getOffset();
+		int start = (int)pageable.getOffset();
 		int end = Math.min((start + pageable.getPageSize()), totalCards);
 
 		List<Object> pagedCards = allCards.subList(start, end);
@@ -223,6 +229,7 @@ public class CardComponentService {
 			.cardId(card.getCardId())
 			.noteId(studyCardSet.getNote().getNoteId())
 			.folderId(studyCardSet.getFolder().getFolderId())
+			.cardType("word")
 			.build();
 	}
 
@@ -235,9 +242,9 @@ public class CardComponentService {
 			.imageCardId(imageCard.getId())
 			.noteId(studyCardSet.getNote().getNoteId())
 			.folderId(studyCardSet.getFolder().getFolderId())
+			.cardType("image")
 			.build();
 	}
-
 
 	private List<CardRequest.addImageCardOverlay> convertOverlays(List<Overlay> overlays) {
 		List<CardRequest.addImageCardOverlay> overlayDtos = new ArrayList<>();
