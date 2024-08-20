@@ -62,6 +62,8 @@ dependencies {
 
     implementation 'org.json:json:20230227'
 
+    // Apache Commons Validator 의존성 추가
+    implementation 'commons-validator:commons-validator:1.7'
 
 }
 
