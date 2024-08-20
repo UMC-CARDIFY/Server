@@ -1,7 +1,6 @@
 package com.umc.cardify.service;
 
 import com.umc.cardify.config.exception.BadRequestException;
-import com.umc.cardify.config.exception.DatabaseException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.domain.Folder;
 import com.umc.cardify.domain.Note;
@@ -14,6 +13,7 @@ import com.umc.cardify.repository.FolderRepository;
 import com.umc.cardify.repository.NoteRepository;
 import com.umc.cardify.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class FolderService {
@@ -91,35 +92,62 @@ public class FolderService {
     }
 
     @Transactional
-    public FolderResponse.FolderListDTO sortFoldersByUserId(Long userId, Integer page, Integer size, String order){
+    public FolderResponse.FolderListDTO getFoldersBySortFilter(Long userId, Integer page, Integer size, String order, String color){
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
-        int sortFolderPage = (page != null) ? page : 0;
-        int sortFolderSize = (size != null) ? size : Integer.MAX_VALUE;
+        int folderPage = (page != null) ? page : 0;
+        int folderSize = (size != null) ? size : Integer.MAX_VALUE;
 
-        switch (order) {
-            case "asc":
-            case "desc":
-            case "edit-newest":
-            case "edit-oldest":
-                break;
-            default:
-                throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+        List<Folder> filteredFolders = filterFoldersByColor(user, color);
+
+        List<Folder> sortedFolders = sortFolders(filteredFolders, order);
+
+        List<Folder> pagedFolders = paginateFolders(sortedFolders, folderPage, folderSize);
+
+        List<FolderResponse.FolderInfoDTO> folderInfoDTOS = convertToFolderInfoDTOs(pagedFolders);
+
+        int totalElements = sortedFolders.size();
+        int totalPages = (totalElements + folderSize - 1) / folderSize;
+
+        return FolderResponse.FolderListDTO.builder()
+                .foldersList(folderInfoDTOS)
+                .listSize(pagedFolders.size())
+                .currentPage(folderPage + 1)
+                .totalPages(totalPages)
+                .totalElements(totalElements)
+                .isFirst(folderPage == 0)
+                .isLast(folderPage == totalPages - 1)
+                .build();
+    }
+    private List<Folder> filterFoldersByColor(User user, String colors) {
+        if (colors == null || colors.isEmpty()) {
+            return folderRepository.findByUser(user);
         }
 
-        List<Folder> allFolders = folderRepository.findByUser(user);
+        List<String> colorList = Arrays.asList(colors.split(","));
+        return folderRepository.findByUserAndColor(user, colorList);
+    }
 
-        List<Folder> sortedFolders = allFolders.stream()
+    private List<Folder> sortFolders(List<Folder> folders, String order) {
+        if (order == null || order.isEmpty()) {
+            return folders;
+        }
+
+        return folders.stream()
                 .sorted(new FolderComparator(order)
                         .thenComparing(Folder::getFolderId))
                 .collect(Collectors.toList());
+    }
 
-        int start = sortFolderPage * sortFolderSize;
-        int end = Math.min((sortFolderPage + 1) * sortFolderSize, sortedFolders.size());
-        List<Folder> pagedFolders = sortedFolders.subList(start, end);
+    private List<Folder> paginateFolders(List<Folder> folders, int page, int size) {
+        int start = page * size;
+        int end = Math.min((page + 1) * size, folders.size());
+        return folders.subList(start, end);
+    }
 
-        List<FolderResponse.FolderInfoDTO> folders = pagedFolders.stream()
+    private List<FolderResponse.FolderInfoDTO> convertToFolderInfoDTOs(List<Folder> folders) {
+        return folders.stream()
                 .map(folder -> {
                     Note latestNote = noteRepository.findTopByFolderOrderByEditDateDesc(folder);
                     Timestamp latestNoteEditDate = latestNote != null ? latestNote.getEditDate() : null;
@@ -140,21 +168,9 @@ public class FolderService {
                             .markDate(folder.getMarkDate())
                             .editDate(folder.getEditDate())
                             .createdAt(folder.getCreatedAt())
-                            .build();})
+                            .build();
+                })
                 .collect(Collectors.toList());
-
-        int totalElements = sortedFolders.size();
-        int totalPages = (totalElements + sortFolderSize - 1) / sortFolderSize;
-
-        return FolderResponse.FolderListDTO.builder()
-                .foldersList(folders)
-                .listSize(pagedFolders.size())
-                .currentPage(sortFolderPage + 1)
-                .totalPages(totalPages)
-                .totalElements(totalElements)
-                .isFirst(sortFolderPage == 0)
-                .isLast(sortFolderPage == totalPages - 1)
-                .build();
     }
 
     @Transactional
@@ -239,63 +255,6 @@ public class FolderService {
                 .markState(folder.getMarkState())
                 .isSuccess(true)
                 .markDate(folder.getMarkDate())
-                .build();
-    }
-
-    @Transactional
-    public FolderResponse.FolderListDTO filterColorsByUserId(Long userId, Integer page, Integer size, String colors) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
-
-        int filterPage = (page != null) ? page : 0;
-        int filterSize = (size != null) ? size : Integer.MAX_VALUE;
-
-        if (colors == null || colors.isEmpty()) {
-            throw new DatabaseException(ErrorResponseStatus.REQUEST_ERROR);
-        }
-
-        List<String> colorList = Arrays.asList(colors.split(","));
-
-        Pageable pageable = PageRequest.of(filterPage, filterSize);
-        Page<Folder> folderPage = folderRepository.findByUserAndColor(user, colorList, pageable);
-
-        if(folderPage.isEmpty()){
-            throw new DatabaseException(ErrorResponseStatus.NOT_EXIST_FOLDER);
-        }
-
-        List<FolderResponse.FolderInfoDTO> folders = folderPage.getContent().stream()
-                .map(folder -> {
-                    Note latestNote = noteRepository.findTopByFolderOrderByEditDateDesc(folder);
-                    Timestamp latestNoteEditDate = latestNote != null ? latestNote.getEditDate() : null;
-
-                    if (latestNoteEditDate != null) {
-                        if (folder.getEditDate() == null || latestNoteEditDate.after(folder.getEditDate())) {
-                            folder.setEditDate(latestNoteEditDate);
-                            folderRepository.save(folder); //비교해서 가장 최신 수정일로 저장함
-                        }
-                    }
-
-                    return FolderResponse.FolderInfoDTO.builder()
-                            .folderId(folder.getFolderId())
-                            .name(folder.getName())
-                            .color(folder.getColor())
-                            .markState(folder.getMarkState())
-                            .getNoteCount(folder.getNoteCount())
-                            .markDate(folder.getMarkDate())
-                            .editDate(folder.getEditDate())
-                            .createdAt(folder.getCreatedAt())
-                            .build();
-                })
-                .collect(Collectors.toList());
-
-        return FolderResponse.FolderListDTO.builder()
-                .foldersList(folders)
-                .listSize(folderPage.getSize())
-                .currentPage(folderPage.getNumber()+1)
-                .totalPages(folderPage.getTotalPages())
-                .totalElements(folderPage.getNumberOfElements())
-                .isFirst(folderPage.isFirst())
-                .isLast(folderPage.isLast())
                 .build();
     }
 }
