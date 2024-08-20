@@ -3,6 +3,8 @@ package com.umc.cardify.domain;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.umc.cardify.domain.enums.Difficulty;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -57,5 +59,13 @@ public class ImageCard extends BaseEntity {
 	public void addOverlay(Overlay overlay) {
 		overlays.add(overlay);
 		overlay.setImageCard(this);
+	}
+
+	public Difficulty getDifficulty() {
+		return Difficulty.fromValue(this.difficulty);
+	}
+
+	public void setDifficulty(int difficulty) {
+		this.difficulty = difficulty;
 	}
 }
