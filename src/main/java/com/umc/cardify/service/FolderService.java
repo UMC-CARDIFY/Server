@@ -38,59 +38,7 @@ public class FolderService {
         return folderRepository.findById(folderId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
     }
 
-    @Transactional
-    public FolderResponse.FolderListDTO getFoldersByUserId(Long userId, Integer page, Integer size){
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
-
-        // 폴더 page, size에 값을 입력하지 않으면, 자동으로 0과 최대값으로 고정
-        int getFolderPage = (page!=null) ? page:0;
-        int getFolderSize = (size!=null) ? size:Integer.MAX_VALUE;
-
-        Pageable pageable = PageRequest.of(getFolderPage, getFolderSize);
-        Page<Folder> folderPage = folderRepository.findByUser(user, pageable);
-
-        if(folderPage.isEmpty()){
-            throw new BadRequestException(ErrorResponseStatus.NOT_EXIST_FOLDER);
-        }
-
-
-        List<FolderResponse.FolderInfoDTO> folders = folderPage.getContent().stream()
-                .map(folder -> {
-                    Note latestNote = noteRepository.findTopByFolderOrderByEditDateDesc(folder);
-                    Timestamp latestNoteEditDate = latestNote != null ? latestNote.getEditDate() : null;
-
-                    if (latestNoteEditDate != null) {
-                        if (folder.getEditDate() == null || latestNoteEditDate.after(folder.getEditDate())) {
-                            folder.setEditDate(latestNoteEditDate);
-                            folderRepository.save(folder); //비교해서 가장 최신 수정일로 저장함
-                        }
-                    }
-
-                    return FolderResponse.FolderInfoDTO.builder()
-                            .folderId(folder.getFolderId())
-                            .name(folder.getName())
-                            .color(folder.getColor())
-                            .markState(folder.getMarkState())
-                            .getNoteCount(folder.getNoteCount())
-                            .markDate(folder.getMarkDate())
-                            .editDate(folder.getEditDate())
-                            .createdAt(folder.getCreatedAt())
-                            .build();
-                })
-                .collect(Collectors.toList());
-
-        return FolderResponse.FolderListDTO.builder()
-                .foldersList(folders)
-                .listSize(folderPage.getSize())
-                .currentPage(folderPage.getNumber()+1)
-                .totalPages(folderPage.getTotalPages())
-                .totalElements(folderPage.getNumberOfElements())
-                .isFirst(folderPage.isFirst())
-                .isLast(folderPage.isLast())
-                .build();
-    }
-
+    // 폴더 조회, 정렬, 필터링 Service
     @Transactional
     public FolderResponse.FolderListDTO getFoldersBySortFilter(Long userId, Integer page, Integer size, String order, String color){
         User user = userRepository.findById(userId)
@@ -98,6 +46,52 @@ public class FolderService {
 
         int folderPage = (page != null) ? page : 0;
         int folderSize = (size != null) ? size : Integer.MAX_VALUE;
+
+
+        // color와 order가 입력되지 않은 경우, 일반 조회 기능으로 실행
+        if ((color == null || color.isEmpty()) && (order == null || order.isEmpty())) {
+            Pageable pageable = PageRequest.of(folderPage, folderSize);
+            Page<Folder> folderPageResult = folderRepository.findByUser(user, pageable);
+
+            if (folderPageResult.isEmpty()) {
+                throw new BadRequestException(ErrorResponseStatus.NOT_EXIST_FOLDER);
+            }
+
+            List<FolderResponse.FolderInfoDTO> folders = folderPageResult.getContent().stream()
+                    .map(folder -> {
+                        Note latestNote = noteRepository.findTopByFolderOrderByEditDateDesc(folder);
+                        Timestamp latestNoteEditDate = latestNote != null ? latestNote.getEditDate() : null;
+
+                        if (latestNoteEditDate != null) {
+                            if (folder.getEditDate() == null || latestNoteEditDate.after(folder.getEditDate())) {
+                                folder.setEditDate(latestNoteEditDate);
+                                folderRepository.save(folder); //비교해서 가장 최신 수정일로 저장함
+                            }
+                        }
+
+                        return FolderResponse.FolderInfoDTO.builder()
+                                .folderId(folder.getFolderId())
+                                .name(folder.getName())
+                                .color(folder.getColor())
+                                .markState(folder.getMarkState())
+                                .getNoteCount(folder.getNoteCount())
+                                .markDate(folder.getMarkDate())
+                                .editDate(folder.getEditDate())
+                                .createdAt(folder.getCreatedAt())
+                                .build();
+                    })
+                    .collect(Collectors.toList());
+
+            return FolderResponse.FolderListDTO.builder()
+                    .foldersList(folders)
+                    .listSize(folderPageResult.getSize())
+                    .currentPage(folderPageResult.getNumber() + 1)
+                    .totalPages(folderPageResult.getTotalPages())
+                    .totalElements(folderPageResult.getNumberOfElements())
+                    .isFirst(folderPageResult.isFirst())
+                    .isLast(folderPageResult.isLast())
+                    .build();
+        }
 
         //색상 필터링
         List<Folder> filteredFolders = filterFoldersByColor(user, color);
@@ -108,6 +102,7 @@ public class FolderService {
         //페이징 처리
         List<Folder> pagedFolders = pagingFolders(sortedFolders, folderPage, folderSize);
 
+        //정렬 시, 반환 데이터
         List<FolderResponse.FolderInfoDTO> foldersInfo = convertToFolderInfoDTOs(pagedFolders);
 
         int totalElements = sortedFolders.size();
@@ -129,26 +124,33 @@ public class FolderService {
         }
 
         List<String> colorList = Arrays.asList(colors.split(","));
+        List<String> allowedColors = Arrays.asList("blue", "ocean", "lavender", "mint", "sage", "gray", "orange", "coral", "rose", "plum");
+
+        for (String c : colorList) {
+            if (!allowedColors.contains(c)) {
+                throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+            }
+        }
         return folderRepository.findByUserAndColor(user, colorList);
     }
-
     private List<Folder> sortFolders(List<Folder> folders, String order) {
         if (order == null || order.isEmpty()) {
             return folders;
         }
-
+        List<String> orderList = Arrays.asList("asc", "desc", "edit-newest", "edit-oldest");
+        if (!orderList.contains(order)) {
+            throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+        }
         return folders.stream()
                 .sorted(new FolderComparator(order)
                         .thenComparing(Folder::getFolderId))
                 .collect(Collectors.toList());
     }
-
     private List<Folder> pagingFolders(List<Folder> folders, int page, int size) {
         int start = page * size;
         int end = Math.min((page + 1) * size, folders.size());
         return folders.subList(start, end);
     }
-
     private List<FolderResponse.FolderInfoDTO> convertToFolderInfoDTOs(List<Folder> folders) {
         return folders.stream()
                 .map(folder -> {
