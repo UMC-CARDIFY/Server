@@ -148,6 +148,7 @@ public class CardComponentService {
 				.recentStudyDate(studyCardSet.getRecentStudyDate())
 				.nextStudyDate(studyCardSet.getNextStudyDate())
 				.studyCardSetId(studyCardSet.getId())
+				.markStatus(studyCardSet.getNote().getMarkState())
 				.build())
 			.collect(Collectors.toList());
 
