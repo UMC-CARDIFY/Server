@@ -159,16 +159,13 @@ public class CardComponentService {
 		StudyCardSet studyCardSet = cardModuleService.getStudyCardSetById(studyCardSetId);
 
 		List<Card> cards = cardModuleService.getCardsByStudyCardSet(studyCardSet);
-
 		List<ImageCard> imageCards = cardModuleService.getImageCardsByStudyCardSet(studyCardSet);
 
-		// 카드와 이미지 카드 모두를 리스트에 추가
 		List<Object> allCards = new ArrayList<>();
 		allCards.addAll(cards);
 		allCards.addAll(imageCards);
 		log.debug("All cards combined: {}", allCards);
 
-		// 생성일자 순으로 정렬
 		allCards.sort((a, b) -> {
 			LocalDateTime createdA = (a instanceof Card) ? ((Card)a).getCreatedAt() : ((ImageCard)a).getCreatedAt();
 			LocalDateTime createdB = (b instanceof Card) ? ((Card)b).getCreatedAt() : ((ImageCard)b).getCreatedAt();
@@ -176,11 +173,9 @@ public class CardComponentService {
 		});
 
 		int totalCards = allCards.size();
-
-		// 페이지당 1개의 카드만 보여주기 위해 PageRequest에서 size를 1로 설정
 		Pageable pageable = PageRequest.of(pageNumber, 1);
 
-		int start = (int)pageable.getOffset();
+		int start = (int) pageable.getOffset();
 		int end = Math.min((start + pageable.getPageSize()), totalCards);
 
 		List<Object> pagedCards = allCards.subList(start, end);
@@ -190,10 +185,10 @@ public class CardComponentService {
 		return cardsPage.map(card -> {
 			if (card instanceof Card wordCard) {
 				log.debug("Mapping WordCard: {}", wordCard.getCardId());
-				return mapToWordCardResponse(wordCard);
+				return mapToWordCardResponse(wordCard, studyCardSet);
 			} else if (card instanceof ImageCard imageCard) {
 				log.debug("Mapping ImageCard: {}", imageCard.getId());
-				return mapToImageCardResponse(imageCard);
+				return mapToImageCardResponse(imageCard, studyCardSet);
 			} else {
 				log.error("Unexpected card type encountered: {}", card.getClass().getName());
 				throw new IllegalStateException("Unexpected card type");
@@ -201,24 +196,29 @@ public class CardComponentService {
 		});
 	}
 
-	private CardResponse.getCardLists mapToWordCardResponse(Card card) {
+	private CardResponse.getCardLists mapToWordCardResponse(Card card, StudyCardSet studyCardSet) {
 		return CardResponse.getCardLists.builder()
 			.contentsFront(card.getContentsFront())
 			.contentsBack(card.getContentsBack())
 			.answer(card.getAnswer())
 			.cardId(card.getCardId())
+			.noteId(studyCardSet.getNote().getNoteId())
+			.folderId(studyCardSet.getFolder().getFolderId())
 			.build();
 	}
 
-	private CardResponse.getImageCard mapToImageCardResponse(ImageCard imageCard) {
+	private CardResponse.getImageCard mapToImageCardResponse(ImageCard imageCard, StudyCardSet studyCardSet) {
 		return CardResponse.getImageCard.builder()
 			.imgUrl(imageCard.getImageUrl())
 			.baseImageWidth(imageCard.getWidth())
 			.baseImageHeight(imageCard.getHeight())
 			.overlays(convertOverlays(imageCard.getOverlays()))
 			.imageCardId(imageCard.getId())
+			.noteId(studyCardSet.getNote().getNoteId())
+			.folderId(studyCardSet.getFolder().getFolderId())
 			.build();
 	}
+
 
 	private List<CardRequest.addImageCardOverlay> convertOverlays(List<Overlay> overlays) {
 		List<CardRequest.addImageCardOverlay> overlayDtos = new ArrayList<>();
@@ -233,15 +233,21 @@ public class CardComponentService {
 		return overlayDtos;
 	}
 
-	public void updateCardDifficulty(Long cardId, int difficulty) {
-		if (difficulty > 4 || difficulty < 1) {
+	public void updateCardDifficulty(CardRequest.difficulty request) {
+		if (request.getDifficulty() > 4 || request.getDifficulty() < 1) {
 			throw new BadRequestException(NOT_EXIST_DIFFICULTY_CODE);
 		}
 
-		Card card = cardModuleService.getCardById(cardId);
-		card.setDifficulty(difficulty);
+		if (request.getCardType() == 0) {
+			Card card = cardModuleService.getCardById(request.getCardId());
+			card.setDifficulty(request.getDifficulty());
+			cardModuleService.updateWordCardDifficulty(card);
+		} else {
+			ImageCard imageCard = cardModuleService.getImageCardById(request.getCardId());
+			imageCard.setDifficulty(request.getDifficulty());
+			cardModuleService.updateImageCardDifficulty(imageCard);
+		}
 
-		cardModuleService.updateCardDifficulty(card);
 	}
 
 	public CardResponse.cardStudyGraph viewStudyCardGraph(Long studyCardSetId) {

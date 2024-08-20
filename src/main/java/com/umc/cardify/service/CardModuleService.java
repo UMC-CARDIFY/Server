@@ -187,8 +187,17 @@ public class CardModuleService {
 			.orElseThrow(() -> new DatabaseException(NOT_FOUND_ERROR));
 	}
 
-	public void updateCardDifficulty(Card card) {
+	public ImageCard getImageCardById(Long imageCardId){
+		return imageCardRepository.findById(imageCardId)
+			.orElseThrow(() -> new DatabaseException((NOT_FOUND_ERROR)));
+	}
+
+	public void updateWordCardDifficulty(Card card) {
 		cardRepository.save(card);
+	}
+
+	public void updateImageCardDifficulty(ImageCard imageCard){
+		imageCardRepository.save(imageCard);
 	}
 
 	public void deleteAll(List<Card> cards) {
