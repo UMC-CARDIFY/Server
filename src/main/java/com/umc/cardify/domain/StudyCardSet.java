@@ -1,12 +1,14 @@
 package com.umc.cardify.domain;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
 
 import com.umc.cardify.domain.enums.StudyStatus;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -17,6 +19,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -66,6 +69,15 @@ public class StudyCardSet extends BaseEntity {
 
 	@Column(name = "next_study_date")
 	private LocalDateTime nextStudyDate;
+
+	@OneToMany(mappedBy = "studyCardSet", cascade = CascadeType.REMOVE)
+	private List<ImageCard> imageCards;
+
+	@OneToMany(mappedBy = "studyCardSet", cascade = CascadeType.REMOVE)
+	private List<Card> cards;
+
+	@OneToMany(mappedBy = "studyCardSet", cascade = CascadeType.REMOVE)
+	private List<StudyLog> studyLogs;
 
 	// 편의를 위해 엔티티 내부에서 정보 설정 메서드를 추가할 수 있음
 	public void setNoteInfo(Note note) {
