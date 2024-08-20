@@ -42,6 +42,9 @@ public class User extends BaseEntity {
     @ColumnDefault("true")
     private boolean notificationEnabled = true;
 
+    @Column(name = "refresh_token")
+    private String refreshToken;
+
     @ColumnDefault("5000")
     private Integer point;
 
@@ -53,12 +56,13 @@ public class User extends BaseEntity {
 
 
     @Builder
-    public User(String name, String email, String password, boolean kakao, String profileImage, boolean notificationEnabled) {
+    public User(String name, String email, String password, boolean kakao, String profileImage, boolean notificationEnabled, String refreshToken) {
         this.name = name;
         this.email = email;
         this.password = password;
         this.kakao = kakao;
         this.profileImage = profileImage;
         this.notificationEnabled = notificationEnabled;
+        this.refreshToken = refreshToken;
     }
 }

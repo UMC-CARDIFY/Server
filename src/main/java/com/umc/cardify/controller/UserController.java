@@ -67,6 +67,21 @@ public class UserController {
         return ResponseEntity.ok(tokenInfo);
     }
 
+    // 로그아웃
+    @PostMapping("/logout")
+    @Operation(summary = "로그아웃 API")
+    @ApiResponse(responseCode = "200", description = "로그아웃 성공")
+    @ApiResponse(responseCode = "400", description = "잘못된 요청", content = @io.swagger.v3.oas.annotations.media.Content(mediaType = "application/json"))
+    public ResponseEntity<UserResponse.LogoutResponse> logout(@RequestHeader("Authorization") String token) {
+        try {
+            Long userId = jwtUtil.extractUserId(token);
+            userService.logout(userId);
+            return ResponseEntity.ok(new UserResponse.LogoutResponse("로그아웃 되었습니다.", true));
+        } catch (BadRequestException e) {
+            return ResponseEntity.badRequest().body(new UserResponse.LogoutResponse(e.getMessage(), false));
+        }
+    }
+
     // 마이페이지 조회
     @GetMapping("/mypage")
     @Operation(summary = "마이페이지 정보 조회 API")

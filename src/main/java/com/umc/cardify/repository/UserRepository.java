@@ -1,6 +1,8 @@
 package com.umc.cardify.repository;
 
 import com.umc.cardify.domain.User;
+import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

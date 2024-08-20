@@ -69,6 +69,22 @@ public class UserService {
         return jwtUtil.generateTokens(user.getUserId());
     }
 
+    // 로그아웃
+    @Transactional
+    public void logout(Long userId) {
+        User user = userRepository.findByUserId(userId)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+
+        // 리프레시 토큰 무효화
+        invalidateRefreshToken(user);
+    }
+
+    private void invalidateRefreshToken(User user) {
+        // 리프래시 토큰 null 로 설정해 무효화
+        user.setRefreshToken(null);
+        userRepository.save(user);
+    }
+
     // 마이페이지 정보 조회
     @Transactional(readOnly = true)
     public UserResponse.MyPageInfo getMyPageInfo(Long userId) {
@@ -82,6 +98,7 @@ public class UserService {
                 .profileImage(user.getProfileImage())
                 .point(user.getPoint())
                 .notificationEnabled(user.isNotificationEnabled())
+                .refreshToken(user.getRefreshToken())
                 .build();
     }
 

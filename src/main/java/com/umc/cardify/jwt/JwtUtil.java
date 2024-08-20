@@ -2,7 +2,12 @@ package com.umc.cardify.jwt;
 
 import java.security.Key;
 import java.util.Date;
+
+import com.umc.cardify.config.exception.BadRequestException;
+import com.umc.cardify.config.exception.ErrorResponseStatus;
+import com.umc.cardify.domain.User;
 import com.umc.cardify.dto.user.UserResponse;
+import com.umc.cardify.repository.UserRepository;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,15 +24,16 @@ import lombok.extern.slf4j.Slf4j;
 public class JwtUtil {
 
     private final Key key;
+    private final UserRepository userRepository;
 
     @Value("${jwt.accessTokenValidity}")
     private long accessTokenValidity;
 
     @Value("${jwt.refreshTokenValidity}")
     private long refreshTokenValidity;
-
-    // application.yml에서 secret 값 가져와서 key에 저장
-    public JwtUtil(@Value("${jwt.secret}") String secretKey) {
+    
+    public JwtUtil(@Value("${jwt.secret}") String secretKey, UserRepository userRepository) {
+        this.userRepository = userRepository;
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         this.key = Keys.hmacShaKeyFor(keyBytes);
     }
@@ -62,13 +68,21 @@ public class JwtUtil {
         claims.put("userId", userId);
         claims.put("type", "Refresh");
 
-        return Jwts.builder()
+        String refreshToken = Jwts.builder()
                 .setClaims(claims)
                 .setSubject("RefreshToken")
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + refreshTokenValidity))
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
+
+        // 생성된 리프레시 토큰을 사용자 엔티티에 저장
+        User user = userRepository.findByUserId(userId)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+        user.setRefreshToken(refreshToken);
+        userRepository.save(user);
+
+        return refreshToken;
     }
 
     // 토큰 유효성 검증

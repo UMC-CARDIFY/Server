@@ -47,6 +47,9 @@ public class UserResponse {
 
 		@Schema(description = "알림 설정 여부")
 		private boolean notificationEnabled;
+
+		@Schema(description = "리프래시 토큰")
+		private String refreshToken;
 	}
 
 	@Getter
@@ -77,5 +80,18 @@ public class UserResponse {
 	public static class UpdatedNotification {
 		@Schema(description = "수정된 알림 설정 여부")
 		private boolean notificationEnabled;
+	}
+
+	@Getter
+	@Builder
+	@NoArgsConstructor
+	@AllArgsConstructor
+	@Schema(title = "USER_RES_06 : 로그아웃 응답 DTO")
+	public static class LogoutResponse {
+		@Schema(description = "로그아웃 상태 메시지")
+		private String message;
+
+		@Schema(description = "로그아웃 성공 여부")
+		private boolean success;
 	}
 }
