@@ -3,6 +3,8 @@ package com.umc.cardify.dto.card;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.umc.cardify.domain.enums.MarkStatus;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;
@@ -58,6 +60,9 @@ public class CardResponse {
 
 		@Schema(description = "학습 카드셋 id")
 		Long studyCardSetId;
+
+		@Schema(description = "즐겨찾기 여부")
+		MarkStatus markStatus;
 	}
 
 	@Getter
