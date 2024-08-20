@@ -95,7 +95,7 @@ public class CardController {
 		return ResponseEntity.ok().build();
 	}
 
-	@GetMapping("/{studyCardSetId}/study-graph/")
+	@GetMapping("{studyCardSetId}/study-graph/")
 	@Operation(summary = "학습 통계 그래프 조회")
 	public ResponseEntity<CardResponse.cardStudyGraph> viewStudyCardGraph(@PathVariable Long studyCardSetId) {
 		CardResponse.cardStudyGraph cardStudyGraph = cardComponentService.viewStudyCardGraph(studyCardSetId);
