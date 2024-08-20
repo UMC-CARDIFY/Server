@@ -2,6 +2,7 @@ package com.umc.cardify.service;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -177,7 +178,7 @@ public class NoteComponentService {
 		StringBuilder totalText = new StringBuilder();
 		note.setName(request.getName());
 
-		Queue<MultipartFile> imageQueue = new LinkedList<>(images);
+		Queue<MultipartFile> imageQueue = new LinkedList<>(images != null ? images : Collections.emptyList());
 		Node node = request.getContents();
 		searchCard(node, totalText, note, imageQueue);
 		note.setTotalText(totalText.toString());
