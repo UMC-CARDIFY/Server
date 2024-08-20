@@ -124,13 +124,23 @@ public class FolderService {
         }
 
         List<String> colorList = Arrays.asList(colors.split(","));
+        List<String> allowedColors = Arrays.asList("blue", "ocean", "lavender", "mint", "sage", "gray", "orange", "coral", "rose", "plum");
+
+        for (String c : colorList) {
+            if (!allowedColors.contains(c)) {
+                throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+            }
+        }
         return folderRepository.findByUserAndColor(user, colorList);
     }
     private List<Folder> sortFolders(List<Folder> folders, String order) {
         if (order == null || order.isEmpty()) {
             return folders;
         }
-
+        List<String> orderList = Arrays.asList("asc", "desc", "edit-newest", "edit-oldest");
+        if (!orderList.contains(order)) {
+            throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+        }
         return folders.stream()
                 .sorted(new FolderComparator(order)
                         .thenComparing(Folder::getFolderId))
