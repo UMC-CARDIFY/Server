@@ -254,15 +254,35 @@ public class CardComponentService {
 		StudyCardSet studyCardSet = cardModuleService.getStudyCardSetById(studyCardSetId);
 
 		List<Card> cards = cardModuleService.getCardsByStudyCardSet(studyCardSet);
+		List<ImageCard> imageCards = cardModuleService.getImageCardsByStudyCardSet(studyCardSet);
 
 		int easyCardsCount = 0;
 		int normalCardsCount = 0;
 		int hardCardsCount = 0;
 		int passCardsCount = 0;
 
-		int totalCards = cards.size();
+		int totalCards = cards.size() + imageCards.size();
 
 		for (Card card : cards) {
+			switch (card.getDifficulty()) {
+				case NONE:
+					continue;
+				case EASY:
+					easyCardsCount++;
+					break;
+				case NORMAL:
+					normalCardsCount++;
+					break;
+				case HARD:
+					hardCardsCount++;
+					break;
+				case PASS:
+					passCardsCount++;
+					break;
+			}
+		}
+
+		for (ImageCard card : imageCards) {
 			switch (card.getDifficulty()) {
 				case NONE:
 					continue;
@@ -316,9 +336,12 @@ public class CardComponentService {
 	@Transactional
 	public void completeStudy(Long studyCardSetId) {
 		StudyCardSet studyCardSet = cardModuleService.getStudyCardSetById(studyCardSetId);
-		List<Card> cards = cardModuleService.getCardsByStudyCardSet(studyCardSet);
 
-		int remainingCardsCount = cards.size();
+		List<Card> cards = cardModuleService.getCardsByStudyCardSet(studyCardSet);
+		List<ImageCard> imageCards = cardModuleService.getImageCardsByStudyCardSet(studyCardSet);
+
+		int remainingCardsCount = cards.size() + imageCards.size();
+
 		StudyLog studyLog = StudyLog.builder()
 			.studyDate(LocalDateTime.now())
 			.studyCardNumber(remainingCardsCount)
@@ -328,14 +351,17 @@ public class CardComponentService {
 
 		studyLogRepository.save(studyLog);
 
-		// 3. 난이도(difficulty)가 PASS 인 카드를 삭제
 		List<Card> cardsToRemove = cards.stream()
 			.filter(card -> card.getDifficulty().getValue() == 4)
 			.collect(Collectors.toList());
-		cardModuleService.deleteAll(cardsToRemove);
+		cardModuleService.deleteAllCards(cardsToRemove);
+
+		List<ImageCard> imageCardsToRemove = imageCards.stream()
+			.filter(imageCard -> imageCard.getDifficulty().getValue() == 4)
+			.collect(Collectors.toList());
+		cardModuleService.deleteAllImageCards(imageCardsToRemove);
 
 		studyCardSet.setRecentStudyDate(LocalDateTime.now());
-
 		studyCardSetRepository.save(studyCardSet);
 	}
 

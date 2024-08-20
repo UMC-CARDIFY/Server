@@ -200,8 +200,12 @@ public class CardModuleService {
 		imageCardRepository.save(imageCard);
 	}
 
-	public void deleteAll(List<Card> cards) {
+	public void deleteAllCards(List<Card> cards) {
 		cardRepository.deleteAll(cards);
+	}
+
+	public void deleteAllImageCards(List<ImageCard> imageCards){
+		imageCardRepository.deleteAll(imageCards);
 	}
 
 	public void saveCard(Card card) {
