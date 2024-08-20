@@ -2,6 +2,7 @@ package com.umc.cardify.service;
 
 import static com.umc.cardify.config.exception.ErrorResponseStatus.*;
 
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Queue;
 
@@ -31,6 +32,11 @@ public class CardModuleService {
 	private final ImageCardRepository imageCardRepository;
 	private final OverlayRepository overlayRepository;
 	private final S3Service s3Service;
+
+	public List<Card> findAllByUserIdAndLearnNextTimeAfter(Long userId, Timestamp date){
+
+		return cardRepository.findAllByUserIdAndLearnNextTimeAfter(userId, date);
+	}
 
 	// 카드 노드 처리
 	public void processCardNode(Node node, StringBuilder input, Note note, Queue<MultipartFile> imageQueue) {

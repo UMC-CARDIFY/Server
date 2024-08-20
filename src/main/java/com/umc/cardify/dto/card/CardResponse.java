@@ -1,5 +1,6 @@
 package com.umc.cardify.dto.card;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -127,4 +128,27 @@ public class CardResponse {
 		@Schema(description = "학습 일자")
 		LocalDateTime studyDate;
 	}
+
+	@Getter
+	@Schema(title = "CARD_RES_06 : 분석 학습 제안 DTO")
+	@Builder
+	public static class getStudySuggestion{
+		@Schema(description = "남은 시간")
+		Timestamp remainTime;
+
+		@Schema(description = "카드 (가 속한 노트) 이름")
+		String noteName;
+
+		@Schema(description = "카드 (가 속한 폴더) 이름")
+		String folderName;
+
+	}
+
+	@Getter
+	@Schema(title = "CARD_RES_07 : 일자 별 학습 필요 카드 DTO")
+	@Builder
+	public static class getStudyRequiredCards{
+
+	}
+
 }
