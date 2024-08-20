@@ -74,7 +74,7 @@ public class LibraryController {
     @Operation(summary = "자료실 노트 다운로드 방식 조회 API")
     public ResponseEntity<LibraryResponse.CheckDownloadDTO> checkDownload(@RequestHeader("Authorization") String token, @RequestParam @Valid Long libraryId){
         Long userId = jwtUtil.extractUserId(token);
-        String isDownload = libraryService.checkDownload(userId, libraryId);
-        return ResponseEntity.ok(LibraryResponse.CheckDownloadDTO.builder().isDownload(isDownload).build());
+        LibraryResponse.CheckDownloadDTO checkDto = libraryService.checkDownload(userId, libraryId);
+        return ResponseEntity.ok(checkDto);
     }
 }
