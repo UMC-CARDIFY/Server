@@ -61,5 +61,10 @@ public class CardRequest {
 		@NotBlank(message = "난이도 정보 전달 필요")
 		@Schema(description = "난이도 (어려움 = 1, 알맞음 = 2, 쉬움 = 3 )", example = "1")
 		private int difficulty;
+
+		@NotBlank(message = "카드 타입 전달 필요")
+		@Schema(description = "카드 타입 (일반 카드 = 0, 이미지 카드 = 1)", example = "0")
+		private int cardType;
+
 	}
 }

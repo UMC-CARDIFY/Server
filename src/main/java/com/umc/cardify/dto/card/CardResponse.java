@@ -26,6 +26,12 @@ public class CardResponse {
 
 		@Schema(description = "이미지 카드 id")
 		Long imageCardId;
+
+		@Schema(description = "노트 id")
+		Long noteId;
+
+		@Schema(description = "폴더 id")
+		Long folderId;
 	}
 
 	@Getter
@@ -69,6 +75,12 @@ public class CardResponse {
 
 		@Schema(description = "카드 id")
 		Long cardId;
+
+		@Schema(description = "노트 id")
+		Long noteId;
+
+		@Schema(description = "폴더 id")
+		Long folderId;
 	}
 
 	@Getter
