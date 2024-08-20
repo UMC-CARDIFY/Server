@@ -33,6 +33,12 @@ public class CardModuleService {
 	private final OverlayRepository overlayRepository;
 	private final S3Service s3Service;
 
+
+	public void deleteCardSet(Long studyCardSetId){
+
+		studyCardSetRepository.deleteById(studyCardSetId);
+	}
+
 	public List<Card> findAllByUserIdAndLearnNextTimeAfter(Long userId, Timestamp date){
 
 		return cardRepository.findAllByUserIdAndLearnNextTimeAfter(userId, date);

@@ -35,6 +35,9 @@ public class CardResponse {
 
 		@Schema(description = "폴더 id")
 		Long folderId;
+
+		@Schema(description = "카드 타입")
+		String cardType;
 	}
 
 	@Getter
@@ -87,6 +90,9 @@ public class CardResponse {
 
 		@Schema(description = "폴더 id")
 		Long folderId;
+
+		@Schema(description = "카드 타입")
+		String cardType;
 	}
 
 	@Getter
