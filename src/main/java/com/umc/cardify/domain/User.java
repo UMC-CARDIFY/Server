@@ -5,12 +5,6 @@ import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,15 +23,8 @@ public class User extends BaseEntity {
     @Column(name = "user_id")
     private Long userId;
 
-    @Column(name = "name", columnDefinition = "varchar(20) NOT NULL")
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    private List<Folder> userFolderList = new ArrayList<>();
-
     @Column(name = "name", columnDefinition = "varchar(30)")
     private String name;
-
-    // @Column(name = "url_profile", columnDefinition = "text")
-    // private String urlProfile;
 
     @Column(name = "email", columnDefinition = "varchar(320)")
     private String email;
@@ -48,17 +35,30 @@ public class User extends BaseEntity {
     @Column(name = "kakao", columnDefinition = "boolean")
     private boolean kakao;
 
-    @Builder
-    public User(String name, String email, String password, boolean kakao) {
-        this.name = name;
-        this.email = email;
-        this.password = password;
-        this.kakao = kakao;
-    }
+    @Column(name = "profile_image")
+    private String profileImage;
+
+    @Column(name = "notification_enabled", nullable = false)
+    @ColumnDefault("true")
+    private boolean notificationEnabled = true;
 
     @ColumnDefault("5000")
     private Integer point;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<Folder> userFolderList = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<Download> downloadList = new ArrayList<>();
+
+
+    @Builder
+    public User(String name, String email, String password, boolean kakao, String profileImage, boolean notificationEnabled) {
+        this.name = name;
+        this.email = email;
+        this.password = password;
+        this.kakao = kakao;
+        this.profileImage = profileImage;
+        this.notificationEnabled = notificationEnabled;
+    }
 }

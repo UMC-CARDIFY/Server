@@ -37,6 +37,8 @@ public class UserService {
                 .email(request.getEmail())
                 .password(encodedPassword)
                 .kakao(false)
+                .profileImage(null)
+                .notificationEnabled(true)
                 .build();
 
         try {
@@ -65,5 +67,63 @@ public class UserService {
         }
 
         return jwtUtil.generateTokens(user.getUserId());
+    }
+
+    // 마이페이지 정보 조회
+    @Transactional(readOnly = true)
+    public UserResponse.MyPageInfo getMyPageInfo(Long userId) {
+        User user = userRepository.findByUserId(userId)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+
+        return UserResponse.MyPageInfo.builder()
+                .userId(user.getUserId())
+                .name(user.getName())
+                .email(user.getEmail())
+                .profileImage(user.getProfileImage())
+                .point(user.getPoint())
+                .notificationEnabled(user.isNotificationEnabled())
+                .build();
+    }
+
+    // 프로필 이미지 수정
+    @Transactional
+    public UserResponse.UpdatedProfileImage updateProfileImage(Long userId, UserRequest.UpdateProfileImage request) {
+        User user = userRepository.findByUserId(userId)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+
+        user.setProfileImage(request.getProfileImage());
+        User updatedUser = userRepository.save(user);
+
+        return UserResponse.UpdatedProfileImage.builder()
+                .profileImage(updatedUser.getProfileImage())
+                .build();
+    }
+
+    // 이름 수정
+    @Transactional
+    public UserResponse.UpdatedName updateName(Long userId, UserRequest.UpdateName request) {
+        User user = userRepository.findByUserId(userId)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+
+        user.setName(request.getName());
+        User updatedUser = userRepository.save(user);
+
+        return UserResponse.UpdatedName.builder()
+                .name(updatedUser.getName())
+                .build();
+    }
+
+    // 알림 설정 변경
+    @Transactional
+    public UserResponse.UpdatedNotification updateNotification(Long userId, UserRequest.UpdateNotification request) {
+        User user = userRepository.findByUserId(userId)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+
+        user.setNotificationEnabled(request.getNotificationEnabled());
+        User updatedUser = userRepository.save(user);
+
+        return UserResponse.UpdatedNotification.builder()
+                .notificationEnabled(updatedUser.isNotificationEnabled())
+                .build();
     }
 }

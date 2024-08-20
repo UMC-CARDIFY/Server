@@ -23,4 +23,59 @@ public class UserResponse {
 		@Schema(description = "리프레시 토큰")
 		private String refreshToken;
 	}
+
+	@Getter
+	@Builder
+	@NoArgsConstructor
+	@AllArgsConstructor
+	@Schema(title = "USER_RES_02 : 마이페이지 정보 응답 DTO")
+	public static class MyPageInfo {
+		@Schema(description = "사용자 ID")
+		private Long userId;
+
+		@Schema(description = "사용자 이름")
+		private String name;
+
+		@Schema(description = "사용자 이메일")
+		private String email;
+
+		@Schema(description = "프로필 이미지 URL")
+		private String profileImage;
+
+		@Schema(description = "포인트")
+		private Integer point;
+
+		@Schema(description = "알림 설정 여부")
+		private boolean notificationEnabled;
+	}
+
+	@Getter
+	@Builder
+	@NoArgsConstructor
+	@AllArgsConstructor
+	@Schema(title = "USER_RES_03 : 프로필 이미지 수정 응답 DTO")
+	public static class UpdatedProfileImage {
+		@Schema(description = "수정된 프로필 이미지 URL")
+		private String profileImage;
+	}
+
+	@Getter
+	@Builder
+	@NoArgsConstructor
+	@AllArgsConstructor
+	@Schema(title = "USER_RES_04 : 이름 수정 응답 DTO")
+	public static class UpdatedName {
+		@Schema(description = "수정된 사용자 이름")
+		private String name;
+	}
+
+	@Getter
+	@Builder
+	@NoArgsConstructor
+	@AllArgsConstructor
+	@Schema(title = "USER_RES_05 : 알림 설정 수정 응답 DTO")
+	public static class UpdatedNotification {
+		@Schema(description = "수정된 알림 설정 여부")
+		private boolean notificationEnabled;
+	}
 }
