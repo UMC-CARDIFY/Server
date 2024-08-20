@@ -90,7 +90,7 @@ public class CardController {
 	@PostMapping("/difficulty")
 	@Operation(summary = "학습 카드 - 난이도 선택", description = "해당 학습 카드 학습 후 난이도를 전달")
 	public ResponseEntity<?> recordDifficulty(@RequestBody CardRequest.difficulty request) {
-		cardComponentService.updateCardDifficulty(request.getCardId(), request.getDifficulty());
+		cardComponentService.updateCardDifficulty(request);
 
 		return ResponseEntity.ok().build();
 	}
