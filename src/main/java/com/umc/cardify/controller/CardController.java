@@ -150,4 +150,12 @@ public class CardController {
 		return ResponseEntity.ok().build();
 	}
 
+	@GetMapping("/weekly-count")
+	@Operation(summary = "주간 학습 결과 API", description = "사용자 조회 성공 시, 해당 주의 총 학습 카드 개수와 날짜별 학습 카드 개수 반환")
+	public ResponseEntity<CardResponse.weeklyResultDTO> getCardByWeek(
+			@RequestHeader("Authorization") String token) {
+		Long userId = jwtUtil.extractUserId(token);
+		CardResponse.weeklyResultDTO weekCard = cardComponentService.getCardByWeek(userId);
+		return ResponseEntity.ok(weekCard);
+	}
 }
