@@ -113,7 +113,7 @@ public class CustomAuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         response.setHeader("Authorization", "Bearer " + jwtToken);
 
         log.info("JWT Token generated: {}", jwtToken);
-        String targetUrl = UriComponentsBuilder.fromUriString("http://cardify.co.kr/dashboard")
+        String targetUrl = UriComponentsBuilder.fromUriString("https://cardify.co.kr/dashboard")
                 .build()
                 .encode(StandardCharsets.UTF_8)
                 .toUriString();
