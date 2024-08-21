@@ -150,4 +150,12 @@ public class CardController {
 		return ResponseEntity.ok().build();
 	}
 
+	@GetMapping("{studyCardSetId}/re-study")
+	@Operation(summary = "재학습")
+	public ResponseEntity<?> reStudy(@PathVariable Long studyCardSetId){
+		cardComponentService.reStudy(studyCardSetId);
+
+		return ResponseEntity.ok().build();
+	}
+
 }
