@@ -24,6 +24,7 @@ public class NoteConverter {
                 .folder(folder)
                 .name("제목없음")
                 .viewAt(LocalDateTime.now())
+                .totalText(".")
                 .build();
     }
     public static NoteResponse.AddNoteResultDTO toAddNoteResult(Note note){
