@@ -1,5 +1,6 @@
 package com.umc.cardify.domain;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,14 +46,21 @@ public class ImageCard extends BaseEntity {
 	@Column(nullable = false)
 	private Long height;
 
+	private Long countLearn;
+
+	private Timestamp learnNextTime;
+
+	private Timestamp learnLastTime;
+
 	@OneToMany(mappedBy = "imageCard", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
 	private List<Overlay> overlays = new ArrayList<>();
 
 	@Builder
-	public ImageCard(String imageUrl, Long width, Long height) {
+	public ImageCard(String imageUrl, Long width, Long height, Long countLearn) {
 		this.imageUrl = imageUrl;
 		this.width = width;
 		this.height = height;
+		this.countLearn = countLearn;
 	}
 
 	// 연관관계 편의 메서드

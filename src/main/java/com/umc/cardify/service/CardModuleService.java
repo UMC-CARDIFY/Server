@@ -13,13 +13,22 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.DatabaseException;
-import com.umc.cardify.domain.*;
+import com.umc.cardify.domain.Card;
+import com.umc.cardify.domain.Folder;
+import com.umc.cardify.domain.ImageCard;
+import com.umc.cardify.domain.Note;
+import com.umc.cardify.domain.Overlay;
 import com.umc.cardify.domain.ProseMirror.Attr;
 import com.umc.cardify.domain.ProseMirror.Node;
+import com.umc.cardify.domain.StudyCardSet;
+import com.umc.cardify.domain.User;
 import com.umc.cardify.domain.enums.CardType;
 import com.umc.cardify.domain.enums.StudyStatus;
 import com.umc.cardify.dto.card.CardRequest;
-import com.umc.cardify.repository.*;
+import com.umc.cardify.repository.CardRepository;
+import com.umc.cardify.repository.ImageCardRepository;
+import com.umc.cardify.repository.OverlayRepository;
+import com.umc.cardify.repository.StudyCardSetRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -33,15 +42,19 @@ public class CardModuleService {
 	private final OverlayRepository overlayRepository;
 	private final S3Service s3Service;
 
-
-	public void deleteCardSet(Long studyCardSetId){
+	public void deleteCardSet(Long studyCardSetId) {
 
 		studyCardSetRepository.deleteById(studyCardSetId);
 	}
 
-	public List<Card> findAllByUserIdAndLearnNextTimeAfter(Long userId, Timestamp date){
+	public List<Card> findAllCardsByUserIdAndLearnNextTimeAfter(Long userId, Timestamp date) {
 
 		return cardRepository.findAllByUserIdAndLearnNextTimeAfter(userId, date);
+	}
+
+	public List<ImageCard> findAllImageCardsByUserIdAndLearnNextTimeAfter(Long userId, Timestamp date) {
+
+		return imageCardRepository.findAllByUserIdAndLearnNextTimeAfter(userId, date);
 	}
 
 	// 카드 노드 처리
@@ -76,6 +89,7 @@ public class CardModuleService {
 			.imageUrl(imgUrl)
 			.height(attrs.getBaseImageHeight())
 			.width(attrs.getBaseImageWidth())
+			.countLearn(0L)
 			.build();
 	}
 
@@ -125,7 +139,8 @@ public class CardModuleService {
 		return value != null ? value : defaultValue;
 	}
 
-	private Card createCardBasedOnType(String type, Note note, String questionFront, String questionBack, String answer) {
+	private Card createCardBasedOnType(String type, Note note, String questionFront, String questionBack,
+		String answer) {
 		switch (type) {
 			case "blank_card":
 				return createCard(note, questionFront, questionBack, answer, CardType.BLANK);
@@ -187,28 +202,26 @@ public class CardModuleService {
 	}
 
 	public StudyCardSet getStudyCardSetById(Long id) {
-		return studyCardSetRepository.findById(id)
-			.orElseThrow(() -> new DatabaseException(NOT_FOUND_ERROR));
+		return studyCardSetRepository.findById(id).orElseThrow(() -> new DatabaseException(NOT_FOUND_ERROR));
 	}
-	public List<ImageCard> getImageCardsByStudyCardSet(StudyCardSet studyCardSet){
+
+	public List<ImageCard> getImageCardsByStudyCardSet(StudyCardSet studyCardSet) {
 		return imageCardRepository.findByStudyCardSet(studyCardSet);
 	}
 
 	public Card getCardById(Long id) {
-		return cardRepository.findById(id)
-			.orElseThrow(() -> new DatabaseException(NOT_FOUND_ERROR));
+		return cardRepository.findById(id).orElseThrow(() -> new DatabaseException(NOT_FOUND_ERROR));
 	}
 
-	public ImageCard getImageCardById(Long imageCardId){
-		return imageCardRepository.findById(imageCardId)
-			.orElseThrow(() -> new DatabaseException((NOT_FOUND_ERROR)));
+	public ImageCard getImageCardById(Long imageCardId) {
+		return imageCardRepository.findById(imageCardId).orElseThrow(() -> new DatabaseException((NOT_FOUND_ERROR)));
 	}
 
 	public void updateWordCardDifficulty(Card card) {
 		cardRepository.save(card);
 	}
 
-	public void updateImageCardDifficulty(ImageCard imageCard){
+	public void updateImageCardDifficulty(ImageCard imageCard) {
 		imageCardRepository.save(imageCard);
 	}
 
@@ -216,12 +229,16 @@ public class CardModuleService {
 		cardRepository.deleteAll(cards);
 	}
 
-	public void deleteAllImageCards(List<ImageCard> imageCards){
+	public void deleteAllImageCards(List<ImageCard> imageCards) {
 		imageCardRepository.deleteAll(imageCards);
 	}
 
 	public void saveCard(Card card) {
 		cardRepository.save(card);
+	}
+
+	public void saveImageCard(ImageCard imageCard) {
+		imageCardRepository.save(imageCard);
 	}
 
 }

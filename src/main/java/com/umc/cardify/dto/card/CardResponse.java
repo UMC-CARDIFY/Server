@@ -138,7 +138,7 @@ public class CardResponse {
 	@Getter
 	@Schema(title = "CARD_RES_06 : 분석 학습 제안 DTO")
 	@Builder
-	public static class getStudySuggestion{
+	public static class getStudySuggestion {
 		@Schema(description = "남은 시간")
 		Timestamp remainTime;
 
@@ -148,6 +148,11 @@ public class CardResponse {
 		@Schema(description = "카드 (가 속한 폴더) 이름")
 		String folderName;
 
+		@Schema(description = "카드 id")
+		Long cardId;
+
+		@Schema(description = "카드 유형 (CARD 또는 IMAGE_CARD)")
+		String cardType;
 	}
 
 	@Getter
