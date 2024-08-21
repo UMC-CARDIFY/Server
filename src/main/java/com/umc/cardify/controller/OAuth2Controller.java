@@ -48,7 +48,7 @@ public class OAuth2Controller {
     }
 
     // 콜백
-    @GetMapping("callback/kakao")
+    @PostMapping("callback/kakao")
     public ResponseEntity<UserResponse.tokenInfo> kakaoCallback(@RequestBody Map<String, String> payload, HttpServletRequest request) throws JsonProcessingException {
         System.out.println("Received kakao callback request. Request ID: " + request.getSession().getId());
         try {
