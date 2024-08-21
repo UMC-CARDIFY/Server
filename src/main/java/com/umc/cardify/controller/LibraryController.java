@@ -38,14 +38,13 @@ public class LibraryController {
     }
     @GetMapping("/getTopNote")
     @Operation(summary = "추천 노트 조회 API")
-    public ResponseEntity<List<LibraryResponse.LibInfoDTO>> getTopNote(@RequestHeader("Authorization") String token){
+    public ResponseEntity<List<LibraryResponse.LibInfoDTO>> getTopNote(@RequestHeader("Authorization") String token, @RequestParam @Valid Integer size){
         Long userId = jwtUtil.extractUserId(token);
         List<LibraryResponse.LibInfoDTO> resultNote = libraryService.getTopNote(userId);
-        int index = 3;
-        if(resultNote.size() < index)
-            index = resultNote.size();
+        if(resultNote.size() < size)
+            size = resultNote.size();
 
-        return ResponseEntity.ok(resultNote.subList(0, index));
+        return ResponseEntity.ok(resultNote.subList(0, size));
     }
     @GetMapping("/getTopCategory")
     @Operation(summary = "추천 카테고리 조회 API")
