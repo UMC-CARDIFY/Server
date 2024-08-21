@@ -222,16 +222,22 @@ public class LibraryService {
         Library library = libraryRepository.findById(libraryId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));;
         Download download = downloadRepository.findByUserAndLibrary(user, library);
 
+        String isDownload;
+
         Note note = library.getNote();
         Folder folder = note.getFolder();
 
-        String isDownload = "Error";
-        if (download == null)
-            isDownload = "None";
-        else if(download.getIsContainCard())
-            isDownload = "ContainCard";
-        else
-            isDownload = "NotContainCard";
+        if(folder.getUser().equals(user)){
+            isDownload = "Upload";
+        }
+        else {
+            if (download == null)
+                isDownload = "None";
+            else if (download.getIsContainCard())
+                isDownload = "ContainCard";
+            else
+                isDownload = "NotContainCard";
+        }
 
         return LibraryResponse.CheckDownloadDTO.builder()
                 .folderId(folder.getFolderId())
