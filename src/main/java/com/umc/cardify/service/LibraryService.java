@@ -107,6 +107,7 @@ public class LibraryService {
                 .folder(folder)
                 .name(note_down.getName())
                 .downloadLibId(library.getLibraryId())
+                .totalText(note_down.getTotalText())
                 .build();
         noteRepository.save(note_new);
 
