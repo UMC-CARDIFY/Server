@@ -16,7 +16,7 @@ public class CorsConfig {
         CorsConfiguration config = new CorsConfiguration();
 
         config.setAllowCredentials(true);
-        config.addAllowedOrigin("http://cardify.co.kr");  // 도메인
+        config.addAllowedOrigin("https://cardify.co.kr");  // 도메인
         config.addAllowedOrigin("http://43.201.167.247");  // 포트 제거
         config.addAllowedOrigin("http://localhost:5173");
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
