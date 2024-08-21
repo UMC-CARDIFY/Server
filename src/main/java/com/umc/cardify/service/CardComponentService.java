@@ -438,20 +438,26 @@ public class CardComponentService {
 			.collect(Collectors.toList());
 		cardModuleService.deleteAllCards(cardsToRemove);
 
-		List<ImageCard> imageCardsToRemove = imageCards.stream()
-			.filter(imageCard -> imageCard.getDifficulty() == Difficulty.PASS)
-			.collect(Collectors.toList());
-		cardModuleService.deleteAllImageCards(imageCardsToRemove);
-
-		// 남은 카드들에 대해 다음 학습 시간 계산 및 업데이트
-		cards.forEach(card -> {
+		Timestamp earliestNextStudyTime = null;
+		for (Card card : cards) {
 			Timestamp nextStudyTime = calculateNextStudyTime(card);
 			card.setLearnNextTime(nextStudyTime);
 			card.setLearnLastTime(Timestamp.valueOf(LocalDateTime.now()));
 			cardModuleService.saveCard(card);
-		});
 
+			// Update the earliest next study time
+			if (earliestNextStudyTime == null || nextStudyTime.before(earliestNextStudyTime)) {
+				System.out.println("nextStudyTime = " + nextStudyTime);
+				earliestNextStudyTime = nextStudyTime;
+			}
+		}
+
+		// Update the studyCardSet with the recent study date and next study date
 		studyCardSet.setRecentStudyDate(LocalDateTime.now());
+		if (earliestNextStudyTime != null) {
+			System.out.println("earliestNextStudyTime = " + earliestNextStudyTime);
+			studyCardSet.setNextStudyDate(earliestNextStudyTime.toLocalDateTime());
+		}
 		studyCardSetRepository.save(studyCardSet);
 	}
 

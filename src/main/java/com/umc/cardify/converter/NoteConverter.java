@@ -25,6 +25,7 @@ public class NoteConverter {
                 .name("제목없음")
                 .viewAt(LocalDateTime.now())
                 .totalText(".")
+                .isEdit(true)
                 .build();
     }
     public static NoteResponse.AddNoteResultDTO toAddNoteResult(Note note){

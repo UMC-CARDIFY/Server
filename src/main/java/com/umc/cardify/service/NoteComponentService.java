@@ -272,6 +272,7 @@ public class NoteComponentService {
 			.noteName(note.getName())
 			.markState(note.getMarkState().equals(MarkStatus.ACTIVE))
 			.noteContent(note.getContentsNote().getContents())
+			.isEdit(note.getIsEdit())
 			.cardList(cardDTO)
 			.build();
 	}
