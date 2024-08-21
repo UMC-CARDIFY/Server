@@ -145,6 +145,7 @@ public class NoteResponse {
         Object noteContent;
         Boolean markState;
         Boolean isEdit;
+        Boolean isUpload;
         List<getNoteCardDTO> cardList;
     }
 }

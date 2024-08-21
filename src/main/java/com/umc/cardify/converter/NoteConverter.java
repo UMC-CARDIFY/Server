@@ -2,6 +2,7 @@ package com.umc.cardify.converter;
 
 import com.umc.cardify.domain.Folder;
 import com.umc.cardify.domain.Note;
+import com.umc.cardify.domain.enums.MarkStatus;
 import com.umc.cardify.dto.note.NoteResponse;
 import com.umc.cardify.service.LibraryService;
 import lombok.RequiredArgsConstructor;
@@ -100,6 +101,17 @@ public class NoteConverter {
                 .createdAt(note.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
                 .isDownload(note.getDownloadLibId() != null)
                 .isUpload(libraryService.isUploadLib(note))
+                .build();
+    }
+    public NoteResponse.getNoteDTO getNoteDTO(Note note, List<NoteResponse.getNoteCardDTO> cardDTO){
+        return NoteResponse.getNoteDTO.builder()
+                .noteId(note.getNoteId())
+                .noteName(note.getName())
+                .markState(note.getMarkState().equals(MarkStatus.ACTIVE))
+                .noteContent(note.getContentsNote().getContents())
+                .isEdit(note.getIsEdit())
+                .isUpload(libraryService.isUploadLib(note))
+                .cardList(cardDTO)
                 .build();
     }
 }

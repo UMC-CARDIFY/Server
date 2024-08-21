@@ -271,14 +271,7 @@ public class NoteComponentService {
 				.build();
 		}).toList();
 
-		return NoteResponse.getNoteDTO.builder()
-			.noteId(note.getNoteId())
-			.noteName(note.getName())
-			.markState(note.getMarkState().equals(MarkStatus.ACTIVE))
-			.noteContent(note.getContentsNote().getContents())
-			.isEdit(note.getIsEdit())
-			.cardList(cardDTO)
-			.build();
+		return noteConverter.getNoteDTO(note, cardDTO);
 	}
 
 	public List<NoteResponse.NoteInfoDTO> getRecentNotes(Long userId, int page, Integer size) {
