@@ -139,6 +139,10 @@ public class NoteComponentService {
 			log.warn("Attempt to insert a note that already exists in the library: {}", note.getNoteId());
 			throw new BadRequestException(ErrorResponseStatus.DB_INSERT_ERROR);
 		}
+		if(!note.getIsEdit()){
+			log.warn("IsEdit is : {}", note.getIsEdit());
+			throw new BadRequestException(ErrorResponseStatus.DB_UPDATE_ERROR);
+		}
 
 		StringBuilder totalText = new StringBuilder();
 		note.setName(request.getName());
