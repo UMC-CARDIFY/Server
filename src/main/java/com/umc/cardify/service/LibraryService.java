@@ -26,6 +26,7 @@ public class LibraryService {
     private final CategoryRepository categoryRepository;
     private final LibraryCategoryRepository libraryCategoryRepository;
     private final DownloadRepository downloadRepository;
+    private final ContentsNoteRepository contentsNoteRepository;
 
     private final CardComponentService cardComponentService;
 
@@ -105,9 +106,17 @@ public class LibraryService {
         Note note_new = Note.builder()
                 .folder(folder)
                 .name(note_down.getName())
-                .contents(note_down.getContents())
                 .downloadLibId(library.getLibraryId())
                 .build();
+        noteRepository.save(note_new);
+
+        ContentsNote contentsNote = ContentsNote.builder()
+                .contents(note_down.getContentsNote().getContents())
+                .note(note_new)
+                .build();
+        contentsNoteRepository.save(contentsNote);
+
+        note_new.setContentsNote(contentsNote);
         noteRepository.save(note_new);
 
         if(cardList != null)

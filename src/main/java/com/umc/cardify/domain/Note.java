@@ -34,10 +34,6 @@ public class Note extends BaseEntity {
     private String name;
 
     @Setter
-    @Column(columnDefinition = "JSON")
-    private Object contents;
-
-    @Setter
     @Column(columnDefinition = "TEXT")
     private String totalText;
 
@@ -64,4 +60,8 @@ public class Note extends BaseEntity {
     @Setter
     @OneToOne(mappedBy = "note", cascade = CascadeType.ALL)
     private Library library;
+
+    @Setter
+    @OneToOne(mappedBy = "note", cascade = CascadeType.ALL)
+    private ContentsNote contentsNote;
 }
