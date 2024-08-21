@@ -1,14 +1,19 @@
 package com.umc.cardify.dto.card;
 
 import java.sql.Timestamp;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 import com.umc.cardify.domain.enums.MarkStatus;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 public class CardResponse {
 	@Getter
@@ -153,6 +158,20 @@ public class CardResponse {
 
 		@Schema(description = "카드 유형 (CARD 또는 IMAGE_CARD)")
 		String cardType;
+	}
+
+	@Getter
+	@Builder
+	@NoArgsConstructor
+	@AllArgsConstructor
+	@Schema(title="CARD_RES_07 : 주간 학습 카드 개수 반환 DTO")
+	public static class weeklyResultDTO {
+		@Schema(description = "이번 주 학습한 카드 개수")
+		long thisWeekCardCount;
+		@Schema(description = "이번주 날짜별 학습한 카드 개수")
+		Map<Integer, Long> dayOfThisWeekCard;
+		@Schema(description = "지난주 날짜별 학습한 카드 개수")
+		Map<Integer, Long> dayOfLastWeekCard;
 	}
 
 }
