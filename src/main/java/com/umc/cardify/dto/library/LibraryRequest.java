@@ -16,7 +16,7 @@ public class LibraryRequest {
         @NotNull
         Long folderId;
         @NotNull
-        Boolean isContainCard;
+        Boolean isEdit;
     }
     @Getter
     @Schema(title = "LIBRARY_REQ_02 : 자료실 검색 요청 DTO")

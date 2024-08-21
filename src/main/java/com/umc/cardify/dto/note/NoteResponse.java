@@ -144,6 +144,7 @@ public class NoteResponse {
         String noteName;
         Object noteContent;
         Boolean markState;
+        Boolean isEdit;
         List<getNoteCardDTO> cardList;
     }
 }

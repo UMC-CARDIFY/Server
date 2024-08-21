@@ -8,6 +8,7 @@ import com.umc.cardify.dto.library.LibraryRequest;
 import com.umc.cardify.dto.library.LibraryResponse;
 import com.umc.cardify.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.aspectj.weaver.ast.Not;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -66,21 +67,15 @@ public class LibraryService {
         }
 
         Download download = downloadRepository.findByUserAndLibrary(user, library);
-        List<Card> cardList = null;
         Note note_down = library.getNote();
         Integer point_current = user.getPoint();
-
+        List<Card> cardList = note_down.getCards();
         if(download == null) {      //다운받은 적 없는 노트일때
             download = Download.builder()
                     .user(user)
                     .library(library)
                     .build();
-            if(note_down.getCards().isEmpty()){
-                user.setPoint(point_current - 200);
-                download.setIsContainCard(true);
-            }
-            if (request.getIsContainCard()) {
-                cardList = note_down.getCards();
+            if (request.getIsEdit()) {
                 user.setPoint(point_current - 300);
                 download.setIsContainCard(true);
             } else {
@@ -88,17 +83,11 @@ public class LibraryService {
                 download.setIsContainCard(false);
             }
         }
-        else{       //다운받은 적 있는 노트일때
-            if(download.getIsContainCard()){    //카드포함으로 다운로드한 적 있을때
-                if(request.getIsContainCard())
-                    cardList = note_down.getCards();
-            }
-            else {      //카드미포함으로 다운로드한 적 있을때
-                if (request.getIsContainCard() && !note_down.getCards().isEmpty()) {
-                    cardList = note_down.getCards();
-                    user.setPoint(point_current - 100);
-                    download.setIsContainCard(true);
-                }
+        else{       //다운받은 적 있는 노트일때//카드미포함으로 다운로드한 적 있을때
+            if (!download.getIsContainCard() && request.getIsEdit()) {
+                user.setPoint(point_current - 100);
+                download.setIsContainCard(true);
+                changeIsEditPossible(user, library.getLibraryId());
             }
         }
         downloadRepository.save(download);
@@ -108,6 +97,7 @@ public class LibraryService {
                 .name(note_down.getName())
                 .downloadLibId(library.getLibraryId())
                 .totalText(note_down.getTotalText())
+                .isEdit(download.getIsContainCard())
                 .build();
         noteRepository.save(note_new);
 
@@ -125,6 +115,16 @@ public class LibraryService {
         return LibraryResponse.DownloadLibDTO.builder()
                 .noteId(note_new.getNoteId())
                 .build();
+    }
+    public void changeIsEditPossible(User user, Long libId){
+        folderRepository.findByUser(user).forEach(folder -> folder.getNotes().stream()
+                .filter(note -> note.getDownloadLibId() != null)
+                .filter(note -> note.getDownloadLibId().equals(libId))
+                .toList()
+                .forEach(note -> {
+                    note.setIsEdit(true);
+                    noteRepository.save(note);
+                }));
     }
     public List<LibraryResponse.LibInfoDTO> getTopNote(Long userId){
         List<Library> libraryList = libraryRepository.findAll();
@@ -244,9 +244,9 @@ public class LibraryService {
             if (download == null)
                 isDownload = "None";
             else if (download.getIsContainCard())
-                isDownload = "ContainCard";
+                isDownload = "Edit";
             else
-                isDownload = "NotContainCard";
+                isDownload = "NotEdit";
         }
 
         return LibraryResponse.CheckDownloadDTO.builder()
