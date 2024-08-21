@@ -127,7 +127,7 @@ public class CardResponse {
 	@Getter
 	@Schema(title = "CARD_RES_05 : 분석 학습 기록 조회 DTO")
 	@Builder
-	public static class getStudyLog{
+	public static class getStudyLog {
 		@Schema(description = "학습한 카드 개수")
 		int cardNumber;
 
@@ -153,13 +153,6 @@ public class CardResponse {
 
 		@Schema(description = "카드 유형 (CARD 또는 IMAGE_CARD)")
 		String cardType;
-	}
-
-	@Getter
-	@Schema(title = "CARD_RES_07 : 일자 별 학습 필요 카드 DTO")
-	@Builder
-	public static class getStudyRequiredCards{
-
 	}
 
 }
