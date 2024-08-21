@@ -8,6 +8,8 @@ import com.umc.cardify.dto.user.UserResponse;
 import com.umc.cardify.jwt.JwtUtil;
 import com.umc.cardify.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -99,6 +101,7 @@ public class UserService {
                 .point(user.getPoint())
                 .notificationEnabled(user.isNotificationEnabled())
                 .refreshToken(user.getRefreshToken())
+                .todayCheck(user.getTodayCheck())
                 .build();
     }
 
@@ -142,5 +145,21 @@ public class UserService {
         return UserResponse.UpdatedNotification.builder()
                 .notificationEnabled(updatedUser.isNotificationEnabled())
                 .build();
+    }
+
+    @Transactional
+    public void attendanceCheck(Long userId){
+        User user = userRepository.findByUserId(userId)
+            .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+
+        user.setPoint(user.getPoint() + 100);
+        user.setTodayCheck(1);
+        userRepository.save(user);
+    }
+
+    @Scheduled(cron = "0 0 0 * * ?")
+    @Transactional
+    public void resetTodayCheck() {
+        userRepository.resetAllTodayCheck();
     }
 }

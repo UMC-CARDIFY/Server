@@ -172,5 +172,16 @@ public class UserController {
         }
     }
 
+    @GetMapping("/check")
+    @Operation(summary = "출석 체크 API")
+    public ResponseEntity<?> attendanceCheck(@RequestHeader("Authorization") String token){
+        Long userId = jwtUtil.extractUserId(token);
+
+        userService.attendanceCheck(userId);
+
+        return ResponseEntity.ok().build();
+    }
+
+
 }
 
