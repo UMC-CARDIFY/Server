@@ -39,7 +39,7 @@ public class LibraryConverter {
         return LibraryResponse.LibInfoDTO.builder()
                 .libraryId(library.getLibraryId())
                 .userName(user.getName())
-                .userImgSrc(null)       //추후 유저 이미지 생성되면 삽입
+                .userImgSrc(user.getProfileImage())
                 .noteId(note.getNoteId())
                 .noteName(note.getName())
                 .cntCard(note.getCards().size())
