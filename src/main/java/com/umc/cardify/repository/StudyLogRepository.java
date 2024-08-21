@@ -10,4 +10,6 @@ import com.umc.cardify.domain.StudyLog;
 public interface StudyLogRepository extends JpaRepository<StudyLog, Long> {
 
 	Page<StudyLog> findByStudyCardSet(StudyCardSet studyCardSet, Pageable pageable);
+
+	void deleteAllByStudyCardSet(StudyCardSet studyCardSet);
 }

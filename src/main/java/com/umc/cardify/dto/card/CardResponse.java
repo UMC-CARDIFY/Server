@@ -132,7 +132,7 @@ public class CardResponse {
 	@Getter
 	@Schema(title = "CARD_RES_05 : 분석 학습 기록 조회 DTO")
 	@Builder
-	public static class getStudyLog{
+	public static class getStudyLog {
 		@Schema(description = "학습한 카드 개수")
 		int cardNumber;
 
@@ -161,17 +161,10 @@ public class CardResponse {
 	}
 
 	@Getter
-	@Schema(title = "CARD_RES_07 : 일자 별 학습 필요 카드 DTO")
-	@Builder
-	public static class getStudyRequiredCards{
-
-	}
-
-	@Getter
 	@Builder
 	@NoArgsConstructor
 	@AllArgsConstructor
-	@Schema(title="CARD_RES_08 : 주간 학습 카드 개수 반환 DTO")
+	@Schema(title="CARD_RES_07 : 주간 학습 카드 개수 반환 DTO")
 	public static class weeklyResultDTO {
 		@Schema(description = "이번 주 학습한 카드 개수")
 		long thisWeekCardCount;
@@ -180,4 +173,5 @@ public class CardResponse {
 		@Schema(description = "지난주 날짜별 학습한 카드 개수")
 		Map<Integer, Long> dayOfLastWeekCard;
 	}
+
 }

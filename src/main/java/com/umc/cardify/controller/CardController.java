@@ -150,6 +150,14 @@ public class CardController {
 		return ResponseEntity.ok().build();
 	}
 
+	@GetMapping("{studyCardSetId}/re-study")
+	@Operation(summary = "재학습")
+	public ResponseEntity<?> reStudy(@PathVariable Long studyCardSetId){
+		cardComponentService.reStudy(studyCardSetId);
+
+		return ResponseEntity.ok().build();
+	}
+
 	@GetMapping("/weekly-count")
 	@Operation(summary = "주간 학습 결과 API", description = "사용자 조회 성공 시, 해당 주의 총 학습 카드 개수와 날짜별 학습 카드 개수 반환")
 	public ResponseEntity<CardResponse.weeklyResultDTO> getCardByWeek(
@@ -158,4 +166,5 @@ public class CardController {
 		CardResponse.weeklyResultDTO weekCard = cardComponentService.getCardByWeek(userId);
 		return ResponseEntity.ok(weekCard);
 	}
+
 }

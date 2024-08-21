@@ -49,11 +49,40 @@ public class CardComponentService {
 	private final CardRepository cardRepository;
 
 	@Transactional
+	public void reStudy(Long studyCardSetId) {
+		StudyCardSet studyCardSet = cardModuleService.getStudyCardSetById(studyCardSetId);
+		studyCardSet.setStudyStatus(StudyStatus.BEFORE_STUDY);
+		studyCardSet.setNextStudyDate(null);
+		studyCardSet.setRecentStudyDate(null);
+		studyCardSetRepository.save(studyCardSet);
+
+		studyLogRepository.deleteAllByStudyCardSet(studyCardSet);
+
+		List<Card> cards = cardModuleService.getCardsByStudyCardSet(studyCardSet);
+		List<ImageCard> imageCards = cardModuleService.getImageCardsByStudyCardSet(studyCardSet);
+
+		for (Card card : cards) {
+			card.setCountLearn(0L);
+			card.setDifficulty(0);
+			card.setLearnLastTime(null);
+			card.setLearnNextTime(null);
+			cardModuleService.saveCard(card);
+		}
+
+		for (ImageCard imageCard : imageCards) {
+			imageCard.setCountLearn(0L);
+			imageCard.setDifficulty(0);
+			imageCard.setLearnLastTime(null);
+			imageCard.setLearnNextTime(null);
+			cardModuleService.saveImageCard(imageCard);
+		}
+	}
+
+	@Transactional
 	public void deleteStudyCardSet(Long studyCardSetId) {
 		StudyCardSet studyCardSet = cardModuleService.getStudyCardSetById(studyCardSetId);
 		cardModuleService.deleteCardSet(studyCardSetId);
 		noteModuleService.deleteNoteById(studyCardSet.getNote().getNoteId());
-
 	}
 
 	@Transactional

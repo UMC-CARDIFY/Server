@@ -67,4 +67,8 @@ public class Note extends BaseEntity {
     @Setter
     @OneToOne(mappedBy = "note", cascade = CascadeType.ALL)
     private ContentsNote contentsNote;
+
+    @Setter
+    @OneToMany(mappedBy = "note", cascade = CascadeType.ALL)
+    private List<StudyCardSet> studyCardSets;
 }
