@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 443
   ssl:
     key-store: /etc/letsencrypt/live/cardify.co.kr/keystore.p12
     key-store-password: ${SSL_KEY_PW}
