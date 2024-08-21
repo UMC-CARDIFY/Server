@@ -37,7 +37,7 @@ spring:
             client-name: Kakao
             provider: kakao
             authorization-grant-type: authorization_code
-            redirect-uri: "https://cardify.co.kr/oauth2/callback/kakao"
+            redirect-uri: "https://cardify.co.kr/api/v1/oauth2/callback/kakao"
             scope:
               - profile_nickname
               - account_email
