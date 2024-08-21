@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Queue;
 import java.util.stream.Collectors;
 
+import com.umc.cardify.domain.*;
+import com.umc.cardify.repository.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -22,21 +24,10 @@ import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.DatabaseException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.converter.NoteConverter;
-import com.umc.cardify.domain.Category;
-import com.umc.cardify.domain.Folder;
-import com.umc.cardify.domain.Library;
-import com.umc.cardify.domain.LibraryCategory;
-import com.umc.cardify.domain.Note;
 import com.umc.cardify.domain.ProseMirror.Node;
-import com.umc.cardify.domain.User;
 import com.umc.cardify.domain.enums.MarkStatus;
 import com.umc.cardify.dto.note.NoteRequest;
 import com.umc.cardify.dto.note.NoteResponse;
-import com.umc.cardify.repository.CategoryRepository;
-import com.umc.cardify.repository.LibraryCategoryRepository;
-import com.umc.cardify.repository.LibraryRepository;
-import com.umc.cardify.repository.NoteRepository;
-import com.umc.cardify.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,6 +41,7 @@ public class NoteComponentService {
 	private final LibraryRepository libraryRepository;
 	private final CategoryRepository categoryRepository;
 	private final LibraryCategoryRepository libraryCategoryRepository;
+	private final ContentsNoteRepository contentsNoteRepository;
 
 	private final NoteModuleService noteModuleService;
 	private final CardModuleService cardModuleService;
@@ -63,7 +55,10 @@ public class NoteComponentService {
 			throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
 		else {
 			Note newNote = NoteConverter.toAddNote(folder);
-			return noteRepository.save(newNote);
+			noteRepository.save(newNote);
+			ContentsNote contentsNote = ContentsNote.builder().note(newNote).build();
+			contentsNoteRepository.save(contentsNote);
+			return newNote;
 		}
 	}
 
@@ -155,7 +150,11 @@ public class NoteComponentService {
 
 		try {
 			String jsonStr = objectMapper.writeValueAsString(node);
-			note.setContents(jsonStr);
+
+			ContentsNote contentsNote = contentsNoteRepository.findByNote(note);
+			contentsNote.setContents(jsonStr);
+			contentsNoteRepository.save(contentsNote);
+			note.setContentsNote(contentsNote);
 		} catch (JsonProcessingException e) {
 			log.error("Failed to serialize note contents to JSON", e);
 			throw new BadRequestException(ErrorResponseStatus.JSON_PROCESSING_ERROR);
@@ -272,7 +271,7 @@ public class NoteComponentService {
 			.noteId(note.getNoteId())
 			.noteName(note.getName())
 			.markState(note.getMarkState().equals(MarkStatus.ACTIVE))
-			.noteContent(note.getContents())
+			.noteContent(note.getContentsNote().getContents())
 			.cardList(cardDTO)
 			.build();
 	}
