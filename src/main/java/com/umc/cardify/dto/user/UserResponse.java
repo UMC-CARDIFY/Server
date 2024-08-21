@@ -50,6 +50,9 @@ public class UserResponse {
 
 		@Schema(description = "리프래시 토큰")
 		private String refreshToken;
+
+		@Schema(description = "당일 출석 체크 여부 ( 0 = 미 완료 , 1 = 완료 )")
+		private int todayCheck;
 	}
 
 	@Getter

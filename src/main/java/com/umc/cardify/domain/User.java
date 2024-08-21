@@ -54,6 +54,8 @@ public class User extends BaseEntity {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<Download> downloadList = new ArrayList<>();
 
+    @Column(name = "today_check")
+    private int todayCheck = 0;
 
     @Builder
     public User(String name, String email, String password, boolean kakao, String profileImage, boolean notificationEnabled, String refreshToken) {
