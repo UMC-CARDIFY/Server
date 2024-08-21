@@ -54,6 +54,9 @@ public class Note extends BaseEntity {
     @Setter
     private Long downloadLibId;
 
+    @Setter
+    private Boolean isEdit;
+
     @OneToMany(mappedBy = "note", cascade = CascadeType.ALL)
     private List<Card> cards;
 
