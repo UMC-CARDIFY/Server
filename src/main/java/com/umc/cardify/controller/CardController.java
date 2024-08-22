@@ -124,7 +124,7 @@ public class CardController {
 		return ResponseEntity.ok(studyLogs);
 	}
 
-	@GetMapping("study-suggestion")
+	@GetMapping("/study-suggestion")
 	@Operation(summary = "분석 학습 제안")
 	public ResponseEntity<List<CardResponse.getStudySuggestion>> suggestionAnalyzeStudy(@RequestHeader String token,
 		@RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) @Parameter(description = "학습을 위한 날짜와 시간", example = "2024-08-20T12:14:56.597Z") String dateString) {

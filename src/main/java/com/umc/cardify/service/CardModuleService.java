@@ -115,7 +115,7 @@ public class CardModuleService {
 	private void processTextCard(Node node, StringBuilder input, Note note) {
 		String questionFront = getOrDefault(node.getAttrs().getQuestion_front(), "");
 		String questionBack = getOrDefault(node.getAttrs().getQuestion_back(), "");
-		String answer = String.join(" ", node.getAttrs().getAnswer());
+		String answer = String.join(", ", node.getAttrs().getAnswer());
 
 		String nodeText = buildNodeText(questionFront, answer, questionBack);
 		input.append(nodeText);

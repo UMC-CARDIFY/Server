@@ -14,6 +14,7 @@ import java.util.stream.Stream;
 
 import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.domain.*;
+import com.umc.cardify.domain.enums.CardType;
 import com.umc.cardify.repository.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -263,9 +264,6 @@ public class CardComponentService {
 	}
 
 
-
-
-
 	@Transactional
 	public Page<Object> getCardLists(Long studyCardSetId, int pageNumber) {
 		StudyCardSet studyCardSet = cardModuleService.getStudyCardSetById(studyCardSetId);
@@ -317,15 +315,47 @@ public class CardComponentService {
 	}
 
 	private CardResponse.getCardLists mapToWordCardResponse(Card card, StudyCardSet studyCardSet) {
-		return CardResponse.getCardLists.builder()
-			.contentsFront(card.getContentsFront())
-			.contentsBack(card.getContentsBack())
-			.answer(card.getAnswer())
-			.cardId(card.getCardId())
-			.noteId(studyCardSet.getNote().getNoteId())
-			.folderId(studyCardSet.getFolder().getFolderId())
-			.cardType("word")
-			.build();
+		CardResponse.getCardLists getCardLists;
+		if (card.getCardType() == CardType.BLANK) {
+			 getCardLists = CardResponse.getCardLists.builder()
+				.contentsFront(card.getContentsFront())
+				.contentsBack(card.getContentsBack())
+				.answer(card.getAnswer())
+				.cardId(card.getCardId())
+				.noteId(studyCardSet.getNote().getNoteId())
+				.folderId(studyCardSet.getFolder().getFolderId())
+				.cardType("blank")
+				.build();
+		} else if (card.getCardType() == CardType.WORD){
+			getCardLists = CardResponse.getCardLists.builder()
+				.contentsFront(card.getContentsFront())
+				.contentsBack(card.getContentsBack())
+				.answer(card.getAnswer())
+				.cardId(card.getCardId())
+				.noteId(studyCardSet.getNote().getNoteId())
+				.folderId(studyCardSet.getFolder().getFolderId())
+				.cardType("word")
+				.build();
+		} else { // 멀티 카드
+			String multiAnswer = card.getAnswer();
+
+			List<String> answersList = Arrays.stream(multiAnswer.split(",\\s*"))
+				.toList();
+
+			getCardLists = CardResponse.getCardLists.builder()
+				.contentsFront(card.getContentsFront())
+				.contentsBack(card.getContentsBack())
+				.answer(card.getAnswer())
+				.cardId(card.getCardId())
+				.noteId(studyCardSet.getNote().getNoteId())
+				.folderId(studyCardSet.getFolder().getFolderId())
+				.cardType("multi")
+				.multiAnswer(answersList)
+				.build();
+		}
+
+
+		return getCardLists;
 	}
 
 	private CardResponse.getImageCard mapToImageCardResponse(ImageCard imageCard, StudyCardSet studyCardSet) {
