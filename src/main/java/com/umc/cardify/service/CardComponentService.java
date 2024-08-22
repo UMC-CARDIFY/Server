@@ -616,13 +616,8 @@ public class CardComponentService {
 
 		Timestamp earliestNextStudyTime = null;
 		boolean allCardsPassed = true;
-		boolean inProgress = false;
 
 		for (Card card : cards) {
-			if (card.getCountLearn() != 0) {
-				inProgress = true;
-			}
-
 			if (card.getDifficulty() == Difficulty.PASS) {
 				continue;
 			}
@@ -641,10 +636,6 @@ public class CardComponentService {
 		}
 
 		for (ImageCard imageCard : imageCards) {
-			if (imageCard.getCountLearn() != 0) {
-				inProgress = true;
-			}
-
 			if (imageCard.getDifficulty() == Difficulty.PASS) {
 				continue;
 			}
@@ -666,9 +657,9 @@ public class CardComponentService {
 
 		studyCardSet.setRecentStudyDate(LocalDateTime.now());
 
-		if (inProgress) {
-			studyCardSet.setStudyStatus(StudyStatus.IN_PROGRESS);
-		}
+
+		studyCardSet.setStudyStatus(StudyStatus.IN_PROGRESS);
+
 		if (allCardsPassed) {
 			studyCardSet.setStudyStatus(StudyStatus.PERMANENT_STORAGE);
 		}
@@ -676,7 +667,6 @@ public class CardComponentService {
 		if (earliestNextStudyTime != null) {
 			studyCardSet.setNextStudyDate(earliestNextStudyTime.toLocalDateTime());
 		}
-
 		studyCardSetRepository.save(studyCardSet);
 	}
 
