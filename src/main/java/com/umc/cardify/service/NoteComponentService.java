@@ -144,21 +144,18 @@ public class NoteComponentService {
 		Note note = noteModuleService.getNoteById(request.getNoteId());
 		System.out.println("note.getNoteId() = " + note.getNoteId());
 
-		if (cardModuleService.existsByNote(note)) {
-			cardModuleService.deleteAllCardsByNoteId(note.getNoteId());
-			cardModuleService.deleteAllImageCardsByNoteId(note.getNoteId());
-
-		}
 		if (!userId.equals(note.getFolder().getUser().getUserId())) {
 			log.warn("Invalid userId: {}", userId);
 			throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
-		} else if (libraryRepository.findByNote(note) != null) {
-			log.warn("Attempt to insert a note that already exists in the library: {}", note.getNoteId());
-			throw new BadRequestException(ErrorResponseStatus.DB_INSERT_ERROR);
 		}
 		if (!note.getIsEdit()) {
 			log.warn("IsEdit is : {}", note.getIsEdit());
 			throw new BadRequestException(ErrorResponseStatus.DB_UPDATE_ERROR);
+		}
+		if (cardModuleService.existsByNote(note)) {
+			cardModuleService.deleteAllCardsByNoteId(note.getNoteId());
+			cardModuleService.deleteAllImageCardsByNoteId(note.getNoteId());
+
 		}
 
 		StringBuilder totalText = new StringBuilder();
@@ -253,6 +250,7 @@ public class NoteComponentService {
 				.toList();
 		}
 
+		note.setIsEdit(false);
 		noteRepository.save(note);
 		return true;
 	}
@@ -264,6 +262,7 @@ public class NoteComponentService {
 		Library library = note.getLibrary();
 
 		note.setLibrary(null);
+		note.setIsEdit(true);
 		noteRepository.save(note);
 
 		if (library != null)
