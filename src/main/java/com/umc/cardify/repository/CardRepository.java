@@ -7,6 +7,7 @@ import java.util.List;
 import com.umc.cardify.domain.User;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 import com.umc.cardify.domain.Note;
@@ -14,6 +15,9 @@ import com.umc.cardify.domain.StudyCardSet;
 import com.umc.cardify.domain.Card;
 
 public interface CardRepository extends JpaRepository<Card, Long> {
+	@Modifying
+	@Query("DELETE FROM Card c WHERE c.note.noteId = :noteId")
+	void deleteCardsByNoteId(@Param("noteId") Long noteId);
 
 	List<Card> findByStudyCardSet(StudyCardSet studyCardSet);
 
