@@ -73,7 +73,7 @@ cloud:
       auto: false
 logging:
   level:
-    root: WARN  # 기본 로그 레벨을 WARN으로 설정하여 경고 및 오류만 기록
+    root: WARN
     org.springframework.security: WARN  # Spring Security에서 경고 및 오류만 기록
     org.hibernate.SQL: ERROR  # SQL 관련 에러만 기록 (SQL 쿼리 관련 정보는 배포 환경에서는 보통 필요하지 않음)
     org.hibernate.type.descriptor.sql.BasicBinder: ERROR  # SQL 바인딩 관련 에러만 기록
