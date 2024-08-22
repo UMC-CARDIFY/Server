@@ -1,8 +1,5 @@
 package com.umc.cardify.dto.card;
 
-import java.sql.Timestamp;
-import java.time.DayOfWeek;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -165,15 +162,13 @@ public class CardResponse {
 		@Schema(description = "폴더 색상")
 		String color;
 
-		@Schema(description = "이번달 학습 예정 일자")
-		List<Timestamp> expectedDate;
 	}
 
 	@Getter
 	@Builder
 	@NoArgsConstructor
 	@AllArgsConstructor
-	@Schema(title="CARD_RES_07 : 주간 학습 카드 개수 반환 DTO")
+	@Schema(title = "CARD_RES_07 : 주간 학습 카드 개수 반환 DTO")
 	public static class weeklyResultDTO {
 		@Schema(description = "이번 주 학습한 카드 개수")
 		long thisWeekCardCount;
@@ -183,4 +178,14 @@ public class CardResponse {
 		Map<Integer, Long> dayOfLastWeekCard;
 	}
 
+
+	@Getter
+	@Builder
+	@NoArgsConstructor
+	@AllArgsConstructor
+	@Schema(title = "CARD_RES_08 : 학습 필요 날 반환 DTO")
+	public static class getExpectedStudyDateDTO {
+		@Schema(description = "학습 예상 날짜")
+		List<Integer> expectedDate;
+	}
 }

@@ -2,23 +2,24 @@ package com.umc.cardify.service;
 
 import static com.umc.cardify.config.exception.ErrorResponseStatus.*;
 
-import java.time.Duration;
-import java.time.LocalDate;
 import java.sql.Timestamp;
 import java.time.DayOfWeek;
+import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.YearMonth;
 import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.umc.cardify.config.exception.ErrorResponseStatus;
-import com.umc.cardify.domain.*;
-import com.umc.cardify.domain.enums.CardType;
-import com.umc.cardify.repository.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -28,10 +29,25 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.DatabaseException;
+import com.umc.cardify.config.exception.ErrorResponseStatus;
+import com.umc.cardify.domain.Card;
+import com.umc.cardify.domain.ImageCard;
+import com.umc.cardify.domain.Note;
+import com.umc.cardify.domain.Overlay;
+import com.umc.cardify.domain.StudyCardSet;
+import com.umc.cardify.domain.StudyLog;
+import com.umc.cardify.domain.User;
+import com.umc.cardify.domain.enums.CardType;
 import com.umc.cardify.domain.enums.Difficulty;
 import com.umc.cardify.domain.enums.StudyStatus;
 import com.umc.cardify.dto.card.CardRequest;
 import com.umc.cardify.dto.card.CardResponse;
+import com.umc.cardify.repository.CardRepository;
+import com.umc.cardify.repository.ImageCardRepository;
+import com.umc.cardify.repository.OverlayRepository;
+import com.umc.cardify.repository.StudyCardSetRepository;
+import com.umc.cardify.repository.StudyLogRepository;
+import com.umc.cardify.repository.UserRepository;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -51,6 +67,30 @@ public class CardComponentService {
 	private final StudyLogRepository studyLogRepository;
 	private final UserRepository userRepository;
 	private final CardRepository cardRepository;
+
+	@Transactional
+	public CardResponse.getExpectedStudyDateDTO getExpectedStudyDate(Long userId, int years, int month) {
+		// 해당 년월의 첫날과 마지막 날 계산
+		YearMonth yearMonth = YearMonth.of(years, month);
+		LocalDateTime startDateTime = yearMonth.atDay(1).atStartOfDay();
+		LocalDateTime endDateTime = yearMonth.atEndOfMonth().atTime(23, 59, 59);
+
+		// 해당 유저의 해당 기간의 카드를 조회
+		List<Card> cards = cardRepository.findAllByUserIdAndLearnNextTimeBetween(userId, startDateTime, endDateTime);
+		List<ImageCard> imageCards = imageCardRepository.findAllByUserIdAndLearnNextTimeBetween(userId, startDateTime,
+			endDateTime);
+
+		// 카드를 모두 모아서 learn_next_time의 일자를 추출
+		List<Integer> expectedDates = Stream.concat(
+				cards.stream().map(card -> card.getLearnNextTime().toLocalDateTime().getDayOfMonth()),
+				imageCards.stream().map(imageCard -> imageCard.getLearnNextTime().toLocalDateTime().getDayOfMonth()))
+			.distinct()
+			.sorted()
+			.collect(Collectors.toList());
+
+		// DTO에 결과 반환
+		return CardResponse.getExpectedStudyDateDTO.builder().expectedDate(expectedDates).build();
+	}
 
 	@Transactional
 	public void reStudy(Long studyCardSetId) {
@@ -94,29 +134,27 @@ public class CardComponentService {
 		List<Card> cards = cardModuleService.findAllCardsByUserIdAndLearnNextTimeOnDate(userId, date);
 		List<ImageCard> imageCards = cardModuleService.findAllImageCardsByUserIdAndLearnNextTimeOnDate(userId, date);
 
-		return Stream.concat(cards.stream()
-			.map(card -> {
-				String remainTime = calculateRemainingTime(card.getLearnNextTime());
-				return CardResponse.getStudySuggestion.builder()
-					.remainTime(remainTime)
-					.noteName(card.getStudyCardSet().getNote().getName())
-					.folderName(card.getStudyCardSet().getFolder().getName())
-					.cardId(card.getCardId())
-					.cardType("CARD")
-					.color(card.getStudyCardSet().getFolder().getColor())
-					.build();
-			}), imageCards.stream()
-			.map(imageCard -> {
-				String remainTime = calculateRemainingTime(imageCard.getLearnNextTime());
-				return CardResponse.getStudySuggestion.builder()
-					.remainTime(remainTime)
-					.noteName(imageCard.getStudyCardSet().getNote().getName())
-					.folderName(imageCard.getStudyCardSet().getFolder().getName())
-					.cardId(imageCard.getId())
-					.cardType("IMAGE_CARD")
-					.color(imageCard.getStudyCardSet().getFolder().getColor())
-					.build();
-			})).collect(Collectors.toList());
+		return Stream.concat(cards.stream().map(card -> {
+			String remainTime = calculateRemainingTime(card.getLearnNextTime());
+			return CardResponse.getStudySuggestion.builder()
+				.remainTime(remainTime)
+				.noteName(card.getStudyCardSet().getNote().getName())
+				.folderName(card.getStudyCardSet().getFolder().getName())
+				.cardId(card.getCardId())
+				.cardType("CARD")
+				.color(card.getStudyCardSet().getFolder().getColor())
+				.build();
+		}), imageCards.stream().map(imageCard -> {
+			String remainTime = calculateRemainingTime(imageCard.getLearnNextTime());
+			return CardResponse.getStudySuggestion.builder()
+				.remainTime(remainTime)
+				.noteName(imageCard.getStudyCardSet().getNote().getName())
+				.folderName(imageCard.getStudyCardSet().getFolder().getName())
+				.cardId(imageCard.getId())
+				.cardType("IMAGE_CARD")
+				.color(imageCard.getStudyCardSet().getFolder().getColor())
+				.build();
+		})).collect(Collectors.toList());
 	}
 
 	private String calculateRemainingTime(Timestamp learnNextTime) {
@@ -139,10 +177,10 @@ public class CardComponentService {
 		String imgUrl = s3Service.upload(image, "imageCards");
 
 		ImageCard imageCard = ImageCard.builder()
-				.imageUrl(imgUrl)
-				.height(request.getBaseImageHeight())
-				.width(request.getBaseImageWidth())
-				.build();
+			.imageUrl(imgUrl)
+			.height(request.getBaseImageHeight())
+			.width(request.getBaseImageWidth())
+			.build();
 
 		Note note = noteModuleService.getNoteById(request.getNoteId());
 
@@ -156,12 +194,12 @@ public class CardComponentService {
 		if (request.getOverlays() != null) {
 			for (CardRequest.addImageCardOverlay overlayRequest : request.getOverlays()) {
 				Overlay overlay = Overlay.builder()
-						.xPosition(overlayRequest.getPositionOfX())
-						.yPosition(overlayRequest.getPositionOfY())
-						.width(overlayRequest.getWidth())
-						.height(overlayRequest.getHeight())
-						.imageCard(savedImageCard)
-						.build();
+					.xPosition(overlayRequest.getPositionOfX())
+					.yPosition(overlayRequest.getPositionOfY())
+					.width(overlayRequest.getWidth())
+					.height(overlayRequest.getHeight())
+					.imageCard(savedImageCard)
+					.build();
 
 				overlayRepository.save(overlay);
 			}
@@ -170,34 +208,34 @@ public class CardComponentService {
 		return savedImageCard.getImageUrl();
 	}
 
-    @Transactional
-    public CardResponse.getImageCard viewImageCard(Long imageCardId) {
-        ImageCard imageCard = imageCardRepository.findById(imageCardId)
-                .orElseThrow(() -> new IllegalArgumentException("Image card not found with id: " + imageCardId));
+	@Transactional
+	public CardResponse.getImageCard viewImageCard(Long imageCardId) {
+		ImageCard imageCard = imageCardRepository.findById(imageCardId)
+			.orElseThrow(() -> new IllegalArgumentException("Image card not found with id: " + imageCardId));
 
-        List<Overlay> overlays = overlayRepository.findByImageCard(imageCard);
+		List<Overlay> overlays = overlayRepository.findByImageCard(imageCard);
 
-        List<CardRequest.addImageCardOverlay> overlayResponses = overlays.stream()
-                .map(overlay -> CardRequest.addImageCardOverlay.builder()
-                        .positionOfX(overlay.getXPosition())
-                        .positionOfY(overlay.getYPosition())
-                        .width(overlay.getWidth())
-                        .height(overlay.getHeight())
-                        .build())
-                .collect(Collectors.toList());
+		List<CardRequest.addImageCardOverlay> overlayResponses = overlays.stream()
+			.map(overlay -> CardRequest.addImageCardOverlay.builder()
+				.positionOfX(overlay.getXPosition())
+				.positionOfY(overlay.getYPosition())
+				.width(overlay.getWidth())
+				.height(overlay.getHeight())
+				.build())
+			.collect(Collectors.toList());
 
-        return CardResponse.getImageCard.builder()
-                .imgUrl(imageCard.getImageUrl())
-                .baseImageWidth(imageCard.getWidth())
-                .baseImageHeight(imageCard.getHeight())
-                .overlays(overlayResponses)
-                .build();
-    }
+		return CardResponse.getImageCard.builder()
+			.imgUrl(imageCard.getImageUrl())
+			.baseImageWidth(imageCard.getWidth())
+			.baseImageHeight(imageCard.getHeight())
+			.overlays(overlayResponses)
+			.build();
+	}
 
 	@Transactional
 	public String editImageCard(CardRequest.addImageCard request, Long imgCardId) {
 		ImageCard existingImageCard = imageCardRepository.findById(imgCardId)
-                .orElseThrow(() -> new IllegalArgumentException("ImageCard not found with ID: " + imgCardId));
+			.orElseThrow(() -> new IllegalArgumentException("ImageCard not found with ID: " + imgCardId));
 
 		existingImageCard.setHeight(request.getBaseImageHeight());
 		existingImageCard.setWidth(request.getBaseImageWidth());
@@ -209,12 +247,12 @@ public class CardComponentService {
 		if (request.getOverlays() != null) {
 			for (CardRequest.addImageCardOverlay overlayRequest : request.getOverlays()) {
 				Overlay overlay = Overlay.builder()
-                        .xPosition(overlayRequest.getPositionOfX())
-                        .yPosition(overlayRequest.getPositionOfY())
-                        .width(overlayRequest.getWidth())
-                        .height(overlayRequest.getHeight())
-                        .imageCard(savedImageCard)
-                        .build();
+					.xPosition(overlayRequest.getPositionOfX())
+					.yPosition(overlayRequest.getPositionOfY())
+					.width(overlayRequest.getWidth())
+					.height(overlayRequest.getHeight())
+					.imageCard(savedImageCard)
+					.build();
 
 				overlayRepository.save(overlay);
 			}
@@ -224,7 +262,8 @@ public class CardComponentService {
 	}
 
 	@Transactional
-	public List<CardResponse.getStudyCardSetLists> getStudyCardSetLists(Long userId, String order, String color, Integer studyStatus) {
+	public List<CardResponse.getStudyCardSetLists> getStudyCardSetLists(Long userId, String order, String color,
+		Integer studyStatus) {
 		List<StudyCardSet> studyCardSets = cardModuleService.getStudyCardSetsByUser(userId);
 
 		if (studyStatus != null) {
@@ -236,7 +275,8 @@ public class CardComponentService {
 		if (color != null && !color.isEmpty()) {
 			List<String> colorList = Arrays.asList(color.split(","));
 
-			List<String> allowedColors = Arrays.asList("blue", "ocean", "lavender", "mint", "sage", "gray", "orange", "coral", "rose", "plum");
+			List<String> allowedColors = Arrays.asList("blue", "ocean", "lavender", "mint", "sage", "gray", "orange",
+				"coral", "rose", "plum");
 
 			for (String c : colorList) {
 				if (!allowedColors.contains(c)) {
@@ -259,18 +299,18 @@ public class CardComponentService {
 					comparator = Comparator.comparing(StudyCardSet::getNoteName).reversed();
 					break;
 				case "edit-newest":
-					comparator = Comparator.comparing(studyCardSet -> studyCardSet.getNote().getEditDate(), Comparator.nullsLast(Comparator.reverseOrder()));
+					comparator = Comparator.comparing(studyCardSet -> studyCardSet.getNote().getEditDate(),
+						Comparator.nullsLast(Comparator.reverseOrder()));
 					break;
 				case "edit-oldest":
-					comparator = Comparator.comparing(studyCardSet -> studyCardSet.getNote().getEditDate(), Comparator.nullsLast(Comparator.naturalOrder()));
+					comparator = Comparator.comparing(studyCardSet -> studyCardSet.getNote().getEditDate(),
+						Comparator.nullsLast(Comparator.naturalOrder()));
 					break;
 				default:
 					comparator = Comparator.comparing(StudyCardSet::getNoteName);
 					break;
 			}
-			studyCardSets = studyCardSets.stream()
-				.sorted(comparator)
-				.collect(Collectors.toList());
+			studyCardSets = studyCardSets.stream().sorted(comparator).collect(Collectors.toList());
 		}
 
 		return studyCardSets.stream()
@@ -286,7 +326,6 @@ public class CardComponentService {
 				.build())
 			.collect(Collectors.toList());
 	}
-
 
 	@Transactional
 	public Page<Object> getCardLists(Long studyCardSetId, int pageNumber) {
@@ -309,15 +348,15 @@ public class CardComponentService {
 
 		// 생성된 날짜를 기준으로 카드들을 정렬
 		allCards.sort((a, b) -> {
-			LocalDateTime createdA = (a instanceof Card) ? ((Card) a).getCreatedAt() : ((ImageCard) a).getCreatedAt();
-			LocalDateTime createdB = (b instanceof Card) ? ((Card) b).getCreatedAt() : ((ImageCard) b).getCreatedAt();
+			LocalDateTime createdA = (a instanceof Card) ? ((Card)a).getCreatedAt() : ((ImageCard)a).getCreatedAt();
+			LocalDateTime createdB = (b instanceof Card) ? ((Card)b).getCreatedAt() : ((ImageCard)b).getCreatedAt();
 			return createdA.compareTo(createdB);
 		});
 
 		int totalCards = allCards.size();
 		Pageable pageable = PageRequest.of(pageNumber, 1);
 
-		int start = (int) pageable.getOffset();
+		int start = (int)pageable.getOffset();
 		int end = Math.min((start + pageable.getPageSize()), totalCards);
 
 		List<Object> pagedCards = allCards.subList(start, end);
@@ -341,7 +380,7 @@ public class CardComponentService {
 	private CardResponse.getCardLists mapToWordCardResponse(Card card, StudyCardSet studyCardSet) {
 		CardResponse.getCardLists getCardLists;
 		if (card.getCardType() == CardType.BLANK) {
-			 getCardLists = CardResponse.getCardLists.builder()
+			getCardLists = CardResponse.getCardLists.builder()
 				.contentsFront(card.getContentsFront())
 				.contentsBack(card.getContentsBack())
 				.answer(card.getAnswer())
@@ -350,7 +389,7 @@ public class CardComponentService {
 				.folderId(studyCardSet.getFolder().getFolderId())
 				.cardType("blank")
 				.build();
-		} else if (card.getCardType() == CardType.WORD){
+		} else if (card.getCardType() == CardType.WORD) {
 			getCardLists = CardResponse.getCardLists.builder()
 				.contentsFront(card.getContentsFront())
 				.contentsBack(card.getContentsBack())
@@ -363,8 +402,7 @@ public class CardComponentService {
 		} else { // 멀티 카드
 			String multiAnswer = card.getAnswer();
 
-			List<String> answersList = Arrays.stream(multiAnswer.split(",\\s*"))
-				.toList();
+			List<String> answersList = Arrays.stream(multiAnswer.split(",\\s*")).toList();
 
 			getCardLists = CardResponse.getCardLists.builder()
 				.contentsFront(card.getContentsFront())
@@ -377,7 +415,6 @@ public class CardComponentService {
 				.multiAnswer(answersList)
 				.build();
 		}
-
 
 		return getCardLists;
 	}
@@ -551,7 +588,7 @@ public class CardComponentService {
 			// 이미 학습된 카드인 경우
 			long timeSinceLastLearn = card.getLearnLastTime().toLocalDateTime().until(currentTime, ChronoUnit.MINUTES);
 			log.debug("Card {} - Time Since Last Learn (minutes): {}", card.getCardId(), timeSinceLastLearn);
-			currentInterval = (long) (baseInterval * increaseFactor); // 기본 간격에 증가 비율을 적용
+			currentInterval = (long)(baseInterval * increaseFactor); // 기본 간격에 증가 비율을 적용
 			card.setLearnNextTime(Timestamp.valueOf(currentTime.plusMinutes(currentInterval)));
 		}
 
@@ -681,7 +718,6 @@ public class CardComponentService {
 
 		studyCardSet.setRecentStudyDate(LocalDateTime.now());
 
-
 		studyCardSet.setStudyStatus(StudyStatus.IN_PROGRESS);
 
 		if (allCardsPassed) {
@@ -706,8 +742,7 @@ public class CardComponentService {
 	}
 
 	public CardResponse.weeklyResultDTO getCardByWeek(Long userId) {
-		User user = userRepository.findById(userId)
-				.orElseThrow(() -> new BadRequestException(INVALID_USERID));
+		User user = userRepository.findById(userId).orElseThrow(() -> new BadRequestException(INVALID_USERID));
 
 		LocalDate today = LocalDate.now();
 		LocalDate startOfWeek = today.with(DayOfWeek.MONDAY); //DayOfWeek.of(1)
@@ -716,8 +751,10 @@ public class CardComponentService {
 		LocalDate startOfLastWeek = startOfWeek.minusWeeks(1);
 		LocalDate endOfLastWeek = endOfWeek.minusWeeks(1);
 
-		List<Card> thisWeekCards = cardRepository.findCardsByUserAndLearnLastTimeBetween(user, startOfWeek.atStartOfDay(), endOfWeek.atTime(LocalTime.MAX));
-		List<Card> lastWeekCards = cardRepository.findCardsByUserAndLearnLastTimeBetween(user, startOfLastWeek.atStartOfDay(), endOfLastWeek.atTime(LocalTime.MAX));
+		List<Card> thisWeekCards = cardRepository.findCardsByUserAndLearnLastTimeBetween(user,
+			startOfWeek.atStartOfDay(), endOfWeek.atTime(LocalTime.MAX));
+		List<Card> lastWeekCards = cardRepository.findCardsByUserAndLearnLastTimeBetween(user,
+			startOfLastWeek.atStartOfDay(), endOfLastWeek.atTime(LocalTime.MAX));
 
 		Map<Integer, Long> dailyThisWeekStudy = calculateDailyStudyCount(thisWeekCards);
 		Map<Integer, Long> dailyLastWeekStudy = calculateDailyStudyCount(lastWeekCards);
@@ -729,31 +766,24 @@ public class CardComponentService {
 		long totalThisWeekStudy = weekStudyResult.values().stream().mapToLong(Long::longValue).sum();
 
 		return CardResponse.weeklyResultDTO.builder()
-				.thisWeekCardCount(totalThisWeekStudy)
-				.dayOfThisWeekCard(weekStudyResult)
-				.dayOfLastWeekCard(lastWeekStudyResult)
-				.build();
+			.thisWeekCardCount(totalThisWeekStudy)
+			.dayOfThisWeekCard(weekStudyResult)
+			.dayOfLastWeekCard(lastWeekStudyResult)
+			.build();
 	}
 
 	private Map<Integer, Long> calculateDailyStudyCount(List<Card> cards) {
 		return cards.stream()
-				.collect(Collectors.groupingBy(
-						card -> card.getLearnLastTime().toLocalDateTime().getDayOfWeek().getValue(),
-						Collectors.collectingAndThen(
-								Collectors.toMap(
-										card -> card.getStudyCardSet(),
-										card -> card.getLearnLastTime(),
-										(time1, time2) -> time1.before(time2) ? time1 : time2
-								),
-								map -> (long) map.size()
-						)
-				));
+			.collect(Collectors.groupingBy(card -> card.getLearnLastTime().toLocalDateTime().getDayOfWeek().getValue(),
+				Collectors.collectingAndThen(
+					Collectors.toMap(card -> card.getStudyCardSet(), card -> card.getLearnLastTime(),
+						(time1, time2) -> time1.before(time2) ? time1 : time2), map -> (long)map.size())));
 	}
 
 	public Map<Integer, Long> initializeWeekStudyResult(Map<Integer, Long> dailyStudyCount) {
 		Map<Integer, Long> weekResult = new HashMap<>();
 
-		for (int i = 1; i <=7; i++) {
+		for (int i = 1; i <= 7; i++) {
 			weekResult.put(i, dailyStudyCount.getOrDefault(i, 0L));
 		}
 		return weekResult;
