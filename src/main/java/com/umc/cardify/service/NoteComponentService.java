@@ -142,9 +142,13 @@ public class NoteComponentService {
 	@Transactional
 	public Boolean writeNote(NoteRequest.WriteNoteDto request, Long userId, List<MultipartFile> images) {
 		Note note = noteModuleService.getNoteById(request.getNoteId());
-		cardModuleService.deleteAllCardsByNoteId(note.getNoteId());
-		cardModuleService.deleteAllImageCardsByNoteId(note.getNoteId());
+		System.out.println("note.getNoteId() = " + note.getNoteId());
 
+		if (cardModuleService.existsByNote(note)) {
+			cardModuleService.deleteAllCardsByNoteId(note.getNoteId());
+			cardModuleService.deleteAllImageCardsByNoteId(note.getNoteId());
+
+		}
 		if (!userId.equals(note.getFolder().getUser().getUserId())) {
 			log.warn("Invalid userId: {}", userId);
 			throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);

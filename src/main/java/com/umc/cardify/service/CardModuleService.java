@@ -41,7 +41,10 @@ public class CardModuleService {
 	private final OverlayRepository overlayRepository;
 	private final NoteRepository noteRepository;
 	private final S3Service s3Service;
+	boolean existsByNote(Note note){
 
+		return studyCardSetRepository.existsByNote(note);
+	}
 	public void deleteCardSet(Long studyCardSetId) {
 
 		studyCardSetRepository.deleteById(studyCardSetId);

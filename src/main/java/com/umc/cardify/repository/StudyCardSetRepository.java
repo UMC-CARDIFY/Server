@@ -16,4 +16,6 @@ public interface StudyCardSetRepository extends JpaRepository<StudyCardSet, Long
 
 	List<StudyCardSet> findByUserUserId(Long userId);
 
+	boolean existsByNote(Note note);
+
 }
