@@ -2,6 +2,7 @@ package com.umc.cardify.service;
 
 import static com.umc.cardify.config.exception.ErrorResponseStatus.*;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.sql.Timestamp;
 import java.time.DayOfWeek;
@@ -94,32 +95,45 @@ public class CardComponentService {
 		List<ImageCard> imageCards = cardModuleService.findAllImageCardsByUserIdAndLearnNextTimeOnDate(userId, date);
 
 		return Stream.concat(cards.stream()
-			.map(card -> CardResponse.getStudySuggestion.builder()
-				.remainTime(convertToKST(card.getLearnNextTime()))  // remainTime을 KST로 변환
-				.noteName(card.getStudyCardSet().getNote().getName())
-				.folderName(card.getStudyCardSet().getFolder().getName())
-				.cardId(card.getCardId())
-				.cardType("CARD")
-				.color(card.getStudyCardSet().getFolder().getColor())
-				.build()), imageCards.stream()
-			.map(imageCard -> CardResponse.getStudySuggestion.builder()
-				.remainTime(convertToKST(imageCard.getLearnNextTime()))  // remainTime을 KST로 변환
-				.noteName(imageCard.getStudyCardSet().getNote().getName())
-				.folderName(imageCard.getStudyCardSet().getFolder().getName())
-				.cardId(imageCard.getId())
-				.cardType("IMAGE_CARD")
-				.color(imageCard.getStudyCardSet().getFolder().getColor())
-				.build())).collect(Collectors.toList());
+			.map(card -> {
+				String remainTime = calculateRemainingTime(card.getLearnNextTime());
+				return CardResponse.getStudySuggestion.builder()
+					.remainTime(remainTime)
+					.noteName(card.getStudyCardSet().getNote().getName())
+					.folderName(card.getStudyCardSet().getFolder().getName())
+					.cardId(card.getCardId())
+					.cardType("CARD")
+					.color(card.getStudyCardSet().getFolder().getColor())
+					.build();
+			}), imageCards.stream()
+			.map(imageCard -> {
+				String remainTime = calculateRemainingTime(imageCard.getLearnNextTime());
+				return CardResponse.getStudySuggestion.builder()
+					.remainTime(remainTime)
+					.noteName(imageCard.getStudyCardSet().getNote().getName())
+					.folderName(imageCard.getStudyCardSet().getFolder().getName())
+					.cardId(imageCard.getId())
+					.cardType("IMAGE_CARD")
+					.color(imageCard.getStudyCardSet().getFolder().getColor())
+					.build();
+			})).collect(Collectors.toList());
 	}
 
-	private Timestamp convertToKST(Timestamp utcTimestamp) {
-		if (utcTimestamp == null) {
-			return null;
-		}
-		ZonedDateTime utcZonedDateTime = utcTimestamp.toLocalDateTime().atZone(ZoneId.of("UTC"));
-		ZonedDateTime kstZonedDateTime = utcZonedDateTime.withZoneSameInstant(ZoneId.of("Asia/Seoul"));
-		return Timestamp.valueOf(kstZonedDateTime.toLocalDateTime());
+	private String calculateRemainingTime(Timestamp learnNextTime) {
+		// Timestamp를 LocalDateTime으로 변환
+		LocalDateTime learnTime = learnNextTime.toLocalDateTime();
+		LocalDateTime currentTime = LocalDateTime.now(ZoneId.of("Asia/Seoul")); // 한국 표준시(KST)로 현재 시간 설정
+
+		// 현재 시간과 학습 시간 사이의 기간 계산
+		Duration duration = Duration.between(currentTime, learnTime);
+
+		// 남은 시간을 시간과 분으로 변환
+		long hours = duration.toHours();
+		long minutes = duration.toMinutes() % 60;
+
+		return String.format("%02d 시간 %02d 분", hours, minutes);
 	}
+
 	@Transactional
 	public String addImageCard(MultipartFile image, CardRequest.addImageCard request) {
 		String imgUrl = s3Service.upload(image, "imageCards");

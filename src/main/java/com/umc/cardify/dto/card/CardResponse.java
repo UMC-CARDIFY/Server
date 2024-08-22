@@ -148,7 +148,7 @@ public class CardResponse {
 	@Builder
 	public static class getStudySuggestion {
 		@Schema(description = "남은 시간")
-		Timestamp remainTime;
+		String remainTime;
 
 		@Schema(description = "카드 (가 속한 노트) 이름")
 		String noteName;
@@ -164,6 +164,9 @@ public class CardResponse {
 
 		@Schema(description = "폴더 색상")
 		String color;
+
+		@Schema(description = "이번달 학습 예정 일자")
+		List<Timestamp> expectedDate;
 	}
 
 	@Getter
