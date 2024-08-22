@@ -161,6 +161,9 @@ public class CardResponse {
 
 		@Schema(description = "카드 유형 (CARD 또는 IMAGE_CARD)")
 		String cardType;
+
+		@Schema(description = "폴더 색상")
+		String color;
 	}
 
 	@Getter
