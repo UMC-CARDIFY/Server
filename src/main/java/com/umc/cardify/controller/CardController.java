@@ -6,8 +6,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -73,16 +71,14 @@ public class CardController {
 		return ResponseEntity.ok(imgUrl);
 	}
 
-	@GetMapping
-	@Operation(summary = "플래시 카드 목록 조회(메인 화면)", description = "유저 노트 중 플래시 카드가 포함된 노트 목록 조회")
-	public ResponseEntity<Page<CardResponse.getStudyCardSetLists>> viewStudyCardSetLists(
-		@RequestHeader("Authorization") String token, @RequestParam(defaultValue = "0") int page,
-		@RequestParam(defaultValue = "4") int size) {
+	@GetMapping("sort-filter")
+	@Operation(summary = "플래시 카드 목록 조회(메인 화면) + 정렬, 필터링 기능", description = "유저 노트 중 플래시 카드가 포함된 노트 목록 조회 | 정렬 order = asc, desc, edit-newest, edit-oldest | 필터링 쉼표로 구분된 색상 문자열 입력")
+	public ResponseEntity<List<CardResponse.getStudyCardSetLists>> viewStudyCardSetListsBySortFilter(
+		@RequestHeader("Authorization") String token, @RequestParam(required = false) String order,
+		@RequestParam(required = false) String color, @RequestParam(required = false) Integer studyStatus) {
 		Long userId = jwtUtil.extractUserId(token);
 
-		Pageable pageable = PageRequest.of(page, size);
-		Page<CardResponse.getStudyCardSetLists> cardListsPage = cardComponentService.getStudyCardSetLists(userId,
-			pageable);
+		List<CardResponse.getStudyCardSetLists> cardListsPage = cardComponentService.getStudyCardSetLists(userId, order, color, studyStatus);
 
 		return ResponseEntity.ok(cardListsPage);
 	}
@@ -131,8 +127,7 @@ public class CardController {
 	@GetMapping("study-suggestion")
 	@Operation(summary = "분석 학습 제안")
 	public ResponseEntity<List<CardResponse.getStudySuggestion>> suggestionAnalyzeStudy(@RequestHeader String token,
-		@RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-		@Parameter(description = "학습을 위한 날짜와 시간", example = "2024-08-20T12:14:56.597Z") String dateString) {
+		@RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) @Parameter(description = "학습을 위한 날짜와 시간", example = "2024-08-20T12:14:56.597Z") String dateString) {
 		Long userId = jwtUtil.extractUserId(token);
 
 		Timestamp date = Timestamp.valueOf(LocalDateTime.parse(dateString, DateTimeFormatter.ISO_DATE_TIME));
@@ -144,7 +139,7 @@ public class CardController {
 
 	@DeleteMapping("{studyCardSetId}")
 	@Operation(summary = "학습 카드셋 삭제")
-	public ResponseEntity<?> deleteStudyCardSet(@PathVariable Long studyCardSetId){
+	public ResponseEntity<?> deleteStudyCardSet(@PathVariable Long studyCardSetId) {
 		cardComponentService.deleteStudyCardSet(studyCardSetId);
 
 		return ResponseEntity.ok().build();
@@ -152,7 +147,7 @@ public class CardController {
 
 	@GetMapping("{studyCardSetId}/re-study")
 	@Operation(summary = "재학습")
-	public ResponseEntity<?> reStudy(@PathVariable Long studyCardSetId){
+	public ResponseEntity<?> reStudy(@PathVariable Long studyCardSetId) {
 		cardComponentService.reStudy(studyCardSetId);
 
 		return ResponseEntity.ok().build();
@@ -160,8 +155,7 @@ public class CardController {
 
 	@GetMapping("/weekly-count")
 	@Operation(summary = "주간 학습 결과 API", description = "사용자 조회 성공 시, 해당 주의 총 학습 카드 개수와 날짜별 학습 카드 개수 반환")
-	public ResponseEntity<CardResponse.weeklyResultDTO> getCardByWeek(
-			@RequestHeader("Authorization") String token) {
+	public ResponseEntity<CardResponse.weeklyResultDTO> getCardByWeek(@RequestHeader("Authorization") String token) {
 		Long userId = jwtUtil.extractUserId(token);
 		CardResponse.weeklyResultDTO weekCard = cardComponentService.getCardByWeek(userId);
 		return ResponseEntity.ok(weekCard);

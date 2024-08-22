@@ -1,5 +1,6 @@
 package com.umc.cardify.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -13,6 +14,6 @@ public interface StudyCardSetRepository extends JpaRepository<StudyCardSet, Long
 
 	Optional<StudyCardSet> findByNote(Note note);
 
-	Page<StudyCardSet> findByUserUserId(Long userId, Pageable pageable);
+	List<StudyCardSet> findByUserUserId(Long userId);
 
 }

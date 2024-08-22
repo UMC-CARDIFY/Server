@@ -199,24 +199,72 @@ public class CardComponentService {
 	}
 
 	@Transactional
-	public Page<CardResponse.getStudyCardSetLists> getStudyCardSetLists(Long userId, Pageable pageable) {
-		Page<StudyCardSet> studyCardSets = cardModuleService.getStudyCardSetsByUser(userId, pageable);
+	public List<CardResponse.getStudyCardSetLists> getStudyCardSetLists(Long userId, String order, String color, Integer studyStatus) {
+		List<StudyCardSet> studyCardSets = cardModuleService.getStudyCardSetsByUser(userId);
 
-		List<CardResponse.getStudyCardSetLists> cardLists = studyCardSets.stream()
-            .map(studyCardSet -> CardResponse.getStudyCardSetLists.builder()
-                .studyStatus(studyCardSet.getStudyStatus().getDescription())
-                .noteName(studyCardSet.getNoteName())
-                .color(studyCardSet.getColor())
-                .folderName(studyCardSet.getFolder().getName())
-                .recentStudyDate(studyCardSet.getRecentStudyDate())
-                .nextStudyDate(studyCardSet.getNextStudyDate())
-                .studyCardSetId(studyCardSet.getId())
-                .markStatus(studyCardSet.getNote().getMarkState())
-                .build())
-            .collect(Collectors.toList());
+		if (studyStatus != null) {
+			studyCardSets = studyCardSets.stream()
+				.filter(studyCardSet -> studyCardSet.getStudyStatus().getValue() == studyStatus)
+				.collect(Collectors.toList());
+		}
 
-		return new PageImpl<>(cardLists, pageable, studyCardSets.getTotalElements());
+		if (color != null && !color.isEmpty()) {
+			List<String> colorList = Arrays.asList(color.split(","));
+
+			List<String> allowedColors = Arrays.asList("blue", "ocean", "lavender", "mint", "sage", "gray", "orange", "coral", "rose", "plum");
+
+			for (String c : colorList) {
+				if (!allowedColors.contains(c)) {
+					throw new BadRequestException(ErrorResponseStatus.COLOR_REQUEST_ERROR);
+				}
+			}
+
+			studyCardSets = studyCardSets.stream()
+				.filter(studyCardSet -> colorList.contains(studyCardSet.getColor()))
+				.collect(Collectors.toList());
+		}
+
+		Comparator<StudyCardSet> comparator;
+		if (order != null && !order.isEmpty()) {
+			switch (order) {
+				case "asc":
+					comparator = Comparator.comparing(StudyCardSet::getNoteName);
+					break;
+				case "desc":
+					comparator = Comparator.comparing(StudyCardSet::getNoteName).reversed();
+					break;
+				case "edit-newest":
+					comparator = Comparator.comparing(studyCardSet -> studyCardSet.getNote().getEditDate(), Comparator.nullsLast(Comparator.reverseOrder()));
+					break;
+				case "edit-oldest":
+					comparator = Comparator.comparing(studyCardSet -> studyCardSet.getNote().getEditDate(), Comparator.nullsLast(Comparator.naturalOrder()));
+					break;
+				default:
+					comparator = Comparator.comparing(StudyCardSet::getNoteName);
+					break;
+			}
+			studyCardSets = studyCardSets.stream()
+				.sorted(comparator)
+				.collect(Collectors.toList());
+		}
+
+		return studyCardSets.stream()
+			.map(studyCardSet -> CardResponse.getStudyCardSetLists.builder()
+				.studyStatus(studyCardSet.getStudyStatus().getDescription())
+				.noteName(studyCardSet.getNoteName())
+				.color(studyCardSet.getColor())
+				.folderName(studyCardSet.getFolder().getName())
+				.recentStudyDate(studyCardSet.getRecentStudyDate())
+				.nextStudyDate(studyCardSet.getNextStudyDate())
+				.studyCardSetId(studyCardSet.getId())
+				.markStatus(studyCardSet.getNote().getMarkState())
+				.build())
+			.collect(Collectors.toList());
 	}
+
+
+
+
 
 	@Transactional
 	public Page<Object> getCardLists(Long studyCardSetId, int pageNumber) {
