@@ -14,4 +14,18 @@ public enum StudyStatus {
 		this.description = description;
 	}
 
+	// Method to get the integer representation
+	public int getValue() {
+		return this.ordinal();
+	}
+
+	// Static method to get enum from integer value
+	public static StudyStatus fromValue(int value) {
+		for (StudyStatus status : values()) {
+			if (status.ordinal() == value) {
+				return status;
+			}
+		}
+		throw new IllegalArgumentException("Invalid StudyStatus value: " + value);
+	}
 }

@@ -50,7 +50,7 @@ public class CardResponse {
 	@Builder
 	public static class getStudyCardSetLists {
 		@Schema(description = "학습 상태")
-		String studyStatus;
+		int studyStatus;
 
 		@Schema(description = "노트(카드 묶음) 제목 - 굵은 글씨")
 		String noteName;
@@ -98,6 +98,9 @@ public class CardResponse {
 
 		@Schema(description = "카드 타입")
 		String cardType;
+
+		@Schema(description = "멀티카드 정답")
+		List<String> multiAnswer;
 	}
 
 	@Getter
