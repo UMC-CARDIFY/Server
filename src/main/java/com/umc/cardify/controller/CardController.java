@@ -126,7 +126,7 @@ public class CardController {
 
 	@PostMapping("/study-suggestion")
 	@Operation(summary = "분석 학습 제안")
-	public ResponseEntity<List<CardResponse.getStudySuggestion>> suggestionAnalyzeStudy(@RequestHeader String token,
+	public ResponseEntity<List<CardResponse.getStudySuggestion>> suggestionAnalyzeStudy(@RequestHeader("Authorization") String token,
 		@RequestBody CardRequest.getSuggestion request) {
 		Long userId = jwtUtil.extractUserId(token);
 
