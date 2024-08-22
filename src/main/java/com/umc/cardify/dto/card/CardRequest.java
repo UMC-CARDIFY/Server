@@ -68,4 +68,12 @@ public class CardRequest {
 
 	}
 
+	@Getter
+	@Schema(title = "CARD_REQ_04 : 분석 학습 제안 DTO")
+	public static class getSuggestion{
+		@NotBlank(message = "날짜, 시간 정보 전달 필요")
+		@Schema(description = "제안 분석에 사용되는 날짜 및 시간. ISO 8601 형식으로 제공됩니다.", example = "2024-08-22T14:30:00")
+		private String date;
+	}
+
 }

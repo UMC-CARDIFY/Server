@@ -251,7 +251,7 @@ public class CardComponentService {
 
 		return studyCardSets.stream()
 			.map(studyCardSet -> CardResponse.getStudyCardSetLists.builder()
-				.studyStatus(studyCardSet.getStudyStatus().getDescription())
+				.studyStatus(studyCardSet.getStudyStatus().getValue())
 				.noteName(studyCardSet.getNoteName())
 				.color(studyCardSet.getColor())
 				.folderName(studyCardSet.getFolder().getName())
