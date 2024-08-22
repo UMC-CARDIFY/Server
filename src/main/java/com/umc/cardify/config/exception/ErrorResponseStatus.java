@@ -11,6 +11,7 @@ public enum ErrorResponseStatus {
 	INVALID_USERID(2003, "유효하지 않는 USERID 입니다."),
 	INVALID_NOTE_TEXT(2004, "입력된 노트 정보에 존재하지 않는 카드 정보입니다."),
 	NOT_EXIST_DIFFICULTY_CODE(2005, "존재하지 않는 난이도 코드 입니다. (어려움 = 1, 보통 = 2, 쉬움 = 3)"),
+	COLOR_REQUEST_ERROR(2006, "색상 값 입력 형식은 blue,mint,red 입니다."),
 
 	// 3000 : Response 오류
 	RESPONSE_ERROR(3000, "값을 불러오는데 실패하였습니다."),

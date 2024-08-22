@@ -193,8 +193,8 @@ public class CardModuleService {
 	}
 
 	// 기타 메서드
-	public Page<StudyCardSet> getStudyCardSetsByUser(Long userId, Pageable pageable) {
-		return studyCardSetRepository.findByUserUserId(userId, pageable);
+	public List<StudyCardSet> getStudyCardSetsByUser(Long userId) {
+		return studyCardSetRepository.findByUserUserId(userId);
 	}
 
 	public List<Card> getCardsByStudyCardSet(StudyCardSet studyCardSet) {
