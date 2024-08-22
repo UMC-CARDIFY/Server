@@ -18,7 +18,7 @@ public interface ImageCardRepository extends JpaRepository<ImageCard, Long> {
 	void deleteAllByStudyCardSet(StudyCardSet studyCardSet);
 
 	List<ImageCard> findByStudyCardSet(StudyCardSet studyCardSet);
+	@Query("SELECT ic FROM ImageCard ic WHERE ic.studyCardSet.user.userId = :userId AND DATE(ic.learnNextTime) = DATE(:date)")
+	List<ImageCard> findAllByUserIdAndLearnNextTimeOnDate(@Param("userId") Long userId, @Param("date") Timestamp date);
 
-	@Query("SELECT ic FROM ImageCard ic WHERE ic.studyCardSet.user.userId = :userId AND ic.learnNextTime > :date")
-	List<ImageCard> findAllByUserIdAndLearnNextTimeAfter(@Param("userId") Long userId, @Param("date") Timestamp date);
 }

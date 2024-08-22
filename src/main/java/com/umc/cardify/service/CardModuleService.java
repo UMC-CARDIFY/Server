@@ -61,14 +61,11 @@ public class CardModuleService {
 		imageCardRepository.deleteAllByStudyCardSet(studyCardSet);
 	}
 
-	public List<Card> findAllCardsByUserIdAndLearnNextTimeAfter(Long userId, Timestamp date) {
-
-		return cardRepository.findAllByUserIdAndLearnNextTimeAfter(userId, date);
+	public List<Card> findAllCardsByUserIdAndLearnNextTimeOnDate(Long userId, Timestamp date) {
+		return cardRepository.findAllByUserIdAndLearnNextTimeOnDate(userId, date);
 	}
-
-	public List<ImageCard> findAllImageCardsByUserIdAndLearnNextTimeAfter(Long userId, Timestamp date) {
-
-		return imageCardRepository.findAllByUserIdAndLearnNextTimeAfter(userId, date);
+	public List<ImageCard> findAllImageCardsByUserIdAndLearnNextTimeOnDate(Long userId, Timestamp date) {
+		return imageCardRepository.findAllByUserIdAndLearnNextTimeOnDate(userId, date);
 	}
 
 	// 카드 노드 처리

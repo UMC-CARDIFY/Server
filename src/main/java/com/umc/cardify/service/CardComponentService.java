@@ -90,8 +90,8 @@ public class CardComponentService {
 
 	@Transactional
 	public List<CardResponse.getStudySuggestion> suggestionAnalyzeStudy(Long userId, Timestamp date) {
-		List<Card> cards = cardModuleService.findAllCardsByUserIdAndLearnNextTimeAfter(userId, date);
-		List<ImageCard> imageCards = cardModuleService.findAllImageCardsByUserIdAndLearnNextTimeAfter(userId, date);
+		List<Card> cards = cardModuleService.findAllCardsByUserIdAndLearnNextTimeOnDate(userId, date);
+		List<ImageCard> imageCards = cardModuleService.findAllImageCardsByUserIdAndLearnNextTimeOnDate(userId, date);
 
 		return Stream.concat(cards.stream()
 			.map(card -> CardResponse.getStudySuggestion.builder()
