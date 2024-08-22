@@ -7,6 +7,8 @@ import java.sql.Timestamp;
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -88,28 +90,36 @@ public class CardComponentService {
 
 	@Transactional
 	public List<CardResponse.getStudySuggestion> suggestionAnalyzeStudy(Long userId, Timestamp date) {
-		// 카드와 이미지 카드를 각각 조회
 		List<Card> cards = cardModuleService.findAllCardsByUserIdAndLearnNextTimeAfter(userId, date);
 		List<ImageCard> imageCards = cardModuleService.findAllImageCardsByUserIdAndLearnNextTimeAfter(userId, date);
 
-		// 카드와 이미지 카드를 각각 변환하고, 스트림으로 합쳐서 리스트로 반환
 		return Stream.concat(cards.stream()
 			.map(card -> CardResponse.getStudySuggestion.builder()
-				.remainTime(card.getLearnNextTime())
+				.remainTime(convertToKST(card.getLearnNextTime()))  // remainTime을 KST로 변환
 				.noteName(card.getStudyCardSet().getNote().getName())
 				.folderName(card.getStudyCardSet().getFolder().getName())
 				.cardId(card.getCardId())
-				.cardType("CARD") // 카드 유형 추가
+				.cardType("CARD")
+				.color(card.getStudyCardSet().getFolder().getColor())
 				.build()), imageCards.stream()
 			.map(imageCard -> CardResponse.getStudySuggestion.builder()
-				.remainTime(imageCard.getLearnNextTime())
+				.remainTime(convertToKST(imageCard.getLearnNextTime()))  // remainTime을 KST로 변환
 				.noteName(imageCard.getStudyCardSet().getNote().getName())
 				.folderName(imageCard.getStudyCardSet().getFolder().getName())
 				.cardId(imageCard.getId())
-				.cardType("IMAGE_CARD") // 이미지 카드 유형 추가
+				.cardType("IMAGE_CARD")
+				.color(imageCard.getStudyCardSet().getFolder().getColor())
 				.build())).collect(Collectors.toList());
 	}
 
+	private Timestamp convertToKST(Timestamp utcTimestamp) {
+		if (utcTimestamp == null) {
+			return null;
+		}
+		ZonedDateTime utcZonedDateTime = utcTimestamp.toLocalDateTime().atZone(ZoneId.of("UTC"));
+		ZonedDateTime kstZonedDateTime = utcZonedDateTime.withZoneSameInstant(ZoneId.of("Asia/Seoul"));
+		return Timestamp.valueOf(kstZonedDateTime.toLocalDateTime());
+	}
 	@Transactional
 	public String addImageCard(MultipartFile image, CardRequest.addImageCard request) {
 		String imgUrl = s3Service.upload(image, "imageCards");
