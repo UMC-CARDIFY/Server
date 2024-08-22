@@ -39,7 +39,7 @@ public class OAuth2Controller {
         String kakaoAuthUrl = UriComponentsBuilder
                 .fromUriString("https://kauth.kakao.com/oauth/authorize")
                 .queryParam("client_id", clientId)
-                //.queryParam("client-secret", clientSecret)
+                .queryParam("client-secret", clientSecret)
                 .queryParam("redirect_uri", redirectUri)
                 .queryParam("response_type", "code")
                 .toUriString();
