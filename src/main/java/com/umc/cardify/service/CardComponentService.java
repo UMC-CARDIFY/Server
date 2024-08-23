@@ -72,24 +72,25 @@ public class CardComponentService {
 	public CardResponse.getExpectedStudyDateDTO getExpectedStudyDate(Long userId, int years, int month) {
 		// 해당 년월의 첫날과 마지막 날 계산
 		YearMonth yearMonth = YearMonth.of(years, month);
-		LocalDateTime startDateTime = yearMonth.atDay(1).atStartOfDay();
-		LocalDateTime endDateTime = yearMonth.atEndOfMonth().atTime(23, 59, 59);
+		LocalDateTime startDateTime = yearMonth.atDay(1).atStartOfDay(ZoneId.of("Asia/Seoul")).toLocalDateTime();
+		LocalDateTime endDateTime = yearMonth.atEndOfMonth().atTime(23, 59, 59).atZone(ZoneId.of("Asia/Seoul")).toLocalDateTime();
 
 		// 해당 유저의 해당 기간의 카드를 조회
 		List<Card> cards = cardRepository.findAllByUserIdAndLearnNextTimeBetween(userId, startDateTime, endDateTime);
-		List<ImageCard> imageCards = imageCardRepository.findAllByUserIdAndLearnNextTimeBetween(userId, startDateTime,
-			endDateTime);
+		List<ImageCard> imageCards = imageCardRepository.findAllByUserIdAndLearnNextTimeBetween(userId, startDateTime, endDateTime);
 
 		// 카드를 모두 모아서 learn_next_time의 일자를 추출
 		List<Integer> expectedDates = Stream.concat(
-				cards.stream().map(card -> card.getLearnNextTime().toLocalDateTime().getDayOfMonth()),
-				imageCards.stream().map(imageCard -> imageCard.getLearnNextTime().toLocalDateTime().getDayOfMonth()))
-			.distinct()
+				cards.stream().map(card -> card.getLearnNextTime().toInstant().atZone(ZoneId.of("Asia/Seoul")).toLocalDate().getDayOfMonth()),
+				imageCards.stream().map(imageCard -> imageCard.getLearnNextTime().toInstant().atZone(ZoneId.of("Asia/Seoul")).toLocalDate().getDayOfMonth())
+			).distinct()
 			.sorted()
 			.collect(Collectors.toList());
 
 		// DTO에 결과 반환
-		return CardResponse.getExpectedStudyDateDTO.builder().expectedDate(expectedDates).build();
+		return CardResponse.getExpectedStudyDateDTO.builder()
+			.expectedDate(expectedDates)
+			.build();
 	}
 
 	@Transactional
@@ -136,7 +137,8 @@ public class CardComponentService {
 
 		return Stream.concat(cards.stream().map(card -> {
 			String remainTime = calculateRemainingTime(card.getLearnNextTime());
-			String learnDate = card.getLearnNextTime().toLocalDateTime().toLocalDate().toString();
+			// KST 시간대로 날짜를 변환
+			String learnDate = card.getLearnNextTime().toInstant().atZone(ZoneId.of("Asia/Seoul")).toLocalDate().toString();
 
 			return CardResponse.getStudySuggestion.builder()
 				.remainTime(remainTime)
@@ -149,7 +151,8 @@ public class CardComponentService {
 				.build();
 		}), imageCards.stream().map(imageCard -> {
 			String remainTime = calculateRemainingTime(imageCard.getLearnNextTime());
-			String learnDate = imageCard.getLearnNextTime().toLocalDateTime().toLocalDate().toString();
+			// KST 시간대로 날짜를 변환
+			String learnDate = imageCard.getLearnNextTime().toInstant().atZone(ZoneId.of("Asia/Seoul")).toLocalDate().toString();
 
 			return CardResponse.getStudySuggestion.builder()
 				.remainTime(remainTime)
@@ -162,6 +165,7 @@ public class CardComponentService {
 				.build();
 		})).collect(Collectors.toList());
 	}
+
 
 	private String calculateRemainingTime(Timestamp learnNextTime) {
 		// Timestamp를 LocalDateTime으로 변환
