@@ -345,13 +345,18 @@ public class CardComponentService {
 
 		List<Object> allCards = new ArrayList<>();
 
-		// 난이도가 PASS(4)가 아닌 카드들만 필터링하여 추가
+		// 난이도가 PASS(4)가 아닌 카드들 또는 countLearn이 0인 카드들만 필터링하여 추가
 		allCards.addAll(
-			cards.stream().filter(card -> card.getDifficulty() != Difficulty.PASS).collect(Collectors.toList()));
+			cards.stream()
+				.filter(card -> card.getDifficulty() != Difficulty.PASS || card.getCountLearn() == 0)
+				.collect(Collectors.toList())
+		);
 
-		allCards.addAll(imageCards.stream()
-			.filter(imageCard -> imageCard.getDifficulty() != Difficulty.PASS)
-			.collect(Collectors.toList()));
+		allCards.addAll(
+			imageCards.stream()
+				.filter(imageCard -> imageCard.getDifficulty() != Difficulty.PASS || imageCard.getCountLearn() == 0)
+				.collect(Collectors.toList())
+		);
 
 		log.debug("모든 카드가 결합되고 필터링되었습니다: {}", allCards);
 
@@ -385,6 +390,7 @@ public class CardComponentService {
 			}
 		});
 	}
+
 
 	private CardResponse.getCardLists mapToWordCardResponse(Card card, StudyCardSet studyCardSet) {
 		CardResponse.getCardLists getCardLists;
@@ -691,6 +697,7 @@ public class CardComponentService {
 			if (card.getDifficulty() == Difficulty.PASS) {
 				continue;
 			}
+			System.out.println("card = " + card.getCardId());
 			allCardsPassed = false;
 
 			Timestamp nextStudyTime = calculateNextStudyTime(card);
@@ -710,7 +717,7 @@ public class CardComponentService {
 				continue;
 			}
 			allCardsPassed = false;
-
+			System.out.println("imageCard = " + imageCard.getId());
 			Timestamp nextStudyTime = calculateNextStudyTime(imageCard);
 
 			if (nextStudyTime != null) {  // null 체크 추가
