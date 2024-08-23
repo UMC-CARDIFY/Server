@@ -162,6 +162,8 @@ public class CardResponse {
 		@Schema(description = "폴더 색상")
 		String color;
 
+		@Schema(description = "다음 학습 날짜")
+		String date;
 	}
 
 	@Getter

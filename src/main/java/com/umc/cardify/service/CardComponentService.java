@@ -136,6 +136,8 @@ public class CardComponentService {
 
 		return Stream.concat(cards.stream().map(card -> {
 			String remainTime = calculateRemainingTime(card.getLearnNextTime());
+			String learnDate = card.getLearnNextTime().toLocalDateTime().toLocalDate().toString();
+
 			return CardResponse.getStudySuggestion.builder()
 				.remainTime(remainTime)
 				.noteName(card.getStudyCardSet().getNote().getName())
@@ -143,9 +145,12 @@ public class CardComponentService {
 				.cardId(card.getCardId())
 				.cardType("CARD")
 				.color(card.getStudyCardSet().getFolder().getColor())
+				.date(learnDate) // 학습 날짜 설정
 				.build();
 		}), imageCards.stream().map(imageCard -> {
 			String remainTime = calculateRemainingTime(imageCard.getLearnNextTime());
+			String learnDate = imageCard.getLearnNextTime().toLocalDateTime().toLocalDate().toString();
+
 			return CardResponse.getStudySuggestion.builder()
 				.remainTime(remainTime)
 				.noteName(imageCard.getStudyCardSet().getNote().getName())
@@ -153,6 +158,7 @@ public class CardComponentService {
 				.cardId(imageCard.getId())
 				.cardType("IMAGE_CARD")
 				.color(imageCard.getStudyCardSet().getFolder().getColor())
+				.date(learnDate) // 학습 날짜 설정
 				.build();
 		})).collect(Collectors.toList());
 	}
