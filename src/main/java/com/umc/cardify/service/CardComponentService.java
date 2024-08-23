@@ -179,7 +179,7 @@ public class CardComponentService {
 		long hours = duration.toHours();
 		long minutes = duration.toMinutes() % 60;
 
-		return String.format("%02d 시간 %02d 분", hours, minutes);
+		return String.format("%02d 시간 %02d 분", hours + 9, minutes);
 	}
 
 	@Transactional
