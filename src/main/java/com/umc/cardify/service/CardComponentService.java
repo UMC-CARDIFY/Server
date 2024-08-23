@@ -168,8 +168,8 @@ public class CardComponentService {
 
 
 	private String calculateRemainingTime(Timestamp learnNextTime) {
-		// Timestamp를 LocalDateTime으로 변환
-		LocalDateTime learnTime = learnNextTime.toLocalDateTime();
+		// Timestamp를 LocalDateTime으로 변환하고 9시간을 더함
+		LocalDateTime learnTime = learnNextTime.toLocalDateTime().plusHours(9);
 		LocalDateTime currentTime = LocalDateTime.now(ZoneId.of("Asia/Seoul")); // 한국 표준시(KST)로 현재 시간 설정
 
 		// 현재 시간과 학습 시간 사이의 기간 계산
@@ -179,9 +179,8 @@ public class CardComponentService {
 		long hours = duration.toHours();
 		long minutes = duration.toMinutes() % 60;
 
-		return String.format("%02d 시간 %02d 분", hours + 9, minutes);
+		return String.format("%02d 시간 %02d 분", hours, minutes);
 	}
-
 	@Transactional
 	public String addImageCard(MultipartFile image, CardRequest.addImageCard request) {
 		String imgUrl = s3Service.upload(image, "imageCards");
