@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.Map;
 
-
+// if 문 빼기, try-catch 도 가능하면 optional 로 대체 
 @Tag(name = "UserController", description = "회원가입, 로그인, 유저 프로필 관련 API")
 @RestController
 @RequestMapping("/api/v1/users")
