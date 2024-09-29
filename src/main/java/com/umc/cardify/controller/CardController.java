@@ -30,6 +30,7 @@ import com.umc.cardify.service.CardComponentService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
@@ -126,7 +127,7 @@ public class CardController {
 
 	@PostMapping("/study-suggestion")
 	@Operation(summary = "분석 학습 제안")
-	public ResponseEntity<List<CardResponse.getStudySuggestion>> suggestionAnalyzeStudy(@RequestHeader String token,
+	public ResponseEntity<List<CardResponse.getStudySuggestion>> suggestionAnalyzeStudy(@RequestHeader("Authorization") String token,
 		@RequestBody CardRequest.getSuggestion request) {
 		Long userId = jwtUtil.extractUserId(token);
 
@@ -160,5 +161,16 @@ public class CardController {
 		CardResponse.weeklyResultDTO weekCard = cardComponentService.getCardByWeek(userId);
 		return ResponseEntity.ok(weekCard);
 	}
+
+	@GetMapping("/study-suggestion/{years}/{month}")
+	@Operation(summary = "이번 달 학습 예정 일자")
+	public ResponseEntity<?> getExpectedStudyDate(@RequestHeader("Authorization") String token, @PathVariable int years, @PathVariable int month){
+		Long userId = jwtUtil.extractUserId(token);
+		CardResponse.getExpectedStudyDateDTO studyDateDTO = cardComponentService.getExpectedStudyDate(userId, years, month);
+
+		return ResponseEntity.ok(studyDateDTO);
+	}
+
+
 
 }

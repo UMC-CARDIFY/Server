@@ -6,8 +6,6 @@ import java.sql.Timestamp;
 import java.util.List;
 import java.util.Queue;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -27,6 +25,7 @@ import com.umc.cardify.domain.enums.StudyStatus;
 import com.umc.cardify.dto.card.CardRequest;
 import com.umc.cardify.repository.CardRepository;
 import com.umc.cardify.repository.ImageCardRepository;
+import com.umc.cardify.repository.NoteRepository;
 import com.umc.cardify.repository.OverlayRepository;
 import com.umc.cardify.repository.StudyCardSetRepository;
 
@@ -40,21 +39,33 @@ public class CardModuleService {
 	private final StudyCardSetRepository studyCardSetRepository;
 	private final ImageCardRepository imageCardRepository;
 	private final OverlayRepository overlayRepository;
+	private final NoteRepository noteRepository;
 	private final S3Service s3Service;
+	boolean existsByNote(Note note){
 
+		return studyCardSetRepository.existsByNote(note);
+	}
 	public void deleteCardSet(Long studyCardSetId) {
 
 		studyCardSetRepository.deleteById(studyCardSetId);
 	}
 
-	public List<Card> findAllCardsByUserIdAndLearnNextTimeAfter(Long userId, Timestamp date) {
-
-		return cardRepository.findAllByUserIdAndLearnNextTimeAfter(userId, date);
+	void deleteAllCardsByNoteId(Long noteId) {
+		cardRepository.deleteCardsByNoteId(noteId);
 	}
 
-	public List<ImageCard> findAllImageCardsByUserIdAndLearnNextTimeAfter(Long userId, Timestamp date) {
+	void deleteAllImageCardsByNoteId(Long noteId) {
+		Note note = noteRepository.findById(noteId).orElseThrow(() -> new DatabaseException(NOT_FOUND_ERROR));
+		StudyCardSet studyCardSet = studyCardSetRepository.findByNote(note)
+			.orElseThrow(() -> new DatabaseException(NOT_FOUND_ERROR));
+		imageCardRepository.deleteAllByStudyCardSet(studyCardSet);
+	}
 
-		return imageCardRepository.findAllByUserIdAndLearnNextTimeAfter(userId, date);
+	public List<Card> findAllCardsByUserIdAndLearnNextTimeOnDate(Long userId, Timestamp date) {
+		return cardRepository.findAllByUserIdAndLearnNextTimeOnDate(userId, date);
+	}
+	public List<ImageCard> findAllImageCardsByUserIdAndLearnNextTimeOnDate(Long userId, Timestamp date) {
+		return imageCardRepository.findAllByUserIdAndLearnNextTimeOnDate(userId, date);
 	}
 
 	// 카드 노드 처리

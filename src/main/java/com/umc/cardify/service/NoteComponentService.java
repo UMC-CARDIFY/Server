@@ -8,8 +8,6 @@ import java.util.List;
 import java.util.Queue;
 import java.util.stream.Collectors;
 
-import com.umc.cardify.domain.*;
-import com.umc.cardify.repository.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -24,10 +22,23 @@ import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.DatabaseException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.converter.NoteConverter;
+import com.umc.cardify.domain.Category;
+import com.umc.cardify.domain.ContentsNote;
+import com.umc.cardify.domain.Folder;
+import com.umc.cardify.domain.Library;
+import com.umc.cardify.domain.LibraryCategory;
+import com.umc.cardify.domain.Note;
 import com.umc.cardify.domain.ProseMirror.Node;
+import com.umc.cardify.domain.User;
 import com.umc.cardify.domain.enums.MarkStatus;
 import com.umc.cardify.dto.note.NoteRequest;
 import com.umc.cardify.dto.note.NoteResponse;
+import com.umc.cardify.repository.CategoryRepository;
+import com.umc.cardify.repository.ContentsNoteRepository;
+import com.umc.cardify.repository.LibraryCategoryRepository;
+import com.umc.cardify.repository.LibraryRepository;
+import com.umc.cardify.repository.NoteRepository;
+import com.umc.cardify.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -131,17 +142,20 @@ public class NoteComponentService {
 	@Transactional
 	public Boolean writeNote(NoteRequest.WriteNoteDto request, Long userId, List<MultipartFile> images) {
 		Note note = noteModuleService.getNoteById(request.getNoteId());
+		System.out.println("note.getNoteId() = " + note.getNoteId());
 
 		if (!userId.equals(note.getFolder().getUser().getUserId())) {
 			log.warn("Invalid userId: {}", userId);
 			throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
-		} else if (libraryRepository.findByNote(note) != null) {
-			log.warn("Attempt to insert a note that already exists in the library: {}", note.getNoteId());
-			throw new BadRequestException(ErrorResponseStatus.DB_INSERT_ERROR);
 		}
-		if(!note.getIsEdit()){
+		if (!note.getIsEdit()) {
 			log.warn("IsEdit is : {}", note.getIsEdit());
 			throw new BadRequestException(ErrorResponseStatus.DB_UPDATE_ERROR);
+		}
+		if (cardModuleService.existsByNote(note)) {
+			cardModuleService.deleteAllCardsByNoteId(note.getNoteId());
+			cardModuleService.deleteAllImageCardsByNoteId(note.getNoteId());
+
 		}
 
 		StringBuilder totalText = new StringBuilder();
@@ -236,6 +250,7 @@ public class NoteComponentService {
 				.toList();
 		}
 
+		note.setIsEdit(false);
 		noteRepository.save(note);
 		return true;
 	}
@@ -247,6 +262,7 @@ public class NoteComponentService {
 		Library library = note.getLibrary();
 
 		note.setLibrary(null);
+		note.setIsEdit(true);
 		noteRepository.save(note);
 
 		if (library != null)
@@ -284,9 +300,10 @@ public class NoteComponentService {
 	}
 
 	// 노트 조회, 정렬, 필터링 통합 Service
-	public NoteResponse.NoteListDTO getNotesBySortFilter(Long userId, Integer page, Integer size, String order, String color) {
+	public NoteResponse.NoteListDTO getNotesBySortFilter(Long userId, Integer page, Integer size, String order,
+		String color) {
 		User user = userRepository.findById(userId)
-				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+			.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
 		int getNotePage = (page != null) ? page : 0;
 		int getNoteSize = (size != null) ? size : Integer.MAX_VALUE;
@@ -305,7 +322,8 @@ public class NoteComponentService {
 			List<String> colorList = Arrays.asList(color.split(","));
 
 			// cardify 규격 색상, 잘못 입력하면 error처리
-			List<String> allowedColors = Arrays.asList("blue", "ocean", "lavender", "mint", "sage", "gray", "orange", "coral", "rose", "plum");
+			List<String> allowedColors = Arrays.asList("blue", "ocean", "lavender", "mint", "sage", "gray", "orange",
+				"coral", "rose", "plum");
 
 			for (String c : colorList) {
 				if (!allowedColors.contains(c)) {
@@ -318,11 +336,9 @@ public class NoteComponentService {
 			} else {
 				notePage = noteRepository.findByNoteIdAndUser(user, colorList, pageable);
 			}
-		}
-		else if (order != null && !order.isEmpty()) {
+		} else if (order != null && !order.isEmpty()) {
 			notePage = noteRepository.findByUserAndSort(user, order, pageable);
-		}
-		else {
+		} else {
 			notePage = noteRepository.findByUser(user, pageable);
 		}
 
@@ -330,18 +346,19 @@ public class NoteComponentService {
 			throw new DatabaseException(ErrorResponseStatus.NOT_EXIST_NOTE);
 		}
 
-		List<NoteResponse.NoteInfoDTO> notes = notePage.getContent().stream()
-				.map(noteConverter::toNoteInfoDTO)
-				.collect(Collectors.toList());
+		List<NoteResponse.NoteInfoDTO> notes = notePage.getContent()
+			.stream()
+			.map(noteConverter::toNoteInfoDTO)
+			.collect(Collectors.toList());
 
 		return NoteResponse.NoteListDTO.builder()
-				.noteList(notes)
-				.listsize(getNoteSize)
-				.currentPage(getNotePage + 1)
-				.totalPage(notePage.getTotalPages())
-				.totalElements(notePage.getTotalElements())
-				.isFirst(notePage.isFirst())
-				.isLast(notePage.isLast())
-				.build();
+			.noteList(notes)
+			.listsize(getNoteSize)
+			.currentPage(getNotePage + 1)
+			.totalPage(notePage.getTotalPages())
+			.totalElements(notePage.getTotalElements())
+			.isFirst(notePage.isFirst())
+			.isLast(notePage.isLast())
+			.build();
 	}
 }

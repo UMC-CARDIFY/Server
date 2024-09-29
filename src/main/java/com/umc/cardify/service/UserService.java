@@ -14,6 +14,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+// 커스텀 익셉션 만들기 
+// return 문은 try 밖에서 하기 
 @Service
 @RequiredArgsConstructor
 public class UserService {
