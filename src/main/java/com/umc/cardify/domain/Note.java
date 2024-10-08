@@ -65,8 +65,7 @@ public class Note extends BaseEntity {
     private Library library;
 
     @Setter
-    @OneToOne(mappedBy = "note", cascade = CascadeType.ALL)
-    private ContentsNote contentsNote;
+    private Long contentsId;
 
     @Setter
     @OneToMany(mappedBy = "note", cascade = CascadeType.ALL)

@@ -67,8 +67,10 @@ public class NoteComponentService {
 		else {
 			Note newNote = NoteConverter.toAddNote(folder);
 			noteRepository.save(newNote);
-			ContentsNote contentsNote = ContentsNote.builder().note(newNote).build();
+			ContentsNote contentsNote = ContentsNote.builder().noteId(newNote.getNoteId()).build();
 			contentsNoteRepository.save(contentsNote);
+			newNote.setContentsId(contentsNote.getContentsId());
+			noteRepository.save(newNote);
 			return newNote;
 		}
 	}
@@ -80,6 +82,7 @@ public class NoteComponentService {
 			throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
 		else {
 			noteRepository.delete(note_del);
+			contentsNoteRepository.delete(contentsNoteRepository.findByNoteId(note_del.getNoteId()));
 			return true;
 		}
 	}
@@ -166,17 +169,9 @@ public class NoteComponentService {
 		searchCard(node, totalText, note, imageQueue);
 		note.setTotalText(totalText.toString());
 
-		try {
-			String jsonStr = objectMapper.writeValueAsString(node);
-
-			ContentsNote contentsNote = contentsNoteRepository.findByNote(note);
-			contentsNote.setContents(jsonStr);
-			contentsNoteRepository.save(contentsNote);
-			note.setContentsNote(contentsNote);
-		} catch (JsonProcessingException e) {
-			log.error("Failed to serialize note contents to JSON", e);
-			throw new BadRequestException(ErrorResponseStatus.JSON_PROCESSING_ERROR);
-		}
+		ContentsNote contentsNote = contentsNoteRepository.findByNoteId(note.getNoteId());
+		contentsNote.setContents(node);
+		contentsNoteRepository.save(contentsNote);
 
 		noteModuleService.saveNote(note);
 		return true;

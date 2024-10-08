@@ -1,9 +1,11 @@
 package com.umc.cardify.domain;
 
+import com.umc.cardify.domain.ProseMirror.Node;
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.mongodb.core.mapping.Document;
 
-@Entity
+@Document(collection = "cardify")
 @Getter
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -15,10 +17,7 @@ public class ContentsNote {
     private Long contentsId;
 
     @Setter
-    @Column(columnDefinition = "JSON")
-    private Object contents;
+    private Node contents;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "note_id")
-    private Note note;
+    private Long noteId;
 }

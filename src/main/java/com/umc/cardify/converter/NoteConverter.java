@@ -1,9 +1,11 @@
 package com.umc.cardify.converter;
 
+import com.umc.cardify.domain.ContentsNote;
 import com.umc.cardify.domain.Folder;
 import com.umc.cardify.domain.Note;
 import com.umc.cardify.domain.enums.MarkStatus;
 import com.umc.cardify.dto.note.NoteResponse;
+import com.umc.cardify.repository.ContentsNoteRepository;
 import com.umc.cardify.service.LibraryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -20,6 +22,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class NoteConverter {
     private final LibraryService libraryService;
+    private final ContentsNoteRepository contentsNoteRepository;
     public static Note toAddNote(Folder folder){
         return Note.builder()
                 .folder(folder)
@@ -104,11 +107,17 @@ public class NoteConverter {
                 .build();
     }
     public NoteResponse.getNoteDTO getNoteDTO(Note note, List<NoteResponse.getNoteCardDTO> cardDTO){
+        System.out.println(note.getNoteId());
+        ContentsNote contentsNote = contentsNoteRepository.findByNoteId(note.getNoteId());
+        if(contentsNote != null)
+            System.out.println(contentsNote);
+        else
+            System.out.println("null");
         return NoteResponse.getNoteDTO.builder()
                 .noteId(note.getNoteId())
                 .noteName(note.getName())
                 .markState(note.getMarkState().equals(MarkStatus.ACTIVE))
-                .noteContent(note.getContentsNote().getContents())
+                .noteContent(contentsNoteRepository.findByNoteId(note.getNoteId()).getContents())
                 .isEdit(note.getIsEdit())
                 .isUpload(libraryService.isUploadLib(note))
                 .cardList(cardDTO)

@@ -4,6 +4,7 @@ import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.converter.LibraryConverter;
 import com.umc.cardify.domain.*;
+import com.umc.cardify.domain.ProseMirror.Node;
 import com.umc.cardify.dto.library.LibraryRequest;
 import com.umc.cardify.dto.library.LibraryResponse;
 import com.umc.cardify.repository.*;
@@ -100,14 +101,14 @@ public class LibraryService {
                 .isEdit(download.getIsContainCard())
                 .build();
         noteRepository.save(note_new);
-
+        Node contents_down = contentsNoteRepository.findById(note_down.getContentsId()).get().getContents();
         ContentsNote contentsNote = ContentsNote.builder()
-                .contents(note_down.getContentsNote().getContents())
-                .note(note_new)
+                .contents(contents_down)
+                .noteId(note_new.getNoteId())
                 .build();
         contentsNoteRepository.save(contentsNote);
 
-        note_new.setContentsNote(contentsNote);
+        note_new.setContentsId(contentsNote.getContentsId());
         noteRepository.save(note_new);
 
         if(cardList != null)
