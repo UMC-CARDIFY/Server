@@ -1,5 +1,7 @@
 package com.umc.cardify.converter;
 
+import com.umc.cardify.config.exception.BadRequestException;
+import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.domain.ContentsNote;
 import com.umc.cardify.domain.Folder;
 import com.umc.cardify.domain.Note;
@@ -107,17 +109,14 @@ public class NoteConverter {
                 .build();
     }
     public NoteResponse.getNoteDTO getNoteDTO(Note note, List<NoteResponse.getNoteCardDTO> cardDTO){
-        System.out.println(note.getNoteId());
-        ContentsNote contentsNote = contentsNoteRepository.findByNoteId(note.getNoteId());
-        if(contentsNote != null)
-            System.out.println(contentsNote);
-        else
-            System.out.println("null");
+        ContentsNote contentsNote = contentsNoteRepository.findByNoteId(note.getNoteId()).orElseThrow(
+                () -> new BadRequestException(ErrorResponseStatus.INVALID_NOTE_TEXT));
+
         return NoteResponse.getNoteDTO.builder()
                 .noteId(note.getNoteId())
                 .noteName(note.getName())
                 .markState(note.getMarkState().equals(MarkStatus.ACTIVE))
-                .noteContent(contentsNoteRepository.findByNoteId(note.getNoteId()).getContents())
+                .noteContent(contentsNote.getContents())
                 .isEdit(note.getIsEdit())
                 .isUpload(libraryService.isUploadLib(note))
                 .cardList(cardDTO)

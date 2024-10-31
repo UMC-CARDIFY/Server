@@ -101,6 +101,7 @@ public class LibraryService {
                 .isEdit(download.getIsContainCard())
                 .build();
         noteRepository.save(note_new);
+
         Node contents_down = contentsNoteRepository.findById(note_down.getContentsId()).get().getContents();
         ContentsNote contentsNote = ContentsNote.builder()
                 .contents(contents_down)
@@ -108,7 +109,7 @@ public class LibraryService {
                 .build();
         contentsNoteRepository.save(contentsNote);
 
-        note_new.setContentsId(contentsNote.getContentsId());
+        note_new.setContentsId(contentsNote.get_id());
         noteRepository.save(note_new);
 
         if(cardList != null)
