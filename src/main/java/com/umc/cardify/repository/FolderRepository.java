@@ -30,4 +30,10 @@ public interface FolderRepository extends JpaRepository<Folder, Long> {
             "CASE WHEN f.markState = 'ACTIVE' THEN f.markDate END ASC, " +
             "CASE WHEN f.markState != 'ACTIVE' THEN f.createdAt END DESC")
     List<Folder> findByUserAndColor(@Param("user") User user, @Param("color") List<String> color);
+
+    // 특정 폴더의 하위 폴더 개수 count
+    int countByParentFolder(Folder folder);
+
+    // 사용자의 폴더 개수를 count
+    int countByUserAndParentFolderIsNull(User user);
 }
