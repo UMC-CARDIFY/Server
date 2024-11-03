@@ -6,6 +6,9 @@ spring:
     driverClassName: com.mysql.cj.jdbc.Driver
     username: ${DB_USER}
     password: ${DB_PASSWORD}
+  data:
+    mongodb:
+      uri: mongodb+srv://cardify:${DB_PASSWORD}@cardify.pckle.mongodb.net/cardify?retryWrites=true&w=majority&appName=Cardify
   jpa:
     hibernate:
       ddl-auto: none

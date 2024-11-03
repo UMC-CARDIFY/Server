@@ -1,5 +1,6 @@
 package com.umc.cardify.dto.note;
 
+import com.umc.cardify.domain.ProseMirror.Node;
 import com.umc.cardify.domain.enums.MarkStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;

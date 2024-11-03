@@ -4,6 +4,7 @@ import com.umc.cardify.domain.enums.MarkStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
+import org.bson.types.ObjectId;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -65,8 +66,7 @@ public class Note extends BaseEntity {
     private Library library;
 
     @Setter
-    @OneToOne(mappedBy = "note", cascade = CascadeType.ALL)
-    private ContentsNote contentsNote;
+    private ObjectId contentsId;
 
     @Setter
     @OneToMany(mappedBy = "note", cascade = CascadeType.ALL)

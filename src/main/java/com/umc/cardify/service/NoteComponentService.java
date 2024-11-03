@@ -1,17 +1,14 @@
 package com.umc.cardify.service;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -67,8 +64,15 @@ public class NoteComponentService {
 		else {
 			Note newNote = NoteConverter.toAddNote(folder);
 			noteRepository.save(newNote);
-			ContentsNote contentsNote = ContentsNote.builder().note(newNote).build();
-			contentsNoteRepository.save(contentsNote);
+			try {
+				ContentsNote contentsNote = ContentsNote.builder().noteId(newNote.getNoteId()).build();
+				contentsNoteRepository.insert(contentsNote);
+				newNote.setContentsId(contentsNote.get_id());
+			}catch (Exception e){
+				System.out.println(e);
+			}
+
+			noteRepository.save(newNote);
 			return newNote;
 		}
 	}
@@ -80,6 +84,7 @@ public class NoteComponentService {
 			throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
 		else {
 			noteRepository.delete(note_del);
+			contentsNoteRepository.delete(contentsNoteRepository.findByNoteId(note_del.getNoteId()).get());
 			return true;
 		}
 	}
@@ -142,7 +147,6 @@ public class NoteComponentService {
 	@Transactional
 	public Boolean writeNote(NoteRequest.WriteNoteDto request, Long userId, List<MultipartFile> images) {
 		Note note = noteModuleService.getNoteById(request.getNoteId());
-		System.out.println("note.getNoteId() = " + note.getNoteId());
 
 		if (!userId.equals(note.getFolder().getUser().getUserId())) {
 			log.warn("Invalid userId: {}", userId);
@@ -166,17 +170,9 @@ public class NoteComponentService {
 		searchCard(node, totalText, note, imageQueue);
 		note.setTotalText(totalText.toString());
 
-		try {
-			String jsonStr = objectMapper.writeValueAsString(node);
-
-			ContentsNote contentsNote = contentsNoteRepository.findByNote(note);
-			contentsNote.setContents(jsonStr);
-			contentsNoteRepository.save(contentsNote);
-			note.setContentsNote(contentsNote);
-		} catch (JsonProcessingException e) {
-			log.error("Failed to serialize note contents to JSON", e);
-			throw new BadRequestException(ErrorResponseStatus.JSON_PROCESSING_ERROR);
-		}
+		ContentsNote contentsNote = contentsNoteRepository.findByNoteId(note.getNoteId()).get();
+		contentsNote.setContents(node);
+		contentsNoteRepository.save(contentsNote);
 
 		noteModuleService.saveNote(note);
 		return true;

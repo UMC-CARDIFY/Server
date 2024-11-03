@@ -1,9 +1,13 @@
 package com.umc.cardify.converter;
 
+import com.umc.cardify.config.exception.BadRequestException;
+import com.umc.cardify.config.exception.ErrorResponseStatus;
+import com.umc.cardify.domain.ContentsNote;
 import com.umc.cardify.domain.Folder;
 import com.umc.cardify.domain.Note;
 import com.umc.cardify.domain.enums.MarkStatus;
 import com.umc.cardify.dto.note.NoteResponse;
+import com.umc.cardify.repository.ContentsNoteRepository;
 import com.umc.cardify.service.LibraryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -20,6 +24,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class NoteConverter {
     private final LibraryService libraryService;
+    private final ContentsNoteRepository contentsNoteRepository;
     public static Note toAddNote(Folder folder){
         return Note.builder()
                 .folder(folder)
@@ -104,11 +109,14 @@ public class NoteConverter {
                 .build();
     }
     public NoteResponse.getNoteDTO getNoteDTO(Note note, List<NoteResponse.getNoteCardDTO> cardDTO){
+        ContentsNote contentsNote = contentsNoteRepository.findByNoteId(note.getNoteId()).orElseThrow(
+                () -> new BadRequestException(ErrorResponseStatus.INVALID_NOTE_TEXT));
+
         return NoteResponse.getNoteDTO.builder()
                 .noteId(note.getNoteId())
                 .noteName(note.getName())
                 .markState(note.getMarkState().equals(MarkStatus.ACTIVE))
-                .noteContent(note.getContentsNote().getContents())
+                .noteContent(contentsNote.getContents())
                 .isEdit(note.getIsEdit())
                 .isUpload(libraryService.isUploadLib(note))
                 .cardList(cardDTO)
