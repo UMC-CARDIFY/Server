@@ -38,4 +38,16 @@ public class FolderRequest {
         @Schema(description = "폴더 색상", example = "기존 색상")
         String color;
     }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "FOLDER_REQ_03 : 하위 폴더 추가 요청 DTO")
+    public static class addSubFolderDto{
+        @NotBlank
+        @Schema(description = "폴더 이름", example = "sample")
+        String name;
+    }
+
 }

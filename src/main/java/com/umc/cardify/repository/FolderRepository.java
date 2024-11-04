@@ -36,4 +36,8 @@ public interface FolderRepository extends JpaRepository<Folder, Long> {
 
     // 사용자의 폴더 개수를 count
     int countByUserAndParentFolderIsNull(User user);
+
+    List<Folder> findByUserAndParentFolderIsNull(User user);
+
+    List<Folder> findByParentFolderAndUser(Folder parentFolder, User user);
 }
