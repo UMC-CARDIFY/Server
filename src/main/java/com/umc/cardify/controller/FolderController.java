@@ -72,6 +72,18 @@ public class FolderController {
 
     }
 
+    //하위 폴더 추가 API
+    @PostMapping("/{folderId}/addSubFolder")
+    @Operation(summary = "하위 폴더 추가 기능 API", description = "상위 폴더에 하위 폴더를 생성 시, 폴더 아이디, 이름, 색상, 즐겨찾기 여부, 생성일 반환 | 상위 폴더 ID url에서 받아옴")
+    public ResponseEntity<FolderResponse.addFolderResultDTO> addSubFolder(
+            @RequestHeader("Authorization") String token,
+            @PathVariable Long folderId,
+            @RequestBody @Valid FolderRequest.addFolderDto subFolderRequest) {
+        Long userId = jwtUtil.extractUserId(token);
+        FolderResponse.addFolderResultDTO response = folderService.addSubFolder(userId, subFolderRequest, folderId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
     @PatchMapping("/{folderId}")
     @Operation(summary = "폴더 수정 기능 API", description = "해당 유저의 폴더를 수정 시, 수정된 이름과 색상, 수정일을 반환")
     public ResponseEntity<FolderResponse.editFolderResultDTO> editFolder(

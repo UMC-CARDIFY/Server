@@ -72,6 +72,8 @@ public class FolderResponse {
     @AllArgsConstructor
     @Schema(title = "FOLDER_RES_04 : 폴더 추가 응답 DTO")
     public static class addFolderResultDTO{
+        @Schema(description = "상위 폴더 아이디", example = "1")
+        private Long parent_folderId;
         @Schema(description = "폴더 아이디", example = "1")
         private Long folderId;
         @Schema(description = "폴더 이름", example = "sample")

@@ -187,10 +187,17 @@ public class FolderService {
         folderRepository.delete(folder);
     }
 
+    //상위 폴더 생성
     @Transactional
     public FolderResponse.addFolderResultDTO addFolder(Long userId, FolderRequest.addFolderDto folderRequest) {
         User user = userRepository.findById(userId)
                 .orElseThrow(()-> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+
+        // 상위 폴더 개수 제한
+        int folderCount = folderRepository.countByUserAndParentFolderIsNull(user);
+        if (folderCount >= 300) {
+            throw new BadRequestException(ErrorResponseStatus.FOLDER_CREATED_NOT_ALLOWED);
+        }
 
         if (folderRepository.existsByUserAndName(user, folderRequest.getName())) {
             throw new BadRequestException(ErrorResponseStatus.DUPLICATE_ERROR);
@@ -212,6 +219,40 @@ public class FolderService {
                     .build();
         }
     }
+
+    //하위 폴더 생성
+    @Transactional
+    public FolderResponse.addFolderResultDTO addSubFolder(Long userId, FolderRequest.addFolderDto subFolderRequest, Long folderId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(()-> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+
+        Folder parentFolder = folderRepository.findById(folderId)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_EXIST_FOLDER));
+
+        // 상위 폴더가 이미 하위 폴더라면 생성 제한 || 하위 폴더 개수 제한
+        int subFolderCount = folderRepository.countByParentFolder(parentFolder);
+        if (parentFolder.getParentFolder() != null || subFolderCount >= 100) {
+            throw new BadRequestException(ErrorResponseStatus.SUBFOLDER_CREATION_NOT_ALLOWED);
+        }
+
+        Folder newSubFolder = Folder.builder()
+                .user(user)
+                .name(subFolderRequest.getName())
+                .color(subFolderRequest.getColor())
+                .markState(MarkStatus.INACTIVE)
+                .parentFolder(parentFolder)
+                .build();
+
+        newSubFolder = folderRepository.save(newSubFolder);
+        return FolderResponse.addFolderResultDTO.builder()
+                .parent_folderId(newSubFolder.getParentFolder().getFolderId())
+                .folderId(newSubFolder.getFolderId())
+                .name(newSubFolder.getName())
+                .color(newSubFolder.getColor())
+                .createdAt(LocalDateTime.now())
+                .build();
+    }
+
 
     @Transactional
     public FolderResponse.editFolderResultDTO editFolder(Long userId, Long folderId, FolderRequest.editFolderDto folderRequest) {
