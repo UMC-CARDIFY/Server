@@ -28,12 +28,13 @@ public class FolderController {
     @Operation(summary = "폴더 정렬과 필터링 기능 API", description = "성공 시 해당 유저의 폴더를 정렬 혹은 필터링해서 반환, 아무것도 입력 안하면 일반 조회 기능 | 정렬 order = asc, desc, edit-newest, edit-oldest | 필터링 쉼표로 구분된 색상 문자열 입력")
     public ResponseEntity<FolderResponse.FolderListDTO> foldersBySortFilter(
             @RequestHeader("Authorization") String token,
+            @RequestParam(required = false) Long parentFolderId,
             @RequestParam(required = false)  Integer page,
             @RequestParam(required = false)  Integer size,
             @RequestParam(required = false) String order,
             @RequestParam(required = false) String color){
         Long userId = jwtUtil.extractUserId(token);
-        FolderResponse.FolderListDTO folders = folderService.getFoldersBySortFilter(userId, page, size, order, color);
+        FolderResponse.FolderListDTO folders = folderService.getFoldersBySortFilter(userId, parentFolderId, page, size, order, color);
         return ResponseEntity.ok(folders);
     }
 
@@ -78,7 +79,7 @@ public class FolderController {
     public ResponseEntity<FolderResponse.addFolderResultDTO> addSubFolder(
             @RequestHeader("Authorization") String token,
             @PathVariable Long folderId,
-            @RequestBody @Valid FolderRequest.addFolderDto subFolderRequest) {
+            @RequestBody @Valid FolderRequest.addSubFolderDto subFolderRequest) {
         Long userId = jwtUtil.extractUserId(token);
         FolderResponse.addFolderResultDTO response = folderService.addSubFolder(userId, subFolderRequest, folderId);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
