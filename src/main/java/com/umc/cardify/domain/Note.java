@@ -1,5 +1,6 @@
 package com.umc.cardify.domain;
 
+import com.umc.cardify.converter.ObjectIdConverter;
 import com.umc.cardify.domain.enums.MarkStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -66,6 +67,7 @@ public class Note extends BaseEntity {
     private Library library;
 
     @Setter
+    @Convert(converter = ObjectIdConverter.class)
     private ObjectId contentsId;
 
     @Setter
