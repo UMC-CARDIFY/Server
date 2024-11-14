@@ -1,11 +1,12 @@
-package com.umc.cardify.jwt;
+package com.umc.cardify.auth.jwt;
 
+import com.umc.cardify.config.exception.BadRequestException;
+import com.umc.cardify.config.exception.ErrorResponseStatus;
 import io.jsonwebtoken.ExpiredJwtException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -31,22 +32,16 @@ public class JwtFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        String requestTokenHeader = request.getHeader("Authorization");
+        // String requestTokenHeader = request.getHeader("Authorization");
         String jwtToken = null;
         String username = null;
 
-        if (requestTokenHeader != null && requestTokenHeader.startsWith("Bearer ")) {
-            jwtToken = requestTokenHeader.substring(7); // Remove "Bearer " prefix
-
-            try {
-                username = jwtUtil.extractUserId(jwtToken).toString();
-            } catch (IllegalArgumentException e) {
-                log.warn("Unable to get JWT Token", e);
-            } catch (ExpiredJwtException e) {
-                log.warn("JWT Token has expired", e);
-            }
-        } else {
-            log.warn("JWT Token does not begin with Bearer String");
+        try {
+            username = jwtUtil.extractUserId(jwtToken).toString();
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException(ErrorResponseStatus.TOKEN_NOT_FOUND);
+        } catch (ExpiredJwtException e) {
+            throw new BadRequestException(ErrorResponseStatus.TOKEN_NOT_FOUND);
         }
 
         // 토큰을 기반으로 인증 처리

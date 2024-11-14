@@ -1,4 +1,4 @@
-package com.umc.cardify.jwt;
+package com.umc.cardify.auth.jwt;
 
 import java.security.Key;
 import java.util.Date;

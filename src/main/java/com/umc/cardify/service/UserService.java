@@ -5,7 +5,7 @@ import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.domain.User;
 import com.umc.cardify.dto.user.UserRequest;
 import com.umc.cardify.dto.user.UserResponse;
-import com.umc.cardify.jwt.JwtUtil;
+import com.umc.cardify.auth.jwt.JwtUtil;
 import com.umc.cardify.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 

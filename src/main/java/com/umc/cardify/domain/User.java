@@ -1,5 +1,6 @@
 package com.umc.cardify.domain;
 
+import com.umc.cardify.domain.enums.AuthProvider;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
@@ -16,6 +17,7 @@ import java.util.List;
 @Entity
 @DynamicUpdate
 @DynamicInsert
+@Builder
 public class User extends BaseEntity {
 
     @Id
@@ -29,24 +31,25 @@ public class User extends BaseEntity {
     @Column(name = "email", columnDefinition = "varchar(320)")
     private String email;
 
-    @Column(name = "password", columnDefinition = "varchar(255) NOT NULL")
-    private String password;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "provider", columnDefinition = "varchar(30)")
+    private AuthProvider provider;
 
-    @Column(name = "kakao", columnDefinition = "boolean")
-    private boolean kakao;
+    @Column(name = "provider_id", columnDefinition = "varchar(320)")
+    private String providerId;
 
     @Column(name = "profile_image")
     private String profileImage;
 
-    @Column(name = "notification_enabled", nullable = false)
-    @ColumnDefault("true")
+    @Column(name = "notification_enabled")
+    @Builder.Default
     private boolean notificationEnabled = true;
 
-    @Column(name = "refresh_token")
+    @Column(name = "refresh_token", length = 512)
     private String refreshToken;
 
-    @ColumnDefault("5000")
-    private Integer point;
+    @Builder.Default
+    private Integer point = 5000;  // 초기값 설정
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<Folder> userFolderList = new ArrayList<>();
@@ -57,14 +60,4 @@ public class User extends BaseEntity {
     @Column(name = "today_check")
     private int todayCheck = 0;
 
-    @Builder
-    public User(String name, String email, String password, boolean kakao, String profileImage, boolean notificationEnabled, String refreshToken) {
-        this.name = name;
-        this.email = email;
-        this.password = password;
-        this.kakao = kakao;
-        this.profileImage = profileImage;
-        this.notificationEnabled = notificationEnabled;
-        this.refreshToken = refreshToken;
-    }
 }

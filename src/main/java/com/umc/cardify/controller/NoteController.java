@@ -20,7 +20,7 @@ import com.umc.cardify.domain.Folder;
 import com.umc.cardify.domain.Note;
 import com.umc.cardify.dto.note.NoteRequest;
 import com.umc.cardify.dto.note.NoteResponse;
-import com.umc.cardify.jwt.JwtUtil;
+import com.umc.cardify.auth.jwt.JwtUtil;
 import com.umc.cardify.service.FolderService;
 import com.umc.cardify.service.NoteComponentService;
 

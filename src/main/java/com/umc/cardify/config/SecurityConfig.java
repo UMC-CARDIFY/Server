@@ -1,10 +1,8 @@
 package com.umc.cardify.config;
 
-import com.umc.cardify.handler.CustomAuthenticationSuccessHandler;
-import com.umc.cardify.jwt.JwtFilter;
-import com.umc.cardify.jwt.JwtUtil;
+import com.umc.cardify.auth.jwt.JwtFilter;
+import com.umc.cardify.auth.jwt.JwtUtil;
 import com.umc.cardify.repository.UserRepository;
-import com.umc.cardify.service.KakaoService;
 import com.umc.cardify.service.security.CustomUserDetailsService;
 import com.umc.cardify.service.security.CustomOAuth2UserService;
 import org.springframework.context.annotation.Bean;
@@ -16,7 +14,6 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -55,7 +52,7 @@ public class SecurityConfig {
                                         .userInfoEndpoint(userInfoEndpoint ->
                                                 userInfoEndpoint.userService(customOAuth2UserService)
                                         )
-                                        .successHandler(authenticationSuccessHandler())
+                                        //.successHandler(authenticationSuccessHandler())
                 )
                 .addFilterBefore(new JwtFilter(jwtUtil, customUserDetailsService), UsernamePasswordAuthenticationFilter.class)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource)); // CORS 설정 적용
@@ -63,10 +60,10 @@ public class SecurityConfig {
         return http.build();
     }
 
-    @Bean
-    public CustomAuthenticationSuccessHandler authenticationSuccessHandler() {
-        return new CustomAuthenticationSuccessHandler(jwtUtil, userRepository);
-    }
+    //@Bean
+//    public CustomAuthenticationSuccessHandler authenticationSuccessHandler() {
+//        return new CustomAuthenticationSuccessHandler(jwtUtil, userRepository);
+//    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {

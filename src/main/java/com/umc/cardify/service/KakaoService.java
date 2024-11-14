@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.cardify.domain.User;
 import com.umc.cardify.dto.user.KakaoToken;
 import com.umc.cardify.dto.user.UserResponse;
-import com.umc.cardify.jwt.JwtUtil;
+import com.umc.cardify.auth.jwt.JwtUtil;
 import com.umc.cardify.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
