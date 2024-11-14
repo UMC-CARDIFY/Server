@@ -8,7 +8,7 @@ spring:
     password: cardify123!
   jpa:
     hibernate:
-      ddl-auto: create
+      ddl-auto: none
       jdbc:
         time_zone: Asia/Seoul
     properties:
