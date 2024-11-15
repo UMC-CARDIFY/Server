@@ -17,10 +17,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
 	Optional<User> findByUserId(Long userId);
 
-	boolean existsByEmail(String email); // 중복 검사 메서드
+	// 중복 검사 메서드
+	boolean existsByEmail(String email);
 
+	// 구글, 카카오 이메일로 조회
 	Optional<User> findByEmailAndProvider(String email, AuthProvider provider);
 
+	// 리프레시 토큰으로 조회
 	Optional<User> findByRefreshToken(String refreshToken);
 
 	@Modifying

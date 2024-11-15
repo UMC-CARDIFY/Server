@@ -1,8 +1,11 @@
 package com.umc.cardify.controller;
 
+import com.umc.cardify.auth.jwt.JwtTokenProvider;
+import com.umc.cardify.config.exception.BadRequestException;
+import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.dto.library.LibraryRequest;
 import com.umc.cardify.dto.library.LibraryResponse;
-import com.umc.cardify.auth.jwt.JwtUtil;
+import com.umc.cardify.repository.UserRepository;
 import com.umc.cardify.service.LibraryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -21,8 +24,10 @@ import java.util.stream.Collectors;
 @RequestMapping("api/v1/library")
 public class LibraryController {
 
-    private final JwtUtil jwtUtil;
     private final LibraryService libraryService;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final UserRepository userRepository;
+
     @GetMapping("/getCategory")
     @Operation(summary = "카테고리 조회 API")
     public ResponseEntity<List<LibraryResponse.CategoryInfoDTO>> getCategory(){
@@ -32,14 +37,22 @@ public class LibraryController {
     @PostMapping("/download")
     @Operation(summary = "자료실 다운로드 API")
     public ResponseEntity<LibraryResponse.DownloadLibDTO> downloadLib(@RequestHeader("Authorization") String token, @RequestBody @Valid LibraryRequest.DownloadLibDto request){
-        Long userId = jwtUtil.extractUserId(token);
+        String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+        Long userId = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
+                .getUserId();
+
         LibraryResponse.DownloadLibDTO dto = libraryService.downloadLib(userId, request);
         return ResponseEntity.ok(dto);
     }
     @GetMapping("/getTopNote")
     @Operation(summary = "추천 노트 조회 API")
     public ResponseEntity<List<LibraryResponse.LibInfoDTO>> getTopNote(@RequestHeader("Authorization") String token, @RequestParam @Valid Integer size){
-        Long userId = jwtUtil.extractUserId(token);
+        String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+        Long userId = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
+                .getUserId();
+
         List<LibraryResponse.LibInfoDTO> resultNote = libraryService.getTopNote(userId);
         if(resultNote.size() < size)
             size = resultNote.size();
@@ -58,21 +71,33 @@ public class LibraryController {
     @Operation(summary = "특정 카테고리 내 노트 조회 API",
             description = "order = asc, desc, upload-newest, upload-oldest, download")
     public ResponseEntity<List<LibraryResponse.LibInfoDTO>> getNoteToCategory(@RequestHeader("Authorization") String token, @RequestParam @Valid String category, @RequestParam @Valid String order){
-        Long userId = jwtUtil.extractUserId(token);
+        String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+        Long userId = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
+                .getUserId();
+
         List<LibraryResponse.LibInfoDTO> resultNote = libraryService.getNoteToCategory(category, order, userId);
         return ResponseEntity.ok(resultNote);
     }
     @PostMapping("/searchLib")
     @Operation(summary = "자료실 내 노트 검색 API", description = "카테고리 미입력시 전체 조회")
     public ResponseEntity<LibraryResponse.SearchLibDTO> searchLib(@RequestHeader("Authorization") String token, @RequestBody @Valid LibraryRequest.SearchLibDto request){
-        Long userId = jwtUtil.extractUserId(token);
+        String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+        Long userId = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
+                .getUserId();
+
         LibraryResponse.SearchLibDTO resultDto = libraryService.searchLib(request, userId);
         return ResponseEntity.ok(resultDto);
     }
     @GetMapping("/checkDownload")
     @Operation(summary = "자료실 노트 다운로드 방식 조회 API")
     public ResponseEntity<LibraryResponse.CheckDownloadDTO> checkDownload(@RequestHeader("Authorization") String token, @RequestParam @Valid Long libraryId){
-        Long userId = jwtUtil.extractUserId(token);
+        String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+        Long userId = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
+                .getUserId();
+
         LibraryResponse.CheckDownloadDTO checkDto = libraryService.checkDownload(userId, libraryId);
         return ResponseEntity.ok(checkDto);
     }

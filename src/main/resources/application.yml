@@ -33,7 +33,7 @@ spring:
             client-name: Kakao
             provider: kakao
             authorization-grant-type: authorization_code
-            redirect-uri: "https://cardify.co.kr/oauth2/callback/kakao"
+            redirect-uri: "http://localhost:8080/login/oauth2/code/kakao"
             scope:
               - profile_nickname
               - account_email
@@ -48,7 +48,9 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
-
+app:
+  oauth2:
+    redirect-uri: http://localhost:5173/archive # 프론트엔드 서버 주소
 jwt:
   secret: ${SECRET_KEY}
   refreshTokenValidity: ${REFRESH_TOKEN}

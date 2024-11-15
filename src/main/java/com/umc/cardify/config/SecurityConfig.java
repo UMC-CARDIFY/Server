@@ -32,17 +32,23 @@ public class SecurityConfig {
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/oauth2/callback/kakao/**","/oauth2/authorization/kakao",
-                                "/login", "/api/v1/users/signup", "/api/v1/users/login",
-                                "/swagger-ui/**", "/v3/api-docs/**",
-                                "/error", "api/v1/folders/**", "/api/v1/oauth2/**").permitAll()
+                        .requestMatchers("/",
+                                "/oauth2/authorization/**",  // 이 부분 추가
+                                "/login",
+                                "/login/oauth2/code/kakao",
+                                "/api/v1/users/signup",
+                                "/api/v1/users/login",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "/error",
+                                "api/v1/folders/**",
+                                "/api/v1/oauth2/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2Login(oauth2 -> oauth2
+                        .loginPage("/oauth2/authorization/kakao")  // 직접 카카오 인증 페이지로 이동
                         .userInfoEndpoint(userInfo -> userInfo
                                 .userService(customOAuth2UserService))
-                        .successHandler(oAuth2SuccessHandler))
-                .addFilterBefore(new JwtAuthenticationFilter(tokenProvider, userDetailsService),
-                        UsernamePasswordAuthenticationFilter.class);
+                        .successHandler(oAuth2SuccessHandler));
 
         return http.build();
     }

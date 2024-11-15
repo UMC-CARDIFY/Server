@@ -1,11 +1,12 @@
 package com.umc.cardify.service;
 
+import com.umc.cardify.auth.jwt.JwtTokenProvider;
 import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.domain.User;
+import com.umc.cardify.domain.enums.AuthProvider;
 import com.umc.cardify.dto.user.UserRequest;
 import com.umc.cardify.dto.user.UserResponse;
-import com.umc.cardify.auth.jwt.JwtUtil;
 import com.umc.cardify.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 
@@ -14,85 +15,31 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-// 커스텀 익셉션 만들기 
-// return 문은 try 밖에서 하기 
+// 커스텀 익셉션 만들기
+// return 문은 try 밖에서 하기
 @Service
 @RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtUtil jwtUtil;
-
-    // 이메일 회원가입
-    @Transactional
-    public String signup(UserRequest.signUp request) {
-
-        // 중복된 이메일 검사
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new BadRequestException(ErrorResponseStatus.DUPLICATE_ERROR);
-        }
-
-        // 비밀번호 암호화
-        String encodedPassword = passwordEncoder.encode(request.getPassword());
-
-        User user = User.builder()
-                .name(request.getName())
-                .email(request.getEmail())
-                .password(encodedPassword)
-                .kakao(false)
-                .profileImage(null)
-                .notificationEnabled(true)
-                .build();
-
-        try {
-            User result = userRepository.save(user);
-            return result.getName();
-        } catch (Exception e) {
-            // 예외 로그 남기기
-            e.printStackTrace();
-            // 원인 예외 접근
-            Throwable cause = e.getCause();
-            if (cause != null) {
-                cause.printStackTrace();
-            }
-            throw new RuntimeException("Unexpected error occurred", e);
-        }
-    }
-
-    // 이메일 로그인
-    @Transactional
-    public UserResponse.tokenInfo login(UserRequest.login loginRequest) {
-        User user = userRepository.findByEmail(loginRequest.getEmail())
-                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
-
-        if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
-            throw new BadRequestException(ErrorResponseStatus.INVALID_PWD);
-        }
-
-        return jwtUtil.generateTokens(user.getUserId());
-    }
+    private final JwtTokenProvider jwtTokenProvider;  // JwtUtil 대신 JwtTokenProvider 사용
 
     // 로그아웃
     @Transactional
-    public void logout(Long userId) {
-        User user = userRepository.findByUserId(userId)
+    public void logout(String email) {
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
-
-        // 리프레시 토큰 무효화
-        invalidateRefreshToken(user);
-    }
-
-    private void invalidateRefreshToken(User user) {
-        // 리프래시 토큰 null 로 설정해 무효화
+        if (user.getRefreshToken() == null) {
+            throw new BadRequestException(ErrorResponseStatus.TOKEN_NOT_FOUND);
+        }
         user.setRefreshToken(null);
         userRepository.save(user);
     }
 
     // 마이페이지 정보 조회
     @Transactional(readOnly = true)
-    public UserResponse.MyPageInfo getMyPageInfo(Long userId) {
-        User user = userRepository.findByUserId(userId)
+    public UserResponse.MyPageInfo getMyPageInfo(String email) {
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
         return UserResponse.MyPageInfo.builder()
@@ -109,8 +56,8 @@ public class UserService {
 
     // 프로필 이미지 수정
     @Transactional
-    public UserResponse.UpdatedProfileImage updateProfileImage(Long userId, UserRequest.UpdateProfileImage request) {
-        User user = userRepository.findByUserId(userId)
+    public UserResponse.UpdatedProfileImage updateProfileImage(String email, UserRequest.UpdateProfileImage request) {
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
         user.setProfileImage(request.getProfileImage());
@@ -123,8 +70,8 @@ public class UserService {
 
     // 이름 수정
     @Transactional
-    public UserResponse.UpdatedName updateName(Long userId, UserRequest.UpdateName request) {
-        User user = userRepository.findByUserId(userId)
+    public UserResponse.UpdatedName updateName(String email, UserRequest.UpdateName request) {
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
         user.setName(request.getName());
@@ -137,8 +84,8 @@ public class UserService {
 
     // 알림 설정 변경
     @Transactional
-    public UserResponse.UpdatedNotification updateNotification(Long userId, UserRequest.UpdateNotification request) {
-        User user = userRepository.findByUserId(userId)
+    public UserResponse.UpdatedNotification updateNotification(String email, UserRequest.UpdateNotification request) {
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
         user.setNotificationEnabled(request.getNotificationEnabled());
@@ -150,9 +97,9 @@ public class UserService {
     }
 
     @Transactional
-    public void attendanceCheck(Long userId){
-        User user = userRepository.findByUserId(userId)
-            .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+    public void attendanceCheck(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
         user.setPoint(user.getPoint() + 100);
         user.setTodayCheck(1);
@@ -163,5 +110,80 @@ public class UserService {
     @Transactional
     public void resetTodayCheck() {
         userRepository.resetAllTodayCheck();
+    }
+    // 토큰 갱신
+    @Transactional
+    public UserResponse.TokenInfo refreshToken(String refreshToken) {
+        // 리프레시 토큰 유효성 검사
+        if (!jwtTokenProvider.validateToken(refreshToken)) {
+            throw new BadRequestException(ErrorResponseStatus.INVALID_TOKEN);
+        }
+
+        // 리프레시 토큰으로 사용자 찾기
+        User user = userRepository.findByRefreshToken(refreshToken)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.TOKEN_NOT_FOUND));
+
+        // 새로운 액세스 토큰 발급
+        String newAccessToken = jwtTokenProvider.createAccessToken(user.getEmail(), user.getProvider());
+        String newRefreshToken = jwtTokenProvider.createRefreshToken();
+
+        // 리프레시 토큰 업데이트
+        user.setRefreshToken(newRefreshToken);
+        userRepository.save(user);
+
+        return UserResponse.TokenInfo.builder()
+                .accessToken(newAccessToken)
+                .refreshToken(newRefreshToken)
+                .build();
+    }
+
+    // 소셜 로그인 성공 처리
+    @Transactional
+    public User processSocialLogin(String email, String name, String profileImage, AuthProvider provider) {
+        return userRepository.findByEmailAndProvider(email, provider)
+                .map(existingUser -> {
+                    // 기존 사용자 정보 업데이트
+                    existingUser.setName(name);
+                    existingUser.setProfileImage(profileImage);
+                    return userRepository.save(existingUser);
+                })
+                .orElseGet(() -> {
+                    // 새로운 사용자 생성
+                    User newUser = User.builder()
+                            .email(email)
+                            .name(name)
+                            .profileImage(profileImage)
+                            .provider(provider)
+                            .point(5000)  // 초기 포인트
+                            .notificationEnabled(true)  // 기본 알림 설정
+                            .build();
+                    return userRepository.save(newUser);
+                });
+    }
+
+    // 토큰 검증
+    public boolean validateToken(String token) {
+        try {
+            return jwtTokenProvider.validateToken(token);
+        } catch (Exception e) {
+            throw new BadRequestException(ErrorResponseStatus.INVALID_TOKEN);
+        }
+    }
+
+    // 사용자 권한 검증
+    public boolean validateUserAccess(String email, Long userId) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+
+        if (!user.getUserId().equals(userId)) {
+            throw new BadRequestException(ErrorResponseStatus.INVALID_SOCIAL_LOGIN);
+        }
+
+        return true;
+    }
+
+    @Transactional
+    public User saveUser(User user) {
+        return userRepository.save(user);
     }
 }

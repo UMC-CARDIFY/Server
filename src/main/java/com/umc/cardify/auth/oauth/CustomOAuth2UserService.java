@@ -20,6 +20,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
     private final UserRepository userRepository;
 
+    // 소셜 로그인 정보 얻어오기 (인증 프로세스)
     @Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
         OAuth2User oauth2User = super.loadUser(userRequest);
@@ -41,6 +42,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         );
     }
 
+    // 기존, 새로운 회원인지 확인해서 DB 적재
     private User saveOrUpdateUser(OAuth2Attributes attributes, AuthProvider provider) {
         User user = userRepository.findByEmailAndProvider(attributes.getEmail(), provider)
                 .map(existingUser -> {

@@ -5,6 +5,10 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+import com.umc.cardify.auth.jwt.JwtTokenProvider;
+import com.umc.cardify.config.exception.BadRequestException;
+import com.umc.cardify.config.exception.ErrorResponseStatus;
+import com.umc.cardify.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -24,7 +28,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.umc.cardify.dto.card.CardRequest;
 import com.umc.cardify.dto.card.CardResponse;
-import com.umc.cardify.auth.jwt.JwtUtil;
 import com.umc.cardify.service.CardComponentService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,8 +42,8 @@ import lombok.RequiredArgsConstructor;
 public class CardController {
 
 	private final CardComponentService cardComponentService;
-
-	private final JwtUtil jwtUtil;
+	private final JwtTokenProvider jwtTokenProvider;  // JwtUtil → JwtTokenProvider
+	private final UserRepository userRepository;
 
 	@PostMapping(value = "/add/Image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	@Operation(summary = "이미지 카드 생성", description = "이미지 및 가림판들의 크기와 위치 전송")
@@ -74,7 +77,10 @@ public class CardController {
 	public ResponseEntity<List<CardResponse.getStudyCardSetLists>> viewStudyCardSetListsBySortFilter(
 		@RequestHeader("Authorization") String token, @RequestParam(required = false) String order,
 		@RequestParam(required = false) String color, @RequestParam(required = false) Integer studyStatus) {
-		Long userId = jwtUtil.extractUserId(token);
+		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+		Long userId = userRepository.findByEmail(email)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
+				.getUserId();
 
 		List<CardResponse.getStudyCardSetLists> cardListsPage = cardComponentService.getStudyCardSetLists(userId, order, color, studyStatus);
 
@@ -126,7 +132,10 @@ public class CardController {
 	@Operation(summary = "분석 학습 제안")
 	public ResponseEntity<List<CardResponse.getStudySuggestion>> suggestionAnalyzeStudy(@RequestHeader("Authorization") String token,
 		@RequestBody CardRequest.getSuggestion request) {
-		Long userId = jwtUtil.extractUserId(token);
+		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+		Long userId = userRepository.findByEmail(email)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
+				.getUserId();
 
 		Timestamp date = Timestamp.valueOf(LocalDateTime.parse(request.getDate(), DateTimeFormatter.ISO_DATE_TIME));
 
@@ -154,7 +163,11 @@ public class CardController {
 	@GetMapping("/weekly-count")
 	@Operation(summary = "주간 학습 결과 API", description = "사용자 조회 성공 시, 해당 주의 총 학습 카드 개수와 날짜별 학습 카드 개수 반환")
 	public ResponseEntity<CardResponse.weeklyResultDTO> getCardByWeek(@RequestHeader("Authorization") String token) {
-		Long userId = jwtUtil.extractUserId(token);
+		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+		Long userId = userRepository.findByEmail(email)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
+				.getUserId();
+
 		CardResponse.weeklyResultDTO weekCard = cardComponentService.getCardByWeek(userId);
 		return ResponseEntity.ok(weekCard);
 	}
@@ -162,12 +175,13 @@ public class CardController {
 	@GetMapping("/study-suggestion/{years}/{month}")
 	@Operation(summary = "이번 달 학습 예정 일자")
 	public ResponseEntity<?> getExpectedStudyDate(@RequestHeader("Authorization") String token, @PathVariable int years, @PathVariable int month){
-		Long userId = jwtUtil.extractUserId(token);
+		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+		Long userId = userRepository.findByEmail(email)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
+				.getUserId();
+
 		CardResponse.getExpectedStudyDateDTO studyDateDTO = cardComponentService.getExpectedStudyDate(userId, years, month);
 
 		return ResponseEntity.ok(studyDateDTO);
 	}
-
-
-
 }
