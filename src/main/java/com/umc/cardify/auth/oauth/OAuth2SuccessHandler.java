@@ -14,10 +14,11 @@ import org.springframework.security.web.authentication.SimpleUrlAuthenticationSu
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.beans.factory.annotation.Value;
-
+import lombok.extern.slf4j.Slf4j;
 import java.io.IOException;
 import java.util.Map;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
@@ -55,6 +56,10 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         String accessToken = jwtTokenProvider.createAccessToken(email, provider);
         String refreshToken = jwtTokenProvider.createRefreshToken();
 
+        // 토큰 정보 로깅
+        log.info("Access Token: {}", accessToken);
+        log.info("Refresh Token: {}", refreshToken);
+
         // 리프레시 토큰 저장
         user.setRefreshToken(refreshToken);
         userService.saveUser(user);
@@ -66,5 +71,11 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                 .build().toUriString();
 
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
+
+        // 응답 설정
+        response.setContentType("application/json;charset=UTF-8");
+        response.getWriter().write(String.format(
+                "{\"accessToken\":\"%s\",\"refreshToken\":\"%s\"}",
+                accessToken, refreshToken));
     }
 }

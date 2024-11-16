@@ -15,8 +15,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-// 커스텀 익셉션 만들기
-// return 문은 try 밖에서 하기
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -159,27 +157,6 @@ public class UserService {
                             .build();
                     return userRepository.save(newUser);
                 });
-    }
-
-    // 토큰 검증
-    public boolean validateToken(String token) {
-        try {
-            return jwtTokenProvider.validateToken(token);
-        } catch (Exception e) {
-            throw new BadRequestException(ErrorResponseStatus.INVALID_TOKEN);
-        }
-    }
-
-    // 사용자 권한 검증
-    public boolean validateUserAccess(String email, Long userId) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
-
-        if (!user.getUserId().equals(userId)) {
-            throw new BadRequestException(ErrorResponseStatus.INVALID_SOCIAL_LOGIN);
-        }
-
-        return true;
     }
 
     @Transactional
