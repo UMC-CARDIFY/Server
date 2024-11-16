@@ -27,16 +27,18 @@ public class SecurityConfig {
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final JwtTokenProvider tokenProvider;
     private final UserDetailsService userDetailsService;
+    private final CorsConfigurationSource corsConfigurationSource;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+                .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/",
-                                "/oauth2/authorization/**",  // 이 부분 추가
+                                "/oauth2/authorization/**",
                                 "/login",
                                 "/login/oauth2/code/kakao",
                                 "/api/v1/users/signup",
@@ -48,10 +50,12 @@ public class SecurityConfig {
                                 "/api/v1/oauth2/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2Login(oauth2 -> oauth2
-                        .loginPage("/oauth2/authorization/kakao")  // 직접 카카오 인증 페이지로 이동
+                        .loginPage("/oauth2/authorization/kakao")
                         .userInfoEndpoint(userInfo -> userInfo
                                 .userService(customOAuth2UserService))
-                        .successHandler(oAuth2SuccessHandler));
+                        .successHandler(oAuth2SuccessHandler))
+                .addFilterBefore(new JwtAuthenticationFilter(tokenProvider, userDetailsService),
+                        UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
