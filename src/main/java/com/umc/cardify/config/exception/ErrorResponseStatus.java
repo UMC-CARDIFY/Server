@@ -1,6 +1,7 @@
 package com.umc.cardify.config.exception;
 
 import lombok.Getter;
+import org.springframework.http.HttpStatus;
 
 @Getter
 public enum ErrorResponseStatus {
@@ -35,7 +36,16 @@ public enum ErrorResponseStatus {
 	NOT_FOUND_IMAGE(4013, "업로드할 이미지가 존재하지 않습니다."),
 
 	// 5000 : Server connection 오류
-	SERVER_ERROR(5000, "서버와의 연결에 실패하였습니다.");
+	SERVER_ERROR(5000, "서버와의 연결에 실패하였습니다."),
+
+	// 6000: Spring Security 오류
+	// 인증 관련
+	INVALID_TOKEN(6000, "유효하지 않은 토큰입니다."),
+	EXPIRED_TOKEN(6001, "만료된 토큰입니다."),
+	INVALID_SOCIAL_LOGIN(6002, "소셜 로그인에 실패했습니다."),
+	INVALID_PROVIDER(6003, "지원하지 않는 소셜 로그인입니다."),
+	MISSING_SOCIAL_INFO(4004, "소셜 정보가 없습니다."),
+	TOKEN_NOT_FOUND(6005, "토큰을 얻을 수 없습니다.");
 
 	private final int code;
 	private final String message;

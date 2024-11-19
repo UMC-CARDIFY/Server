@@ -2,6 +2,11 @@ package com.umc.cardify.controller;
 
 import java.util.List;
 
+import com.umc.cardify.auth.jwt.JwtTokenProvider;
+import com.umc.cardify.config.exception.BadRequestException;
+import com.umc.cardify.config.exception.ErrorResponseStatus;
+import com.umc.cardify.domain.enums.AuthProvider;
+import com.umc.cardify.repository.UserRepository;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -20,7 +25,6 @@ import com.umc.cardify.domain.Folder;
 import com.umc.cardify.domain.Note;
 import com.umc.cardify.dto.note.NoteRequest;
 import com.umc.cardify.dto.note.NoteResponse;
-import com.umc.cardify.jwt.JwtUtil;
 import com.umc.cardify.service.FolderService;
 import com.umc.cardify.service.NoteComponentService;
 
@@ -37,13 +41,17 @@ public class NoteController {
 
 	private final FolderService folderService;
 	private final NoteComponentService noteComponentService;
-	private final JwtUtil jwtUtil;
+	private final JwtTokenProvider jwtTokenProvider;
+	private final UserRepository userRepository;
 
 	@GetMapping("/addNote")
 	@Operation(summary = "노트 추가 API")
 	public ResponseEntity<NoteResponse.AddNoteResultDTO> addNote(@RequestHeader("Authorization") String token,
 		@RequestParam @Valid Long folderId) {
-		Long userId = jwtUtil.extractUserId(token);
+		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+		Long userId = userRepository.findByEmail(email)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
+				.getUserId();
 		Folder folder = folderService.getFolder(folderId);
 		Note note = noteComponentService.addNote(folder, userId);
 		return ResponseEntity.ok(NoteConverter.toAddNoteResult(note));
@@ -53,7 +61,11 @@ public class NoteController {
 	@Operation(summary = "노트 삭제 API", description = "노트 ID 입력, 성공 시 삭제 성공 여부 반환")
 	public ResponseEntity<NoteResponse.IsSuccessNoteDTO> deleteNote(@RequestHeader("Authorization") String token,
 		@RequestParam @Valid Long noteId) {
-		Long userId = jwtUtil.extractUserId(token);
+		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+		Long userId = userRepository.findByEmail(email)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
+				.getUserId();
+
 		Boolean isSuccess = noteComponentService.deleteNote(noteId, userId);
 		return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(isSuccess));
 	}
@@ -73,7 +85,11 @@ public class NoteController {
 	@Operation(summary = "노트 즐겨찾기 API", description = "노트 ID와 즐겨찾기 여부 입력, 성공 시 즐겨찾기 성공 여부 반환")
 	public ResponseEntity<NoteResponse.IsSuccessNoteDTO> markNote(@RequestHeader("Authorization") String token,
 		@RequestParam @Valid Long noteId, @RequestParam @Valid Boolean isMark) {
-		Long userId = jwtUtil.extractUserId(token);
+		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+		Long userId = userRepository.findByEmail(email)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
+				.getUserId();
+
 		Boolean isSuccess = noteComponentService.markNote(noteId, isMark, userId);
 		return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(isSuccess));
 	}
@@ -83,7 +99,11 @@ public class NoteController {
 	public ResponseEntity<NoteResponse.IsSuccessNoteDTO> writeNote(@RequestHeader("Authorization") String token,
 		@RequestPart(value = "images", required = false) List<MultipartFile> images,
 		@RequestPart @Valid NoteRequest.WriteNoteDto request) {
-		Long userId = jwtUtil.extractUserId(token);
+		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+		Long userId = userRepository.findByEmail(email)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
+				.getUserId();
+
 		Boolean isSuccess = noteComponentService.writeNote(request, userId, images);
 		return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(isSuccess));
 	}
@@ -102,7 +122,11 @@ public class NoteController {
 	@Operation(summary = "노트 자료실 업로드 API", description = "노트 아이디 입력, 성공 시 자료실 저장 성공 여부")
 	public ResponseEntity<NoteResponse.IsSuccessNoteDTO> shareLib(@RequestHeader("Authorization") String token,
 		@RequestBody @Valid NoteRequest.ShareLibDto request) {
-		Long userId = jwtUtil.extractUserId(token);
+		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+		Long userId = userRepository.findByEmail(email)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
+				.getUserId();
+
 		Boolean isSuccess = noteComponentService.shareLib(userId, request);
 		return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(isSuccess));
 	}
@@ -111,7 +135,11 @@ public class NoteController {
 	@Operation(summary = "노트 공유 취소 API", description = "노트 ID 입력, 성공 시 즐겨찾기 성공 여부 반환")
 	public ResponseEntity<NoteResponse.IsSuccessNoteDTO> cancelShare(@RequestHeader("Authorization") String token,
 		@RequestParam @Valid Long noteId) {
-		Long userId = jwtUtil.extractUserId(token);
+		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+		Long userId = userRepository.findByEmail(email)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
+				.getUserId();
+
 		Boolean isSuccess = noteComponentService.cancelShare(noteId, userId);
 		return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(isSuccess));
 	}
@@ -126,7 +154,11 @@ public class NoteController {
 	@Operation(summary = "최신 열람 노트 조회 API", description = "사용자의 최신 열람 노트 4개/3개 반환")
 	public ResponseEntity<List<NoteResponse.NoteInfoDTO>> gerRecentNote(@RequestHeader("Authorization") String token,
 		@RequestParam(required = false, defaultValue = "0") int page, @RequestParam(required = false) Integer size) {
-		Long userId = jwtUtil.extractUserId(token);
+		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+		Long userId = userRepository.findByEmail(email)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
+				.getUserId();
+
 		List<NoteResponse.NoteInfoDTO> notes = noteComponentService.getRecentNotes(userId, page, size);
 		return ResponseEntity.ok(notes);
 	}

@@ -1,5 +1,6 @@
 package com.umc.cardify.domain;
 
+import com.umc.cardify.domain.enums.AuthProvider;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
@@ -10,12 +11,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
 @DynamicUpdate
 @DynamicInsert
+@Builder
 public class User extends BaseEntity {
 
     @Id
@@ -24,29 +25,37 @@ public class User extends BaseEntity {
     private Long userId;
 
     @Column(name = "name", columnDefinition = "varchar(30)")
+    @Setter
     private String name;
 
     @Column(name = "email", columnDefinition = "varchar(320)")
     private String email;
 
-    @Column(name = "password", columnDefinition = "varchar(255) NOT NULL")
-    private String password;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "provider", columnDefinition = "varchar(30)")
+    private AuthProvider provider;
 
-    @Column(name = "kakao", columnDefinition = "boolean")
-    private boolean kakao;
+    @Column(name = "provider_id", columnDefinition = "varchar(320)")
+    private String providerId;
 
     @Column(name = "profile_image")
+    @Setter
     private String profileImage;
 
-    @Column(name = "notification_enabled", nullable = false)
-    @ColumnDefault("true")
+    @Column(name = "notification_enabled")
+    @Builder.Default
+    @Setter
     private boolean notificationEnabled = true;
 
-    @Column(name = "refresh_token")
+    @Column(name = "refresh_token", length = 512)
+    @Setter
     private String refreshToken;
 
-    @ColumnDefault("5000")
-    private Integer point;
+    @Builder.Default
+    @Setter
+    private Integer point = 5000;  // 초기값 설정
+
+    // 연령대 추가할지
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<Folder> userFolderList = new ArrayList<>();
@@ -55,16 +64,7 @@ public class User extends BaseEntity {
     private List<Download> downloadList = new ArrayList<>();
 
     @Column(name = "today_check")
+    @Setter
     private int todayCheck = 0;
 
-    @Builder
-    public User(String name, String email, String password, boolean kakao, String profileImage, boolean notificationEnabled, String refreshToken) {
-        this.name = name;
-        this.email = email;
-        this.password = password;
-        this.kakao = kakao;
-        this.profileImage = profileImage;
-        this.notificationEnabled = notificationEnabled;
-        this.refreshToken = refreshToken;
-    }
 }

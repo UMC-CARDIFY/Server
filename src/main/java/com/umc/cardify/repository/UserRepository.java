@@ -2,6 +2,7 @@ package com.umc.cardify.repository;
 
 import java.util.Optional;
 
+import com.umc.cardify.domain.enums.AuthProvider;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -16,9 +17,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
 	Optional<User> findByUserId(Long userId);
 
-	boolean existsByEmail(String email); // 중복 검사 메서드
+	// 중복 검사 메서드
+	boolean existsByEmail(String email);
 
-	Optional<User> findByEmailAndKakao(String email, boolean kakao);
+	// 구글, 카카오 이메일로 조회
+	Optional<User> findByEmailAndProvider(String email, AuthProvider provider);
+
+	// 리프레시 토큰으로 조회
+	Optional<User> findByRefreshToken(String refreshToken);
 
 	@Modifying
 	@Transactional

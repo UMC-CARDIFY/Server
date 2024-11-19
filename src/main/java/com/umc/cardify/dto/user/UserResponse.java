@@ -12,10 +12,8 @@ public class UserResponse {
 	@Builder
 	@NoArgsConstructor
 	@AllArgsConstructor
-	@Schema(title = "USER_RES_01 : 로그인 응답 DTO (토큰)")
-	public static class tokenInfo {
-		@Schema(description = "토큰의 타입")
-		private String grantType;
+	@Schema(title = "USER_RES_01 : 도큰 응답용 DTO", description = "OAuth2.0으로 소셜 로그인 후 프론트에게 토큰 전달용")
+	public static class TokenInfo {
 
 		@Schema(description = "액세스 토큰")
 		private String accessToken;
