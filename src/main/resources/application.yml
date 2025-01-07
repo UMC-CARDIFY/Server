@@ -1,83 +1,90 @@
-  server:
-    port: 8080
-  spring:
-    datasource:
-      url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?serverTimezone=Asia/Seoul&useLegacyDatetimeCode=false
-      driverClassName: com.mysql.cj.jdbc.Driver
-      username: ${DB_USER}
-      password: ${DB_PASSWORD}
-    data:
-      mongodb:
-        uri: mongodb+srv://cardify:${DB_PASSWORD}@cardify.pckle.mongodb.net/cardify?retryWrites=true&w=majority&appName=Cardify
-    jpa:
+server:
+  port: 8080
+spring:
+  datasource:
+    url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?serverTimezone=Asia/Seoul&useLegacyDatetimeCode=false
+    driverClassName: com.mysql.cj.jdbc.Driver
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+  data:
+    mongodb:
+      uri: mongodb+srv://cardify:${DB_PASSWORD}@cardify.pckle.mongodb.net/cardify?retryWrites=true&w=majority&appName=Cardify
+  jpa:
+    hibernate:
+      ddl-auto: none
+      jdbc:
+        time_zone: Asia/Seoul
+    properties:
       hibernate:
-        ddl-auto: none
-        jdbc:
-          time_zone: Asia/Seoul
-      properties:
-        hibernate:
-          show_sql: false
-          format_sql: true
-          dialect: org.hibernate.dialect.MySQL8Dialect
-          physical_naming_strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
-          default_batch_fetch_size: 500
-          order_by:
-            default_null_ordering: last
-          use_sql_comments: true
-          type: trace
-      database: mysql
-    security:
-      oauth2:
-        client:
-          registration:
-            kakao:
-              client-id: ${KAKAO_CLIENT_ID}
-              client-secret: ${KAKAO_CLIENT_SECRET}
-              client-name: Kakao
-              provider: kakao
-              authorization-grant-type: authorization_code
-              redirect-uri: "http://localhost:8080/login/oauth2/code/kakao"
-              scope:
-                - profile_nickname
-                - account_email
-              client-authentication-method: client_secret_post
-          provider:
-            kakao:
-              authorization-uri: https://kauth.kakao.com/oauth/authorize
-              token-uri: https://kauth.kakao.com/oauth/token
-              user-info-uri: https://kapi.kakao.com/v2/user/me
-              user-name-attribute: id
-    servlet:
-      multipart:
-        max-file-size: 10MB
-        max-request-size: 10MB
-  app:
+        show_sql: false
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQL8Dialect
+        physical_naming_strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
+        default_batch_fetch_size: 500
+        order_by:
+          default_null_ordering: last
+        use_sql_comments: true
+        type: trace
+    database: mysql
+  security:
     oauth2:
-      redirect-uri: http://localhost:5173/dashboard # 프론트엔드 서버 주소
-  jwt:
-    secret: ${SECRET_KEY}
-    refreshTokenValidity: ${REFRESH_TOKEN}
-    accessTokenValidity: ${ACCESS_TOKEN}
+      client:
+        registration:
+          kakao:
+            client-id: ${KAKAO_CLIENT_ID}
+            client-secret: ${KAKAO_CLIENT_SECRET}
+            client-name: Kakao
+            provider: kakao
+            authorization-grant-type: authorization_code
+            redirect-uri: "http://localhost:8080/login/oauth2/code/kakao"
+            scope:
+              - profile_nickname
+              - account_email
+            client-authentication-method: client_secret_post
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope:
+              - email
+              - profile
+              - openid
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+app:
+  oauth2:
+    redirect-uri: http://localhost:5173/dashboard # 프론트엔드 서버 주소
+jwt:
+  secret: ${SECRET_KEY}
+  refreshTokenValidity: ${REFRESH_TOKEN}
+  accessTokenValidity: ${ACCESS_TOKEN}
 
-  cloud:
-    aws:
-      credentials:
-        accessKey: ${CLOUD_ACCESS_KEY}
-        secretKey: ${CLOUD_SECRET_KEY}
-      s3:
-        bucket: cardify
-      region:
-        static: ap-northeast-2
-        auto: false
-      stack:
-        auto: false
-  logging:
-    level:
-      root: WARN
-      org.springframework.security: WARN  # Spring Security에서 경고 및 오류만 기록
-      org.hibernate.SQL: ERROR  # SQL 관련 에러만 기록 (SQL 쿼리 관련 정보는 배포 환경에서는 보통 필요하지 않음)
-      org.hibernate.type.descriptor.sql.BasicBinder: ERROR  # SQL 바인딩 관련 에러만 기록
-      org.springframework.web: WARN  # 웹 요청 관련 경고 및 오류만 기록
-      com.umc.cardify: WARN  # 애플리케이션 전체에서 경고 및 오류만 기록
-      com.umc.cardify.controller.OAuth2Controller: INFO  # 카카오 로그인 관련 상세 로그는 필요할 수 있으므로 INFO로 유지
-      com.umc.cardify.service.KakaoService: INFO  # 카카오 로그인 서비스 관련 상세 로그는 INFO로 유지
+cloud:
+  aws:
+    credentials:
+      accessKey: ${CLOUD_ACCESS_KEY}
+      secretKey: ${CLOUD_SECRET_KEY}
+    s3:
+      bucket: cardify
+    region:
+      static: ap-northeast-2
+      auto: false
+    stack:
+      auto: false
+logging:
+  level:
+    root: WARN
+    org.springframework.security: WARN  # Spring Security에서 경고 및 오류만 기록
+    org.hibernate.SQL: ERROR  # SQL 관련 에러만 기록 (SQL 쿼리 관련 정보는 배포 환경에서는 보통 필요하지 않음)
+    org.hibernate.type.descriptor.sql.BasicBinder: ERROR  # SQL 바인딩 관련 에러만 기록
+    org.springframework.web: WARN  # 웹 요청 관련 경고 및 오류만 기록
+    com.umc.cardify: WARN  # 애플리케이션 전체에서 경고 및 오류만 기록
+    com.umc.cardify.controller.OAuth2Controller: INFO  # 카카오 로그인 관련 상세 로그는 필요할 수 있으므로 INFO로 유지
+    com.umc.cardify.service.KakaoService: INFO  # 카카오 로그인 서비스 관련 상세 로그는 INFO로 유지

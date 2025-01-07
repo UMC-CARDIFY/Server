@@ -38,16 +38,23 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         String registrationId = ((OAuth2AuthenticationToken) authentication).getAuthorizedClientRegistrationId();
         AuthProvider provider = AuthProvider.valueOf(registrationId.toUpperCase());
 
-        // OAuth2 사용자 정보 추출
-        Map<String, Object> attributes = oAuth2User.getAttributes();
+        // 사용자 정보 추출
+        String email;
+        String name;
+        String profileImage;
 
-        // 카카오 응답에서 사용자 정보 추출
-        Map<String, Object> kakaoAccount = (Map<String, Object>) attributes.get("kakao_account");
-        Map<String, Object> profile = (Map<String, Object>) kakaoAccount.get("profile");
+        if (provider == AuthProvider.KAKAO) {
+            Map<String, Object> kakaoAccount = (Map<String, Object>) oAuth2User.getAttributes().get("kakao_account");
+            Map<String, Object> profile = (Map<String, Object>) kakaoAccount.get("profile");
 
-        String email = (String) kakaoAccount.get("email");
-        String name = (String) profile.get("nickname");
-        String profileImage = (String) profile.get("profile_image_url");
+            email = (String) kakaoAccount.get("email");
+            name = (String) profile.get("nickname");
+            profileImage = (String) profile.get("profile_image_url");
+        } else { // GOOGLE
+            email = oAuth2User.getAttribute("email");
+            name = oAuth2User.getAttribute("name");
+            profileImage = oAuth2User.getAttribute("picture");
+        }
 
         // 사용자 정보 저장 또는 업데이트
         User user = userService.processSocialLogin(email, name, profileImage, provider);

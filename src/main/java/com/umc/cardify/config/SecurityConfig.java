@@ -41,6 +41,7 @@ public class SecurityConfig {
                                 "/oauth2/authorization/**",
                                 "/login",
                                 "/login/oauth2/code/kakao",
+                                "/login/oauth2/code/google",
                                 "/api/v1/users/signup",
                                 "/api/v1/users/login",
                                 "/swagger-ui/**",
@@ -50,7 +51,7 @@ public class SecurityConfig {
                                 "/api/v1/oauth2/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2Login(oauth2 -> oauth2
-                        .loginPage("/oauth2/authorization/kakao")
+                        //.loginPage("/oauth2/authorization/kakao")
                         .userInfoEndpoint(userInfo -> userInfo
                                 .userService(customOAuth2UserService))
                         .successHandler(oAuth2SuccessHandler))
