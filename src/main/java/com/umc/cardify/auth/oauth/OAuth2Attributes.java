@@ -3,9 +3,11 @@ package com.umc.cardify.auth.oauth;
 import com.umc.cardify.domain.enums.AuthProvider;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
 
+@Slf4j
 @Getter
 @Builder
 public class OAuth2Attributes {
@@ -28,6 +30,7 @@ public class OAuth2Attributes {
     }
 
     private static OAuth2Attributes ofGoogle(Map<String, Object> attributes) {
+        log.debug("Google attributes: {}", attributes);  // 받아온 속성 확인
         return OAuth2Attributes.builder()
                 .name((String) attributes.get("name"))
                 .email((String) attributes.get("email"))
