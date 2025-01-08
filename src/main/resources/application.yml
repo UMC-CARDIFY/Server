@@ -1,6 +1,8 @@
 server:
   port: 8080
 spring:
+  profiles:
+    active: local
   datasource:
     url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?serverTimezone=Asia/Seoul&useLegacyDatetimeCode=false
     driverClassName: com.mysql.cj.jdbc.Driver
@@ -40,6 +42,8 @@ spring:
             scope:
               - profile_nickname
               - account_email
+              - profile_image
+              # - friends
             client-authentication-method: client_secret_post
           google:
             client-id: ${GOOGLE_CLIENT_ID}

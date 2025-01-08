@@ -4,6 +4,7 @@ import com.umc.cardify.auth.jwt.JwtTokenProvider;
 import com.umc.cardify.domain.User;
 import com.umc.cardify.domain.enums.AuthProvider;
 import com.umc.cardify.service.UserService;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,9 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
     @Value("${app.oauth2.redirect-uri}")
     private String redirectUri;
+
+    @Value("${spring.profiles.active:local}")  // 프로필 설정 추가 (로컬 환경)
+    private String activeProfile;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
@@ -71,18 +75,39 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         user.setRefreshToken(refreshToken);
         userService.saveUser(user);
 
-        // 프론트엔드로 리다이렉트 (토큰과 함께)
-        String targetUrl = UriComponentsBuilder.fromUriString(redirectUri)
-                .queryParam("accessToken", accessToken)
-                .queryParam("refreshToken", refreshToken)
-                .build().toUriString();
+        // 쿠키 생성
+        Cookie accessTokenCookie = new Cookie("accessToken", accessToken);
+        accessTokenCookie.setHttpOnly(true);
+        accessTokenCookie.setSecure(!activeProfile.equals("local")); // 로컬에서는 false
+        accessTokenCookie.setPath("/");
+        accessTokenCookie.setMaxAge(3600); // 1시간
 
-        getRedirectStrategy().sendRedirect(request, response, targetUrl);
+        Cookie refreshTokenCookie = new Cookie("refreshToken", refreshToken);
+        refreshTokenCookie.setHttpOnly(true);
+        refreshTokenCookie.setSecure(!activeProfile.equals("local")); // 로컬에서는 false
+        refreshTokenCookie.setPath("/");
+        refreshTokenCookie.setMaxAge(604800); // 7일
 
-        // 응답 설정
-        response.setContentType("application/json;charset=UTF-8");
-        response.getWriter().write(String.format(
-                "{\"accessToken\":\"%s\",\"refreshToken\":\"%s\"}",
-                accessToken, refreshToken));
+        // 쿠키 추가
+        response.addCookie(accessTokenCookie);
+        response.addCookie(refreshTokenCookie);
+
+        // 토큰 없이 리다이렉트
+        getRedirectStrategy().sendRedirect(request, response, redirectUri);
+
+
+          // 프론트엔드로 리다이렉트 (토큰과 함께)
+//        String targetUrl = UriComponentsBuilder.fromUriString(redirectUri)
+//                .queryParam("accessToken", accessToken)
+//                .queryParam("refreshToken", refreshToken)
+//                .build().toUriString();
+//
+//        getRedirectStrategy().sendRedirect(request, response, targetUrl);
+//
+//        // 응답 설정
+//        response.setContentType("application/json;charset=UTF-8");
+//        response.getWriter().write(String.format(
+//                "{\"accessToken\":\"%s\",\"refreshToken\":\"%s\"}",
+//                accessToken, refreshToken));
     }
 }
