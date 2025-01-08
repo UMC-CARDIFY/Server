@@ -4,10 +4,10 @@ spring:
   profiles:
     active: local
   datasource:
-    url: jdbc:mysql://localhost:3306/cardify_local_db?serverTimezone=Asia/Seoul&useLegacyDatetimeCode=false
+    url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?serverTimezone=Asia/Seoul&useLegacyDatetimeCode=false
     driverClassName: com.mysql.cj.jdbc.Driver
-    username: cardify_local
-    password: cardify123!
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
   data:
     mongodb:
       uri: mongodb+srv://cardify:${DB_PASSWORD}@cardify.pckle.mongodb.net/cardify?retryWrites=true&w=majority&appName=Cardify
@@ -42,6 +42,8 @@ spring:
             scope:
               - profile_nickname
               - account_email
+              - profile_image
+              # - friends
             client-authentication-method: client_secret_post
           google:
             client-id: ${GOOGLE_CLIENT_ID}
