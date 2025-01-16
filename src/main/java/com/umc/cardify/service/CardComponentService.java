@@ -804,5 +804,54 @@ public class CardComponentService {
 		}
 		return weekResult;
 	}
+
+    public CardResponse.AnnualResultDTO getCardByYear(Long userId, int year) {
+		User user = userRepository.findById(userId)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+
+		LocalDate startOfYear = LocalDate.of(year, 1, 1);
+		LocalDate endOfYear = LocalDate.of(year, 12, 31);
+
+		List<Card> annualCards = cardRepository.findCardsByUserAndLearnLastTimeBetween(
+				user,
+				startOfYear.atStartOfDay(),
+				endOfYear.atTime(LocalTime.MAX)
+		);
+
+		Map<LocalDate, Long> dailyStudyCounts = annualCards.stream()
+				.collect(Collectors.groupingBy(
+						card -> card.getLearnLastTime().toLocalDateTime().toLocalDate(),
+						Collectors.counting()
+				));
+
+		List<CardResponse.DailyContribution> contributions = new ArrayList<>();
+		int maxStreak = 0, currentStreak = 0;
+
+		for (int i = 0; i < 365; i++) {
+			LocalDate date = startOfYear.plusDays(i);
+			long count = dailyStudyCounts.getOrDefault(date, 0L);
+
+			String color;
+			if (count == 0) {
+				color = "transparent";
+				currentStreak = 0;
+			} else if (count >= 1 && count <= 3) {
+				color = "light";
+				currentStreak++;
+			} else if (count >= 3 && count < 8) {
+				color = "medium";
+				currentStreak++;
+			} else {
+				color = "dark";
+				currentStreak++;
+			}
+
+			maxStreak = Math.max(maxStreak, currentStreak);
+
+			contributions.add(new CardResponse.DailyContribution(date, count, color));
+		}
+
+		return new CardResponse.AnnualResultDTO(contributions, maxStreak);
+	}
 }
 

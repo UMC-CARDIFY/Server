@@ -1,5 +1,6 @@
 package com.umc.cardify.dto.card;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -7,10 +8,7 @@ import java.util.Map;
 import com.umc.cardify.domain.enums.MarkStatus;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 public class CardResponse {
 	@Getter
@@ -189,5 +187,27 @@ public class CardResponse {
 	public static class getExpectedStudyDateDTO {
 		@Schema(description = "학습 예상 날짜")
 		List<Integer> expectedDate;
+	}
+
+	@Data
+	@AllArgsConstructor
+	@Schema(title = "CARD_RES_09 : 연간 학습 기여도 리스트 DTO")
+	public static class AnnualResultDTO {
+		@Schema(description = "연간 모든 날짜에 대한 정보 리스트")
+		private List<DailyContribution> contributions;
+		@Schema(description = "최대 연속 일수", example = "2")
+		private int maxStreak;
+	}
+
+	@Data
+	@AllArgsConstructor
+	@Schema(title = "CARD_RES_10 : 일일 기여도 조회 DTO")
+	public static class DailyContribution {
+		@Schema(description = "날짜", example = "2025-01-01")
+		private LocalDate date;
+		@Schema(description = "중복없는 하루 학습 횟수", example = "3")
+		private long count;
+		@Schema(description = "색상", example = "transparent | light | medium | dark")
+		private String color;
 	}
 }

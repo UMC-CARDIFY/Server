@@ -172,6 +172,21 @@ public class CardController {
 		return ResponseEntity.ok(weekCard);
 	}
 
+	@GetMapping("/contributions/{annual}")
+	@Operation(summary = "연간 분석 학습 통계 API", description = "사용자 조회 성공 시, 현재 연도를 받아서 사용자의 날짜 학습 데이터와 연속 학습 일수 반환")
+	public ResponseEntity<CardResponse.AnnualResultDTO> getContributionsByAnnual(
+			@RequestHeader("Authorization") String token,
+			@PathVariable Integer annual) {
+		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+		Long userId = userRepository.findByEmail(email)
+				.orElseThrow(()-> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
+				.getUserId();
+
+		CardResponse.AnnualResultDTO annualResult = cardComponentService.getCardByYear(userId, annual);
+		return ResponseEntity.ok(annualResult);
+	}
+
+
 	@GetMapping("/study-suggestion/{years}/{month}")
 	@Operation(summary = "이번 달 학습 예정 일자")
 	public ResponseEntity<?> getExpectedStudyDate(@RequestHeader("Authorization") String token, @PathVariable int years, @PathVariable int month){
