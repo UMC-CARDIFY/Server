@@ -95,11 +95,14 @@ public class NoteConverter {
                 .build();
     }
     public NoteResponse.SearchNoteToUserDTO toSearchNoteUser(Folder folder, List<NoteResponse.SearchNoteResDTO> noteDto){
+        //부모 폴더가 없을 때 처리
+        Folder pFolder = folder.getParentFolder();
+
         return NoteResponse.SearchNoteToUserDTO.builder()
                 .folderId(folder.getFolderId())
                 .folderName(folder.getName())
-                .parentsFolderId(folder.getParentFolder().getFolderId())
-                .parentsFolderName(folder.getParentFolder().getName())
+                .parentsFolderId(pFolder==null ? 0L : folder.getParentFolder().getFolderId())
+                .parentsFolderName(pFolder==null ? "" : folder.getParentFolder().getName())
                 .noteList(noteDto)
                 .build();
     }
