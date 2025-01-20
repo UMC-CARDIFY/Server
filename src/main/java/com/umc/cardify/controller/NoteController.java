@@ -5,19 +5,12 @@ import java.util.List;
 import com.umc.cardify.auth.jwt.JwtTokenProvider;
 import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
+import com.umc.cardify.domain.User;
 import com.umc.cardify.domain.enums.AuthProvider;
 import com.umc.cardify.repository.UserRepository;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestPart;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.umc.cardify.converter.NoteConverter;
@@ -116,6 +109,17 @@ public class NoteController {
 		String searchTxt = request.getSearchTxt();
 		List<NoteResponse.SearchNoteResDTO> DTOList = noteComponentService.searchNote(folder, searchTxt);
 		return ResponseEntity.ok(NoteResponse.SearchNoteDTO.builder().searchTxt(searchTxt).noteList(DTOList).build());
+	}
+
+	@GetMapping("/searchNew")
+	@Operation(summary = "노트 검색 API NEW", description = "검색어 입력, 성공 시 검색 결과 반환")
+	public ResponseEntity<NoteResponse.SearchNoteNewDTO> searchNoteNew(@RequestHeader("Authorization") String token,
+			@RequestParam @Valid String search) {
+		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+		User user = userRepository.findByEmail(email)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+
+		return ResponseEntity.ok(noteComponentService.searchNoteNew(user, search));
 	}
 
 	@PostMapping("/shareLib")

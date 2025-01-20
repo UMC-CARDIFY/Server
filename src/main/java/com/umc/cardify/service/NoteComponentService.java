@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import com.umc.cardify.repository.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -30,12 +31,6 @@ import com.umc.cardify.domain.User;
 import com.umc.cardify.domain.enums.MarkStatus;
 import com.umc.cardify.dto.note.NoteRequest;
 import com.umc.cardify.dto.note.NoteResponse;
-import com.umc.cardify.repository.CategoryRepository;
-import com.umc.cardify.repository.ContentsNoteRepository;
-import com.umc.cardify.repository.LibraryCategoryRepository;
-import com.umc.cardify.repository.LibraryRepository;
-import com.umc.cardify.repository.NoteRepository;
-import com.umc.cardify.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,6 +45,7 @@ public class NoteComponentService {
 	private final CategoryRepository categoryRepository;
 	private final LibraryCategoryRepository libraryCategoryRepository;
 	private final ContentsNoteRepository contentsNoteRepository;
+	private final FolderRepository folderRepository;
 
 	private final NoteModuleService noteModuleService;
 	private final CardModuleService cardModuleService;
@@ -211,6 +207,37 @@ public class NoteComponentService {
 			.collect(Collectors.toList());
 
 		return searchList;
+	}
+
+	public NoteResponse.SearchNoteNewDTO searchNoteNew(User user, String search) {
+		//문단 구분점인 .을 입력시 빈 리스트 반환
+		if (search.trim().equals("."))
+			return null;
+
+		//User가 갖고 있는 Folder 조회
+		List<Folder> folderList = folderRepository.findByUser(user);
+		//Folder내 검색어가 포함된 노트 조회
+		List<NoteResponse.SearchNoteToUserDTO> noteToUserDTO = folderList.stream()
+				.map(folder -> {
+					List<NoteResponse.SearchNoteResDTO> folderToNote = noteRepository.findByFolder(folder).stream()
+							.filter(note -> note.getName().contains(search) | note.getTotalText().contains(search))
+							.map(note -> noteConverter.toSearchNoteResult(note, search))
+							.toList();
+					return noteConverter.toSearchNoteUser(folder, folderToNote);
+		}).toList();
+
+		//Library내 검색어가 포함된 노트 조회
+		List<NoteResponse.SearchNoteToLibDTO> noteToLibDTO = libraryRepository.findAll().stream()
+				.filter(library -> library.getNote().getName().contains(search) | library.getNote().getTotalText().contains(search))
+				.map(library -> NoteResponse.SearchNoteToLibDTO.builder()
+                        .libraryId(library.getLibraryId())
+						.note(noteConverter.toSearchNoteResult(library.getNote(), search))
+                        .build())
+				.toList();
+
+		return NoteResponse.SearchNoteNewDTO.builder()
+				.searchTxt(search).noteToUserList(noteToUserDTO).noteToLibList(noteToLibDTO)
+				.build();
 	}
 
 	public Boolean shareLib(Long userId, NoteRequest.ShareLibDto request) {

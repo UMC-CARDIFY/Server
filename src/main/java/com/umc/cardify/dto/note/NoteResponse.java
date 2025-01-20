@@ -109,7 +109,7 @@ public class NoteResponse {
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
-    @Schema(title = "NOTE_RES_08_01 : 노트 검색 응답 DTO")
+    @Schema(title = "NOTE_RES_08_0 : 노트 검색 응답 DTO")
     public static class SearchNoteResDTO{
         Long noteId;
         String noteName;
@@ -123,6 +123,37 @@ public class NoteResponse {
     public static class SearchNoteDTO{
         String searchTxt;
         List<SearchNoteResDTO> noteList;
+    }
+    @Builder
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "NOTE_RES_08 : 노트 검색 응답 DTO")
+    public static class SearchNoteNewDTO{
+        String searchTxt;
+        List<SearchNoteToUserDTO> noteToUserList;
+        List<SearchNoteToLibDTO> noteToLibList;
+    }
+    @Builder
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "NOTE_RES_08_1 : 노트 검색 응답 DTO(유저)")
+    public static class SearchNoteToUserDTO{
+        Long folderId;
+        String folderName;
+        Long parentsFolderId;
+        String parentsFolderName;
+        List<SearchNoteResDTO> noteList;
+    }
+    @Builder
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "NOTE_RES_08_2 : 노트 검색 응답 DTO(자료실)")
+    public static class SearchNoteToLibDTO{
+        Long libraryId;
+        SearchNoteResDTO note;
     }
     @Builder
     @Getter

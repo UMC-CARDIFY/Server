@@ -35,7 +35,7 @@ public class NoteConverter {
                 .build();
     }
     public static NoteResponse.AddNoteResultDTO toAddNoteResult(Note note){
-        return NoteResponse.AddNoteResultDTO.builder()
+        return com.umc.cardify.dto.note.NoteResponse.AddNoteResultDTO.builder()
                 .noteId(note.getNoteId())
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -55,7 +55,7 @@ public class NoteConverter {
                 .build();
     }
     public static NoteResponse.IsSuccessNoteDTO isSuccessNoteResult(Boolean isSuccess){
-        return NoteResponse.IsSuccessNoteDTO.builder()
+        return com.umc.cardify.dto.note.NoteResponse.IsSuccessNoteDTO.builder()
                 .isSuccess(isSuccess)
                 .build();
     }
@@ -92,6 +92,15 @@ public class NoteConverter {
                 .noteId(note.getNoteId())
                 .noteName(note.getName())
                 .textList(textList)
+                .build();
+    }
+    public NoteResponse.SearchNoteToUserDTO toSearchNoteUser(Folder folder, List<NoteResponse.SearchNoteResDTO> noteDto){
+        return NoteResponse.SearchNoteToUserDTO.builder()
+                .folderId(folder.getFolderId())
+                .folderName(folder.getName())
+                .parentsFolderId(folder.getParentFolder().getFolderId())
+                .parentsFolderName(folder.getParentFolder().getName())
+                .noteList(noteDto)
                 .build();
     }
     public NoteResponse.NoteInfoDTO recentNoteInfoDTO(Note note) {
