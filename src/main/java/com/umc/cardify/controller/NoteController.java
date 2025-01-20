@@ -101,8 +101,8 @@ public class NoteController {
 		return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(isSuccess));
 	}
 
-	@PostMapping("/search")
-	@Operation(summary = "노트 검색 API", description = "폴더 ID와 검색어 입력, 성공 시 검색 결과 반환")
+	@PostMapping("/searchFolder")
+	@Operation(summary = "폴더 내 노트 검색 API", description = "폴더 ID와 검색어 입력, 성공 시 검색 결과 반환")
 	public ResponseEntity<NoteResponse.SearchNoteDTO> searchNote(
 		@RequestBody @Valid NoteRequest.SearchNoteDto request) {
 		Folder folder = folderService.getFolder(request.getFolderId());
@@ -111,15 +111,15 @@ public class NoteController {
 		return ResponseEntity.ok(NoteResponse.SearchNoteDTO.builder().searchTxt(searchTxt).noteList(DTOList).build());
 	}
 
-	@GetMapping("/searchNew")
-	@Operation(summary = "노트 검색 API NEW", description = "검색어 입력, 성공 시 검색 결과 반환")
-	public ResponseEntity<NoteResponse.SearchNoteNewDTO> searchNoteNew(@RequestHeader("Authorization") String token,
+	@GetMapping("/searchAll")
+	@Operation(summary = "전체 노트 검색 API", description = "검색어 입력, 성공 시 검색 결과 반환")
+	public ResponseEntity<NoteResponse.SearchNoteAllDTO> searchNoteAll(@RequestHeader("Authorization") String token,
 			@RequestParam @Valid String search) {
 		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
 		User user = userRepository.findByEmail(email)
 				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
-		return ResponseEntity.ok(noteComponentService.searchNoteNew(user, search));
+		return ResponseEntity.ok(noteComponentService.searchNoteAll(user, search));
 	}
 
 	@PostMapping("/shareLib")

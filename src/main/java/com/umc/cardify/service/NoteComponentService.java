@@ -209,7 +209,7 @@ public class NoteComponentService {
 		return searchList;
 	}
 
-	public NoteResponse.SearchNoteNewDTO searchNoteNew(User user, String search) {
+	public NoteResponse.SearchNoteAllDTO searchNoteAll(User user, String search) {
 		//문단 구분점인 .을 입력시 빈 리스트 반환
 		if (search.trim().equals("."))
 			return null;
@@ -237,7 +237,7 @@ public class NoteComponentService {
                         .build())
 				.toList();
 
-		return NoteResponse.SearchNoteNewDTO.builder()
+		return NoteResponse.SearchNoteAllDTO.builder()
 				.searchTxt(search).noteToUserList(noteToUserDTO).noteToLibList(noteToLibDTO)
 				.build();
 	}
