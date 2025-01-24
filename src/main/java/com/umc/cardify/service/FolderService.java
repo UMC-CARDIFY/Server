@@ -14,9 +14,6 @@ import com.umc.cardify.repository.NoteRepository;
 import com.umc.cardify.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -165,12 +162,13 @@ public class FolderService {
         User user = userRepository.findById(userId)
                 .orElseThrow(()-> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
-        // 상위 폴더 개수 제한
+        // 유료 결제 여부에 따른 상위 폴더 개수 제한
         int folderCount = folderRepository.countByUserAndParentFolderIsNull(user);
-        if (folderCount >= 300) {
+        if (!user.isSubscribe() && folderCount >= 9) { // 무료 사용자 제한
             throw new BadRequestException(ErrorResponseStatus.FOLDER_CREATED_NOT_ALLOWED);
         }
 
+        // 중복 이름 폴더 확인
         if (folderRepository.existsByUserAndName(user, folderRequest.getName())) {
             throw new BadRequestException(ErrorResponseStatus.DUPLICATE_ERROR);
         } else {
@@ -204,6 +202,11 @@ public class FolderService {
         // 상위 폴더가 이미 하위 폴더라면 생성 제한 || 하위 폴더 개수 제한
         int subFolderCount = folderRepository.countByParentFolder(parentFolder);
         if (parentFolder.getParentFolder() != null || subFolderCount >= 100) {
+            throw new BadRequestException(ErrorResponseStatus.SUBFOLDER_CREATION_NOT_ALLOWED);
+        }
+
+        // 유료 결제 여부에 따른 하위 폴더 개수 제한
+        if (!user.isSubscribe() && subFolderCount >= 9) { // 무료 사용자 제한
             throw new BadRequestException(ErrorResponseStatus.SUBFOLDER_CREATION_NOT_ALLOWED);
         }
 
