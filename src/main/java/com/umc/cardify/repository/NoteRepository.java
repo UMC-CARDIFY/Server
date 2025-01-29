@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.UUID;
 
 public interface NoteRepository extends JpaRepository<Note, Long> {
+    @Query("SELECT n FROM Note n LEFT JOIN FETCH n.cards WHERE n.folder = :folder")
     Page<Note> findByFolder(Folder folder, Pageable pageable);
     List<Note> findByFolder(Folder folder);
 
