@@ -266,6 +266,16 @@ public class NoteComponentService {
 				.toList();
 	}
 
+	public Boolean delSearchHistory(User user, String search){
+		SearchHistory searchHistory = searchHistoryRepository.findFirstByUserAndSearch(user, search);
+		if(searchHistory == null)
+			throw new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR);
+
+		searchHistoryRepository.deleteByHistoryId(searchHistory.getHistoryId());
+
+		return true;
+	}
+
 	public Boolean shareLib(Long userId, NoteRequest.ShareLibDto request) {
 		Note note = noteModuleService.getNoteById(request.getNoteId());
 		if (!userId.equals(note.getFolder().getUser().getUserId()))
