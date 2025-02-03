@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import com.umc.cardify.domain.*;
 import com.umc.cardify.repository.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -20,14 +21,7 @@ import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.DatabaseException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.converter.NoteConverter;
-import com.umc.cardify.domain.Category;
-import com.umc.cardify.domain.ContentsNote;
-import com.umc.cardify.domain.Folder;
-import com.umc.cardify.domain.Library;
-import com.umc.cardify.domain.LibraryCategory;
-import com.umc.cardify.domain.Note;
 import com.umc.cardify.domain.ProseMirror.Node;
-import com.umc.cardify.domain.User;
 import com.umc.cardify.domain.enums.MarkStatus;
 import com.umc.cardify.dto.note.NoteRequest;
 import com.umc.cardify.dto.note.NoteResponse;
@@ -46,6 +40,7 @@ public class NoteComponentService {
 	private final LibraryCategoryRepository libraryCategoryRepository;
 	private final ContentsNoteRepository contentsNoteRepository;
 	private final FolderRepository folderRepository;
+	private final SearchHistoryRepository searchHistoryRepository;
 
 	private final NoteModuleService noteModuleService;
 	private final CardModuleService cardModuleService;
@@ -240,6 +235,17 @@ public class NoteComponentService {
 		return NoteResponse.SearchNoteAllDTO.builder()
 				.searchTxt(search).noteToUserList(noteToUserDTO).noteToLibList(noteToLibDTO)
 				.build();
+	}
+
+	public Boolean addSearchHistory(User user, String search){
+
+		return null;
+	}
+
+	public List<String> getSearchHistory(User user){
+		return searchHistoryRepository.findAllByUser(user).stream()
+				.map(SearchHistory::getSearch)
+				.toList();
 	}
 
 	public Boolean shareLib(Long userId, NoteRequest.ShareLibDto request) {

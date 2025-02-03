@@ -67,6 +67,9 @@ public class User extends BaseEntity {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<Download> downloadList = new ArrayList<>();
 
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<SearchHistory> searchHistoryList = new ArrayList<>();
+
     @Column(name = "today_check")
     @Setter
     private int todayCheck = 0;
