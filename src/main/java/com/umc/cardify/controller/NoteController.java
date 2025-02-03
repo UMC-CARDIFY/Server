@@ -119,7 +119,10 @@ public class NoteController {
 		User user = userRepository.findByEmail(email)
 				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
-		return ResponseEntity.ok(noteComponentService.searchNoteAll(user, search));
+		NoteResponse.SearchNoteAllDTO dto = noteComponentService.searchNoteAll(user, search);
+		noteComponentService.addSearchHistory(user, search);
+
+		return ResponseEntity.ok(dto);
 	}
 
 	@PostMapping("/shareLib")

@@ -9,4 +9,6 @@ import java.util.List;
 public interface SearchHistoryRepository extends JpaRepository<SearchHistory, Long> {
     SearchHistory findFirstByUserAndSearch(User user, String search);
     List<SearchHistory> findAllByUser(User user);
+
+    void deleteByHistoryId(Long historyId);
 }

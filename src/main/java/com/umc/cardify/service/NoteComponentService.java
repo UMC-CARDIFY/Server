@@ -237,13 +237,31 @@ public class NoteComponentService {
 				.build();
 	}
 
-	public Boolean addSearchHistory(User user, String search){
+	public void addSearchHistory(User user, String search){
+		SearchHistory searchHistory = searchHistoryRepository.findFirstByUserAndSearch(user, search);
+		if(searchHistory != null){
+			searchHistory.setSearchAt(LocalDateTime.now());
+			return ;
+		}
 
-		return null;
+		List<SearchHistory> searchHistoryList = searchHistoryRepository.findAllByUser(user)
+				.stream().sorted(Comparator.comparing(SearchHistory::getSearchAt).reversed()).toList();
+
+		int list_size = searchHistoryList.size();
+		if(list_size >= 5 ){
+			searchHistoryRepository.deleteByHistoryId(searchHistoryList.get(list_size - 1).getHistoryId());
+		}
+
+		SearchHistory history_input = SearchHistory.builder()
+				.user(user)
+				.search(search)
+				.build();
+		searchHistoryRepository.save(history_input);
 	}
 
 	public List<String> getSearchHistory(User user){
 		return searchHistoryRepository.findAllByUser(user).stream()
+				.sorted(Comparator.comparing(SearchHistory::getSearch).reversed())
 				.map(SearchHistory::getSearch)
 				.toList();
 	}
