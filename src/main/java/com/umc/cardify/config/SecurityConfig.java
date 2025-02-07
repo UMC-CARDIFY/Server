@@ -38,10 +38,8 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/",
-                                "/oauth2/authorization/**",
-                                "/login",
-                                "/login/oauth2/code/kakao",
-                                "/login/oauth2/code/google",
+                                "/oauth2/**",  // 모든 OAuth2 관련 경로 허용
+                                "/login/**",   // 모든 로그인 관련 경로 허용
                                 "/api/v1/users/signup",
                                 "/api/v1/users/login",
                                 "/swagger-ui/**",
