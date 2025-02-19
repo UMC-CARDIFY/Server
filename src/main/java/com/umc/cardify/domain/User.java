@@ -55,9 +55,9 @@ public class User extends BaseEntity {
     @Setter
     private Integer point = 5000;  // 초기값 설정
 
-//    @Column(name = "subscribe")
-//    @Builder.Default
-//    private boolean subscribe = false ; // 구독제 여부
+    @Column(name = "subscribe")
+    @Builder.Default
+    private boolean subscribe = false ; // 구독제 여부
 
     // 연령대 추가할지
 
