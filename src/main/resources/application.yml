@@ -4,10 +4,14 @@ spring:
   profiles:
     active: local
   datasource:
-    url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?serverTimezone=Asia/Seoul&useLegacyDatetimeCode=false
+    # url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?serverTimezone=Asia/Seoul&useLegacyDatetimeCode=false
+    # driverClassName: com.mysql.cj.jdbc.Driver
+    # username: ${DB_USER}
+    # password: ${DB_PASSWORD}
+    url: jdbc:mysql://localhost:3306/cardify_local_db?serverTimezone=Asia/Seoul&useLegacyDatetimeCode=false
     driverClassName: com.mysql.cj.jdbc.Driver
-    username: ${DB_USER}
-    password: ${DB_PASSWORD}
+    username: cardify_local
+    password: cardify123!
   data:
     mongodb:
       uri: mongodb+srv://cardify:${DB_PASSWORD}@cardify.pckle.mongodb.net/cardify?retryWrites=true&w=majority&appName=Cardify
@@ -63,7 +67,7 @@ spring:
       max-request-size: 10MB
 app:
   oauth2:
-    redirect-uri: http://localhost:5173/dashboard # 프론트엔드 서버 주소
+    redirect-uri: http://localhost:5173 # 프론트엔드 서버 주소
 jwt:
   secret: ${SECRET_KEY}
   refreshTokenValidity: ${REFRESH_TOKEN}
