@@ -69,11 +69,13 @@ public class User extends BaseEntity {
     private List<Subscription> subscriptions = new ArrayList<>();
 
     @Builder
-    public User(String name, String email, AuthProvider provider, String providerId, String profileImage) {
+    public User(String name, String email, AuthProvider provider, String providerId, String profileImage, Integer point, boolean notificationEnabled) {
         this.name = name;
         this.email = email;
         this.provider = provider;
         this.providerId = providerId;
         this.profileImage = profileImage;
+        this.point = point;
+        this.notificationEnabled = notificationEnabled;
     }
 }
