@@ -804,5 +804,28 @@ public class CardComponentService {
 		}
 		return weekResult;
 	}
+
+	public List<CardResponse.getExpectedCardSetListDTO> getStudyCardSetsForQuickLearning(Long userId) {
+		List<StudyCardSet> studyCardSets = studyCardSetRepository.findByUserOrderByNextStudyDateAsc(userId);
+
+		studyCardSets = studyCardSets.stream()
+				.filter(set -> set.getProgressRate() < 1.0)
+				.limit(3)
+				.collect(Collectors.toList());
+
+		return studyCardSets.stream()
+				.map(set -> CardResponse.getExpectedCardSetListDTO.builder()
+						.studyCardSetId(set.getId())
+						.folderName(set.getFolder() != null ? set.getFolder().getName() : null)
+						.noteName(set.getNoteName())
+						.color(set.getColor())
+						.cardsDueForStudy(set.getCardsDueForStudy())
+						.completedCardsCount(set.getCompletedCardsCount())
+						.progressRate(set.getProgressRate())
+						.recentStudyDate(set.getRecentStudyDate())
+						.nextStudyDate(set.getNextStudyDate())
+						.build())
+				.collect(Collectors.toList());
+	}
 }
 

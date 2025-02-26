@@ -184,4 +184,18 @@ public class CardController {
 
 		return ResponseEntity.ok(studyDateDTO);
 	}
+
+	@GetMapping("/quick-learning")
+	@Operation(summary = "빠른 학습 탭 - 플래시 카드 세트 조회",
+			description = "사용자에게 학습 시간 도달한 카드가 있는 StudyCardSet을 최대 3개 반환")
+	public ResponseEntity<List<CardResponse.getExpectedCardSetListDTO>> getQuickLearningStudySets(
+			@RequestHeader("Authorization") String token) {
+		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+		Long userId = userRepository.findByEmail(email)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
+				.getUserId();
+
+		List<CardResponse.getExpectedCardSetListDTO> sets = cardComponentService.getStudyCardSetsForQuickLearning(userId);
+		return ResponseEntity.ok(sets);
+	}
 }
