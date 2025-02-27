@@ -63,7 +63,7 @@ spring:
       max-request-size: 10MB
 app:
   oauth2:
-    redirect-uri: http://localhost:5173/dashboard # 프론트엔드 서버 주소
+    redirect-uri: http://localhost:5173 # 프론트엔드 서버 주소
 jwt:
   secret: ${SECRET_KEY}
   refreshTokenValidity: ${REFRESH_TOKEN}
