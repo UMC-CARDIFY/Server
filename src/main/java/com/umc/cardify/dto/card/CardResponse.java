@@ -190,4 +190,21 @@ public class CardResponse {
 		@Schema(description = "학습 예상 날짜")
 		List<Integer> expectedDate;
 	}
+
+	@Getter
+	@Builder
+	@NoArgsConstructor
+	@AllArgsConstructor
+	@Schema(title = "CARD_RES_09 : 홈화면 - 카드셋 진도율 반환 DTO")
+	public static class getExpectedCardSetListDTO {
+		Long studyCardSetId;
+		String folderName;
+		String noteName;
+		String color;
+		int cardsDueForStudy;
+		int completedCardsCount;
+		double progressRate;
+		LocalDateTime recentStudyDate;
+		LocalDateTime nextStudyDate;
+	}
 }
