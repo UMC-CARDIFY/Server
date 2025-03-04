@@ -4,10 +4,14 @@ spring:
   profiles:
     active: local
   datasource:
-    url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?serverTimezone=Asia/Seoul&useLegacyDatetimeCode=false
+    url: jdbc:mysql://localhost:3306/cardify_local_db?serverTimezone=Asia/Seoul&useLegacyDatetimeCode=false
     driverClassName: com.mysql.cj.jdbc.Driver
-    username: ${DB_USER}
-    password: ${DB_PASSWORD}
+    username: cardify_local
+    password: cardify123!
+    #url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?serverTimezone=Asia/Seoul&useLegacyDatetimeCode=false
+    #driverClassName: com.mysql.cj.jdbc.Driver
+    #username: ${DB_USER}
+    #password: ${DB_PASSWORD}
   data:
     mongodb:
       uri: mongodb+srv://cardify:${DB_PASSWORD}@cardify.pckle.mongodb.net/cardify?retryWrites=true&w=majority&appName=Cardify
@@ -91,3 +95,7 @@ logging:
     com.umc.cardify: WARN  # 애플리케이션 전체에서 경고 및 오류만 기록
     com.umc.cardify.controller.OAuth2Controller: INFO  # 카카오 로그인 관련 상세 로그는 필요할 수 있으므로 INFO로 유지
     com.umc.cardify.service.KakaoService: INFO  # 카카오 로그인 서비스 관련 상세 로그는 INFO로 유지
+iamport:
+  api:
+    key: ${IAMPORT_API_KEY}
+    secret: ${IAMPORT_API_SECRET}
