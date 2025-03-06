@@ -51,9 +51,6 @@ public class User extends BaseEntity {
     @Setter
     private Integer point = 5000;
 
-    @Column(name = "subscribe")
-    private boolean subscribe = false;
-
     @Column(name = "today_check")
     @Setter
     private int todayCheck = 0;
