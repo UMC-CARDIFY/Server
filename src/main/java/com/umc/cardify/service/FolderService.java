@@ -6,6 +6,7 @@ import com.umc.cardify.domain.Folder;
 import com.umc.cardify.domain.Note;
 import com.umc.cardify.domain.User;
 import com.umc.cardify.domain.enums.MarkStatus;
+import com.umc.cardify.domain.enums.SubscriptionStatus;
 import com.umc.cardify.dto.folder.FolderComparator;
 import com.umc.cardify.dto.folder.FolderRequest;
 import com.umc.cardify.dto.folder.FolderResponse;
@@ -162,9 +163,12 @@ public class FolderService {
         User user = userRepository.findById(userId)
                 .orElseThrow(()-> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
+        boolean isSubscribed = user.getSubscriptions().stream()
+                .anyMatch(subscription -> subscription.getStatus() == SubscriptionStatus.ACTIVE);
+
         // 유료 결제 여부에 따른 상위 폴더 개수 제한
         int folderCount = folderRepository.countByUserAndParentFolderIsNull(user);
-        if (!user.isSubscribe() && folderCount >= 9) { // 무료 사용자 제한
+        if (!isSubscribed && folderCount >= 9) { // 무료 사용자 제한
             throw new BadRequestException(ErrorResponseStatus.FOLDER_CREATED_NOT_ALLOWED);
         }
 
@@ -205,8 +209,11 @@ public class FolderService {
             throw new BadRequestException(ErrorResponseStatus.SUBFOLDER_CREATION_NOT_ALLOWED);
         }
 
+        boolean isSubscribed = user.getSubscriptions().stream()
+                .anyMatch(subscription -> subscription.getStatus() == SubscriptionStatus.ACTIVE);
+
         // 유료 결제 여부에 따른 하위 폴더 개수 제한
-        if (!user.isSubscribe() && subFolderCount >= 9) { // 무료 사용자 제한
+        if (!isSubscribed && subFolderCount >= 9) { // 무료 사용자 제한
             throw new BadRequestException(ErrorResponseStatus.SUBFOLDER_CREATION_NOT_ALLOWED);
         }
 
