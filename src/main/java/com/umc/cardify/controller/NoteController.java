@@ -119,7 +119,10 @@ public class NoteController {
 		User user = userRepository.findByEmail(email)
 				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
-		return ResponseEntity.ok(noteComponentService.searchNoteAll(user, search));
+		NoteResponse.SearchNoteAllDTO dto = noteComponentService.searchNoteAll(user, search);
+		noteComponentService.addSearchHistory(user, search);
+
+		return ResponseEntity.ok(dto);
 	}
 
 	@PostMapping("/shareLib")
@@ -165,5 +168,24 @@ public class NoteController {
 
 		List<NoteResponse.NoteInfoDTO> notes = noteComponentService.getRecentNotes(userId, page, size);
 		return ResponseEntity.ok(notes);
+	}
+
+	@GetMapping("/recent-search")
+	@Operation(summary = "최근 검색어 조회 API", description = "사용자의 최근 검색어 최대 5개 반환")
+	public ResponseEntity<List<String>> getRecentSearch(@RequestHeader("Authorization") String token) {
+		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+		User user = userRepository.findByEmail(email)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+		return ResponseEntity.ok(noteComponentService.getSearchHistory(user));
+	}
+
+	@DeleteMapping("/recent-search")
+	@Operation(summary = "최근 검색어 삭제 API")
+	public ResponseEntity<NoteResponse.IsSuccessNoteDTO> delRecentSearch(@RequestHeader("Authorization") String token, @RequestParam @Valid String search) {
+		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+		User user = userRepository.findByEmail(email)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+
+		return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(noteComponentService.delSearchHistory(user, search)));
 	}
 }
