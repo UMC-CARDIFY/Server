@@ -10,13 +10,11 @@ import org.hibernate.annotations.DynamicUpdate;
 import java.util.ArrayList;
 import java.util.List;
 
-@Getter
-@NoArgsConstructor
-@AllArgsConstructor
 @Entity
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @DynamicUpdate
 @DynamicInsert
-@Builder
 public class User extends BaseEntity {
 
     @Id
@@ -43,7 +41,6 @@ public class User extends BaseEntity {
     private String profileImage;
 
     @Column(name = "notification_enabled")
-    @Builder.Default
     @Setter
     private boolean notificationEnabled = true;
 
@@ -51,15 +48,12 @@ public class User extends BaseEntity {
     @Setter
     private String refreshToken;
 
-    @Builder.Default
     @Setter
-    private Integer point = 5000;  // 초기값 설정
+    private Integer point = 5000;
 
-    @Column(name = "subscribe")
-    @Builder.Default
-    private boolean subscribe = false ; // 구독제 여부
-
-    // 연령대 추가할지
+    @Column(name = "today_check")
+    @Setter
+    private int todayCheck = 0;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<Folder> userFolderList = new ArrayList<>();
@@ -70,8 +64,18 @@ public class User extends BaseEntity {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<SearchHistory> searchHistoryList = new ArrayList<>();
 
-    @Column(name = "today_check")
-    @Setter
-    private int todayCheck = 0;
+    // Subscription 관계 추가
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<Subscription> subscriptions = new ArrayList<>();
 
+    @Builder
+    public User(String name, String email, AuthProvider provider, String providerId, String profileImage, Integer point, boolean notificationEnabled) {
+        this.name = name;
+        this.email = email;
+        this.provider = provider;
+        this.providerId = providerId;
+        this.profileImage = profileImage;
+        this.point = point;
+        this.notificationEnabled = notificationEnabled;
+    }
 }

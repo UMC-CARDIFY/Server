@@ -36,7 +36,6 @@ spring:
             client-id: ${KAKAO_CLIENT_ID}
             client-secret: ${KAKAO_CLIENT_SECRET}
             client-name: Kakao
-            provider: kakao
             authorization-grant-type: authorization_code
             redirect-uri: "http://localhost:8080/login/oauth2/code/kakao"
             scope:
@@ -64,7 +63,7 @@ spring:
       max-request-size: 10MB
 app:
   oauth2:
-    redirect-uri: http://localhost:5173/dashboard # 프론트엔드 서버 주소
+    redirect-uri: http://localhost:5173 # 프론트엔드 서버 주소
 jwt:
   secret: ${SECRET_KEY}
   refreshTokenValidity: ${REFRESH_TOKEN}

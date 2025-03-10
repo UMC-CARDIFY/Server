@@ -41,6 +41,8 @@ public class NoteResponse {
         private String folderColor;
         @Schema(description = "노트 즐겨찾기", example = "ACTIVE")
         private MarkStatus markState;
+        @Schema(description = "플래시카드 개수", example = "3")
+        private Long flashCardCount;
         @Schema(description = "노트 열람일", example = "2023-07-18")
         private LocalDateTime viewAt;
         @Schema(description = "노트 수정일", example = "2023-07-18")

@@ -66,6 +66,8 @@ dependencies {
     // Apache Commons Validator 의존성 추가
     implementation 'commons-validator:commons-validator:1.7'
 
+    implementation 'net.bytebuddy:byte-buddy:1.14.11'  // 최신 버전을 사용하세요
+
 }
 
 tasks.named('test') {
