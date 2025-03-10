@@ -240,28 +240,33 @@ public class NoteComponentService {
 	public void addSearchHistory(User user, String search){
 		SearchHistory searchHistory = searchHistoryRepository.findFirstByUserAndSearch(user, search);
 		if(searchHistory != null){
+			//set history
 			searchHistory.setSearchAt(LocalDateTime.now());
+			searchHistoryRepository.save(searchHistory);
 			return ;
 		}
 
+		//last history del
 		List<SearchHistory> searchHistoryList = searchHistoryRepository.findAllByUser(user)
 				.stream().sorted(Comparator.comparing(SearchHistory::getSearchAt).reversed()).toList();
 
 		int list_size = searchHistoryList.size();
 		if(list_size >= 5 ){
-			searchHistoryRepository.deleteByHistoryId(searchHistoryList.get(list_size - 1).getHistoryId());
+			searchHistoryRepository.delete(searchHistoryList.get(list_size - 1));
 		}
 
+		//add new history
 		SearchHistory history_input = SearchHistory.builder()
 				.user(user)
 				.search(search)
+				.searchAt(LocalDateTime.now())
 				.build();
 		searchHistoryRepository.save(history_input);
 	}
 
 	public List<String> getSearchHistory(User user){
 		return searchHistoryRepository.findAllByUser(user).stream()
-				.sorted(Comparator.comparing(SearchHistory::getSearch).reversed())
+				.sorted(Comparator.comparing(SearchHistory::getSearchAt).reversed())
 				.map(SearchHistory::getSearch)
 				.toList();
 	}
@@ -271,7 +276,7 @@ public class NoteComponentService {
 		if(searchHistory == null)
 			throw new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR);
 
-		searchHistoryRepository.deleteByHistoryId(searchHistory.getHistoryId());
+		searchHistoryRepository.delete(searchHistory);
 
 		return true;
 	}
