@@ -756,6 +756,7 @@ public class CardComponentService {
 			studyCardSet.setNextStudyDate(earliestNextStudyTime.toLocalDateTime());
 		}
 
+		// 홈 화면 진도율 관련 - 카드셋 완료카드, 학습 예정 카드 업데이트
 		studyCardSet.setCardsDueForStudy(remainingCardsCount);
 		studyCardSet.setCompletedCardsCount(compltedCount);
 
