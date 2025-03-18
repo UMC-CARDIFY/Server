@@ -681,6 +681,18 @@ public class CardComponentService {
 
 		int remainingCardsCount = cards.size() + imageCards.size();
 
+		int compltedCount = 0;
+		for (Card card : cards) {
+			if (card.getDifficulty() == Difficulty.PASS) {
+				compltedCount++;
+			}
+		}
+		for (ImageCard imageCard : imageCards) {
+			if (imageCard.getDifficulty() == Difficulty.PASS) {
+				compltedCount++;
+			}
+		}
+
 		StudyLog studyLog = StudyLog.builder()
 			.studyDate(LocalDateTime.now())
 			.studyCardNumber(remainingCardsCount)
@@ -743,6 +755,11 @@ public class CardComponentService {
 		if (earliestNextStudyTime != null) {
 			studyCardSet.setNextStudyDate(earliestNextStudyTime.toLocalDateTime());
 		}
+
+		// 홈 화면 진도율 관련 - 카드셋 완료카드, 학습 예정 카드 업데이트
+		studyCardSet.setCardsDueForStudy(remainingCardsCount);
+		studyCardSet.setCompletedCardsCount(compltedCount);
+
 		studyCardSetRepository.save(studyCardSet);
 	}
 
