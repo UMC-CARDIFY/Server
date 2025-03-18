@@ -5,6 +5,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import com.umc.cardify.domain.*;
+import com.umc.cardify.domain.enums.SubscriptionStatus;
 import com.umc.cardify.repository.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -68,6 +69,23 @@ public class NoteComponentService {
 		}
 	}
 
+	public Boolean checkNoteCnt(Long userId){
+		User user = userRepository.findById(userId)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+
+		if(user.getSubscriptions().stream()
+				.anyMatch(subscription -> subscription.getStatus() == SubscriptionStatus.ACTIVE))
+			return true;
+
+		int note_cnt = 0;
+		List<Integer> cnt_list = folderRepository.findByUser(user).stream()
+				.map(folder -> folder.getNotes().size())
+				.toList();
+        for (Integer cnt : cnt_list)
+            note_cnt += cnt;
+
+        return note_cnt <= 2;
+	}
 	public Boolean deleteNote(Long noteId, Long userId) {
 		Note note_del = noteRepository.findById(noteId)
 			.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
