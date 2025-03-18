@@ -84,7 +84,7 @@ public class NoteComponentService {
         for (Integer cnt : cnt_list)
             note_cnt += cnt;
 
-        return note_cnt <= 2;
+        return note_cnt <= 9;
 	}
 	public Boolean deleteNote(Long noteId, Long userId) {
 		Note note_del = noteRepository.findById(noteId)
