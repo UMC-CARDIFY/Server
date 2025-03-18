@@ -15,6 +15,7 @@ public enum ErrorResponseStatus {
 	COLOR_REQUEST_ERROR(2006, "색상 값 입력 형식은 blue,mint,red 입니다."),
 	SUBFOLDER_CREATION_NOT_ALLOWED(2007, "하위 폴더를 생성할 수 없습니다."),
 	FOLDER_CREATED_NOT_ALLOWED(2008, "폴더를 생성할 수 없습니다."),
+	NOTE_CREATED_NOT_ALLOWED(2009, "노트를 생성할 수 없습니다."),
 
 	// 3000 : Response 오류
 	RESPONSE_ERROR(3000, "값을 불러오는데 실패하였습니다."),

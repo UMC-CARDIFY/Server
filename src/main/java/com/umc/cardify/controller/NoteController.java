@@ -42,11 +42,14 @@ public class NoteController {
 	public ResponseEntity<NoteResponse.AddNoteResultDTO> addNote(@RequestHeader("Authorization") String token,
 		@RequestParam @Valid Long folderId) {
 		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-		Long userId = userRepository.findByEmail(email)
-				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
-				.getUserId();
+		User user = userRepository.findByEmail(email)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+
+		if(!noteComponentService.checkNoteCnt(user.getUserId()))
+			throw new BadRequestException(ErrorResponseStatus.NOTE_CREATED_NOT_ALLOWED);
+
 		Folder folder = folderService.getFolder(folderId);
-		Note note = noteComponentService.addNote(folder, userId);
+		Note note = noteComponentService.addNote(folder, user.getUserId());
 		return ResponseEntity.ok(NoteConverter.toAddNoteResult(note));
 	}
 
