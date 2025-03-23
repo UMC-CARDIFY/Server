@@ -2,10 +2,7 @@ package com.umc.cardify.domain;
 
 import com.umc.cardify.domain.enums.PaymentType;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -35,6 +32,7 @@ public class PaymentMethod extends BaseEntity{
     private LocalDateTime validUntil;
 
     @Column(nullable = false)
+    @Setter
     private Boolean isDefault;
 
     private LocalDateTime deletedAt;

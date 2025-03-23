@@ -95,3 +95,5 @@ iamport:
   api:
     key: ${IAMPORT_API_KEY}
     secret: ${IAMPORT_API_SECRET}
+encryption:
+  key: ${ENCRYPTION_KEY}

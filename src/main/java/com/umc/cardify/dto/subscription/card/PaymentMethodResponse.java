@@ -1,4 +1,4 @@
-package com.umc.cardify.dto.payment.card;
+package com.umc.cardify.dto.subscription.card;
 import com.umc.cardify.domain.PaymentMethod;
 import com.umc.cardify.domain.enums.PaymentType;
 import lombok.Data;

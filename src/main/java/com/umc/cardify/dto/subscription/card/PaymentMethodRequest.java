@@ -1,6 +1,7 @@
-package com.umc.cardify.dto.payment.card;
+package com.umc.cardify.dto.subscription.card;
 
 import lombok.Data;
+
 import jakarta.validation.constraints.NotBlank;
 
 @Data
