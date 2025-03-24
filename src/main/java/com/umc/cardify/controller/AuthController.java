@@ -3,6 +3,7 @@ package com.umc.cardify.controller;
 import com.umc.cardify.auth.jwt.JwtTokenProvider;
 import com.umc.cardify.domain.User;
 import com.umc.cardify.repository.UserRepository;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -82,6 +83,7 @@ public class AuthController {
     // OAuth2 로그인 후 발급된 액세스 토큰을 프론트엔드에 제공하는 API
     // 프론트엔드에서는 리다이렉트 후 이 API를 호출하여 액세스 토큰을 가져감
     @GetMapping("/token")
+    @Operation(summary = "토큰 발급", description = "로그인 후 리다이렉트하여 토큰 발급받기")
     public ResponseEntity<Map<String, String>> getAccessToken(HttpServletRequest request) {
         HttpSession session = request.getSession(false);
         Map<String, String> response = new HashMap<>();
