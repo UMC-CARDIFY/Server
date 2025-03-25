@@ -46,7 +46,9 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/error",
                                 "api/v1/folders/**",
-                                "/api/v1/oauth2/**").permitAll()
+                                "/api/v1/oauth2/**",
+                                "/token-check.html",
+                                "/api/v1/auth/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2Login(oauth2 -> oauth2
                         //.loginPage("/oauth2/authorization/kakao")
