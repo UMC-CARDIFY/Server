@@ -1,5 +1,6 @@
 package com.umc.cardify.dto.folder;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.umc.cardify.domain.enums.MarkStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
@@ -26,11 +27,14 @@ public class FolderResponse {
         private MarkStatus markState;
         @Schema(description = "폴더의 노트개수", example = "3")
         private Integer getNoteCount;
-        @Schema(description = "폴더 즐겨찾기 수정 날짜", example = "2023-12-05 12:34:56")
+        @Schema(description = "폴더 즐겨찾기 수정 날짜", example = "2023/12/05")
+        @JsonFormat(pattern= "yy/MM/dd")
         private Timestamp markDate;
-        @Schema(description = "폴더 수정 날짜", example = "2023-12-05 12:34:56")
+        @Schema(description = "폴더 수정 날짜", example = "2023/12/05")
+        @JsonFormat(pattern= "yy/MM/dd")
         private Timestamp editDate;
-        @Schema(description = "폴더 생성 날짜", example = "2023-12-05 12:34:56")
+        @Schema(description = "폴더 생성 날짜", example = "2023/12/05")
+        @JsonFormat(pattern= "yy/MM/dd", timezone = "Asia/Seoul")
         private LocalDateTime createdAt;
     }
 
@@ -80,7 +84,7 @@ public class FolderResponse {
         private String name;
         @Schema(description = "폴더 색상", example = "blue")
         private String color;
-        @Schema(description = "폴더 생성 날짜", example = "2023-12-05 12:34:56")
+        @Schema(description = "폴더 생성 날짜", example = "2023/12/05")
         private LocalDateTime createdAt;
     }
 
@@ -96,7 +100,7 @@ public class FolderResponse {
         String name;
         @Schema(description = "폴더 색상", example = "ocean")
         String color;
-        @Schema(description = "폴더 수정 날짜", example = "2023-12-05 12:34:56")
+        @Schema(description = "폴더 수정 날짜", example = "2023/12/05")
         Timestamp editDate;
     }
 
