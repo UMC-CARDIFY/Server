@@ -45,6 +45,8 @@ public class NoteResponse {
         private Long flashCardCount;
         @Schema(description = "노트 열람일", example = "2023-07-18")
         private LocalDateTime viewAt;
+        @Schema(description = "노트 즐겨찾기 날짜", example = "yy/MM/dd")
+        private String markAt;
         @Schema(description = "노트 수정일", example = "2023-07-18")
         private String editDate;
         @Schema(description = "노트 생성 날짜", example = "2023-07-10")
