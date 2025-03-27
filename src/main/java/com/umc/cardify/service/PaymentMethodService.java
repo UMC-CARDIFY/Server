@@ -35,19 +35,18 @@ public class PaymentMethodService {
 
     // 1. 결제 수단 등록
     @Transactional
-    public PaymentMethod registerPaymentMethod(PaymentMethodRequest paymentMethodRequest, String token) {
+    public PaymentMethodResponse.registerPaymentMethodRes registerPaymentMethod(PaymentMethodRequest.registerPaymentReq paymentMethodRequest, String token) {
 
         Long userId = findUserId(token);
 
         // 카드 번호는 마지막 4자리만 저장
-        String maskedCardNumber = maskCardNumber(paymentMethodRequest.getCardNumber());
+        String maskedCardNumber = maskCardNumber(paymentMethodRequest.cardNumber());
 
         PaymentMethod paymentMethod = PaymentMethod.builder()
                 .user(userRepository.findByUserId(userId))
                 .type(PaymentType.CARD)
-                .provider(paymentMethodRequest.getCardProvider())
+                .provider(paymentMethodRequest.cardProvider())
                 .cardNumber(maskedCardNumber)
-                //.customerId(request.getCustomerUid()) // 빌링키
                 .isDefault(paymentMethodRequest.isDefault())
                 .build();
 
@@ -56,16 +55,26 @@ public class PaymentMethodService {
             clearDefaultPaymentMethod(userId);
         }
 
-        return paymentMethodRepository.save(paymentMethod);
+        PaymentMethod savedPaymentMethod = paymentMethodRepository.save(paymentMethod);
+        return PaymentMethodResponse.registerPaymentMethodRes.builder()
+                .id(savedPaymentMethod.getId())
+                .type(savedPaymentMethod.getType())
+                .provider(savedPaymentMethod.getProvider())
+                .cardNumber(savedPaymentMethod.getCardNumber())
+                .isDefault(savedPaymentMethod.getIsDefault())
+                .createdAt(savedPaymentMethod.getCreatedAt())
+                .build();
+
     }
 
+    // TODO : 이후 디자인에 보고 수정
     // 2. 결제 수단 목록 조회
-    public List<PaymentMethodResponse> getPaymentMethods(String token) {
+    public List<PaymentMethodResponse.registerPaymentMethodRes> getPaymentMethods(String token) {
         Long userId = findUserId(token);
 
         List<PaymentMethod> paymentMethods = paymentMethodRepository.findByUser_UserId(userId);
-        List<PaymentMethodResponse> responses = paymentMethods.stream()
-                .map(PaymentMethodResponse::new)
+        List<PaymentMethodResponse.registerPaymentMethodRes> responses = paymentMethods.stream()
+                .map(PaymentMethodResponse.registerPaymentMethodRes::new)
                 .collect(Collectors.toList());
 
         return responses;
@@ -97,9 +106,10 @@ public class PaymentMethodService {
         paymentMethodRepository.delete(paymentMethod);
     }
 
+    // TODO : 이후 디자인에 보고 수정
     // 4. 기본 결제 수단 변경
     @Transactional
-    public PaymentMethod setDefaultPaymentMethod(Long id, String token) {
+    public PaymentMethodResponse.registerPaymentMethodRes setDefaultPaymentMethod(Long id, String token) {
         Long userId = findUserId(token);
         // 현재 기본 결제 수단 해제
         clearDefaultPaymentMethod(userId);
@@ -108,7 +118,9 @@ public class PaymentMethodService {
                 .orElseThrow(() -> new ResourceNotFoundException("결제 수단을 찾을 수 없습니다"));
 
         paymentMethod.setIsDefault(true);
-        return paymentMethodRepository.save(paymentMethod);
+        paymentMethodRepository.save(paymentMethod);
+
+        return PaymentMethodResponse.registerPaymentMethodRes.builder().build();
     }
 
     // 현재 기본 결제 수단 초기화
