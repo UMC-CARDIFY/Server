@@ -1,9 +1,13 @@
 package com.umc.cardify.service;
 
+import com.umc.cardify.auth.jwt.JwtTokenProvider;
+import com.umc.cardify.config.exception.BadRequestException;
+import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.config.exception.ResourceNotFoundException;
 import com.umc.cardify.domain.PaymentMethod;
 import com.umc.cardify.domain.enums.PaymentType;
 import com.umc.cardify.dto.subscription.card.PaymentMethodRequest;
+import com.umc.cardify.dto.subscription.card.PaymentMethodResponse;
 import com.umc.cardify.repository.PaymentMethodRepository;
 import com.umc.cardify.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -18,16 +23,27 @@ public class PaymentMethodService {
 
     private final PaymentMethodRepository paymentMethodRepository;
     private final UserRepository userRepository;
+    private final JwtTokenProvider jwtTokenProvider;
 
-    // 결제 수단 등록
-    // TODO : userId 어떻게 할지
-    @Transactional(readOnly = true)
-    public PaymentMethod registerPaymentMethod(PaymentMethodRequest paymentMethodRequest, Long userId) {
+    private Long findUserId(String token) {
+        String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+        Long userId = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
+                .getUserId();
+        return userId;
+    }
+
+    // 1. 결제 수단 등록
+    @Transactional
+    public PaymentMethod registerPaymentMethod(PaymentMethodRequest paymentMethodRequest, String token) {
+
+        Long userId = findUserId(token);
+
         // 카드 번호는 마지막 4자리만 저장
         String maskedCardNumber = maskCardNumber(paymentMethodRequest.getCardNumber());
 
         PaymentMethod paymentMethod = PaymentMethod.builder()
-                .user(userRepository.findByName(userDetails.getUsername()))
+                .user(userRepository.findByUserId(userId))
                 .type(PaymentType.CARD)
                 .provider(paymentMethodRequest.getCardProvider())
                 .cardNumber(maskedCardNumber)
@@ -37,18 +53,22 @@ public class PaymentMethodService {
 
         // 새 카드를 기본 카드로 설정하는 경우, 기존 기본 카드 설정 해제
         if (paymentMethodRequest.isDefault()) {
-            clearDefaultPaymentMethod(userDetails.getUsername());
+            clearDefaultPaymentMethod(userId);
         }
 
-        PaymentMethod savedPaymentMethod = paymentMethodRepository.save(paymentMethod);
+        return paymentMethodRepository.save(paymentMethod);
     }
 
+    // 2. 결제 수단 목록 조회
+    public List<PaymentMethodResponse> getPaymentMethods(String token) {
+        Long userId = findUserId(token);
 
+        List<PaymentMethod> paymentMethods = paymentMethodRepository.findByUser_UserId(userId);
+        List<PaymentMethodResponse> responses = paymentMethods.stream()
+                .map(PaymentMethodResponse::new)
+                .collect(Collectors.toList());
 
-    // 결제 수단 목록 조회
-    @Transactional(readOnly = true)
-    public List<PaymentMethod> findByUserId(String userId) {
-        return paymentMethodRepository.findByUserId(userId);
+        return responses;
     }
 
     // 결제 수단 조회
@@ -58,33 +78,33 @@ public class PaymentMethodService {
                 .orElseThrow(() -> new ResourceNotFoundException("결제 수단을 찾을 수 없습니다"));
     }
 
-    // 결제 수단 삭제
+    // 3. 결제 수단 삭제
     @Transactional
-    public void delete(Long id, String userId) {
-        PaymentMethod paymentMethod = paymentMethodRepository.findByIdAndUserId(id, userId)
+    public void deletePaymentMethod(Long id, String token) {
+        Long userId = findUserId(token);
+        PaymentMethod paymentMethod = paymentMethodRepository.findByIdAndUser_UserId(id, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("결제 수단을 찾을 수 없습니다"));
 
         // 기본 결제 수단이면서 다른 결제 수단이 있는 경우, 다른 결제 수단을 기본으로 설정
         if (paymentMethod.getIsDefault()) {
-            List<PaymentMethod> otherPaymentMethods = paymentMethodRepository.findByUserIdAndIdNot(userId, id);
+            List<PaymentMethod> otherPaymentMethods = paymentMethodRepository.findByUser_UserIdAndIdNot(userId, id);
             if (!otherPaymentMethods.isEmpty()) {
                 PaymentMethod newDefault = otherPaymentMethods.get(0);
                 newDefault.setIsDefault(true);
                 paymentMethodRepository.save(newDefault);
             }
         }
-
         paymentMethodRepository.delete(paymentMethod);
     }
 
-    // 기본 결제 수단 변경
+    // 4. 기본 결제 수단 변경
     @Transactional
-    public PaymentMethod setDefault(Long id, String userId) {
+    public PaymentMethod setDefaultPaymentMethod(Long id, String token) {
+        Long userId = findUserId(token);
         // 현재 기본 결제 수단 해제
         clearDefaultPaymentMethod(userId);
-
         // 새 기본 결제 수단 설정
-        PaymentMethod paymentMethod = paymentMethodRepository.findByIdAndUserId(id, userId)
+        PaymentMethod paymentMethod = paymentMethodRepository.findByIdAndUser_UserId(id, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("결제 수단을 찾을 수 없습니다"));
 
         paymentMethod.setIsDefault(true);
@@ -93,8 +113,8 @@ public class PaymentMethodService {
 
     // 현재 기본 결제 수단 초기화
     @Transactional
-    public void clearDefaultPaymentMethod(String userId) {
-        List<PaymentMethod> defaultPaymentMethods = paymentMethodRepository.findByUserIdAndIsDefaultTrue(userId);
+    public void clearDefaultPaymentMethod(Long userId) {
+        List<PaymentMethod> defaultPaymentMethods = paymentMethodRepository.findByUser_UserIdAndIsDefaultTrue(userId);
         for (PaymentMethod pm : defaultPaymentMethods) {
             pm.setIsDefault(false);
             paymentMethodRepository.save(pm);

@@ -1,6 +1,7 @@
 package com.umc.cardify.repository;
 
 import com.umc.cardify.domain.PaymentMethod;
+import com.umc.cardify.domain.enums.PaymentType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -11,26 +12,23 @@ import java.util.Optional;
 public interface PaymentMethodRepository extends JpaRepository<PaymentMethod, Long> {
 
     // 결제 수단 목록 조회
-    List<PaymentMethod> findByUserId(String userId);
+    List<PaymentMethod> findByUser_UserId(Long userId);
 
     // 특정 결제 수단 조회
-    Optional<PaymentMethod> findByIdAndUserId(Long id, String userId);
+    Optional<PaymentMethod> findByIdAndUser_UserId(Long id, Long userId);
 
     // 기본 결제 수단 조회
-    List<PaymentMethod> findByUserIdAndIsDefaultTrue(String userId);
+    List<PaymentMethod> findByUser_UserIdAndIsDefaultTrue(Long userId);
 
     // 특정 결제 수단 제외한 결제 수단 목록 조회
-    List<PaymentMethod> findByUserIdAndIdNot(String userId, Long id);
-
-    // 빌링키로 결제 수단 조회
-    Optional<PaymentMethod> findByCustomerId(String customerId);
+    List<PaymentMethod> findByUser_UserIdAndIdNot(Long userId, Long id);
 
     // 사용자의 카드 번호로 결제 수단 조회
-    Optional<PaymentMethod> findByUserIdAndCardNumber(String userId, String cardNumber);
+    Optional<PaymentMethod> findByUser_UserIdAndCardNumber(Long userId, String cardNumber);
 
     // 타입별 결제 수단 조회
-    List<PaymentMethod> findByUserIdAndType(String userId, String type);
+    List<PaymentMethod> findByUser_UserIdAndType(Long userId, PaymentType type);
 
     // 결제 수단 개수 조회
-    long countByUserId(String userId);
+    long countByUser_UserId(Long userId);
 }
