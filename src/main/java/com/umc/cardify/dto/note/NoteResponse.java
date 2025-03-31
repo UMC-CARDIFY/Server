@@ -184,4 +184,13 @@ public class NoteResponse {
         Boolean isUpload;
         List<getNoteCardDTO> cardList;
     }
+    @Builder
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "NOTE_RES_10 : 노트 조회 응답(카드) DTO")
+    public static class getNoteUUIDDTO{
+        Long noteId;
+        String UUID;
+    }
 }

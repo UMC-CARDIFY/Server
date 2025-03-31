@@ -443,4 +443,18 @@ public class NoteComponentService {
 			.isLast(notePage.isLast())
 			.build();
 	}
+
+	public NoteResponse.getNoteUUIDDTO createNoteUUID(NoteRequest.MakeLinkDto request, User user){
+		Note note = noteModuleService.getNoteById(request.getNoteId());
+		if (!user.equals(note.getFolder().getUser()))
+			throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
+
+		note.setUuid(UUID.randomUUID().toString());
+		Note result = noteRepository.save(note);
+
+		return NoteResponse.getNoteUUIDDTO.builder()
+				.noteId(result.getNoteId())
+				.UUID(result.getUuid())
+				.build();
+	}
 }

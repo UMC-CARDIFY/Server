@@ -191,4 +191,14 @@ public class NoteController {
 
 		return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(noteComponentService.delSearchHistory(user, search)));
 	}
+
+	@PostMapping("/makeLink")
+	@Operation(summary = "노트 링크 생성 API", description = "노트 아이디 입력, 성공 시 노트 고유값 반환")
+	public ResponseEntity<NoteResponse.getNoteUUIDDTO> delRecentSearch(@RequestHeader("Authorization") String token, @RequestBody @Valid NoteRequest.MakeLinkDto request) {
+		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+		User user = userRepository.findByEmail(email)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+
+		return ResponseEntity.ok(noteComponentService.createNoteUUID(request, user));
+	}
 }
