@@ -449,6 +449,13 @@ public class NoteComponentService {
 		if (!user.equals(note.getFolder().getUser()))
 			throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
 
+		if(note.getUuid() != null){
+			return NoteResponse.getNoteUUIDDTO.builder()
+					.noteId(note.getNoteId())
+					.UUID(note.getUuid())
+					.build();
+		}
+
 		note.setUuid(UUID.randomUUID().toString());
 		Note result = noteRepository.save(note);
 
