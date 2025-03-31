@@ -48,4 +48,10 @@ public class NoteRequest {
         Long noteId;
         List<String> category;
     }
+    @Getter
+    @Schema(title = "NOTE_REQ_07 : 노트 링크 생성 요청 DTO")
+    public static class MakeLinkDto{
+        @NotNull
+        Long noteId;
+    }
 }

@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface NoteRepository extends JpaRepository<Note, Long> {
@@ -53,4 +54,7 @@ public interface NoteRepository extends JpaRepository<Note, Long> {
     @Query("SELECT n FROM Note n WHERE n.folder.user = :user ORDER BY " +
             "n.viewAt DESC ")
     Page<Note> findByUserOrderByViewAtDesc(User user, Pageable pageable);
+
+
+    Optional<Note> findByUuid(String UUID);
 }

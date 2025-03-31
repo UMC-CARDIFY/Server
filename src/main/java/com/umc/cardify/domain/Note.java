@@ -59,6 +59,9 @@ public class Note extends BaseEntity {
     @Setter
     private Boolean isEdit;
 
+    @Setter
+    private String uuid;
+
     @OneToMany(mappedBy = "note", cascade = CascadeType.ALL)
     private List<Card> cards;
 

@@ -191,4 +191,30 @@ public class NoteController {
 
 		return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(noteComponentService.delSearchHistory(user, search)));
 	}
+
+	@PostMapping("/link")
+	@Operation(summary = "노트 링크 생성 API", description = "노트 아이디 입력, 성공 시 노트 고유값 반환")
+	public ResponseEntity<NoteResponse.getNoteUUIDDTO> createNoteUUID(@RequestHeader("Authorization") String token, @RequestBody @Valid NoteRequest.MakeLinkDto request) {
+		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+		User user = userRepository.findByEmail(email)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+
+		return ResponseEntity.ok(noteComponentService.createNoteUUID(request, user));
+	}
+
+	@GetMapping("/link")
+	@Operation(summary = "노트 링크 조회 API", description = "고유값 입력받아 노트 내용 전달")
+	public ResponseEntity<NoteResponse.getNoteDTO> getNoteToUUID(@RequestParam @Valid String uuid) {
+		return ResponseEntity.ok(noteComponentService.getNote(noteComponentService.getNoteIdToUUID(uuid)));
+	}
+
+	@DeleteMapping("/link")
+	@Operation(summary = "노트 링크 삭제 API")
+	public ResponseEntity<NoteResponse.IsSuccessNoteDTO> delNoteLink(@RequestHeader("Authorization") String token, @RequestParam @Valid Long noteId) {
+		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+		User user = userRepository.findByEmail(email)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+
+		return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(noteComponentService.delNoteUUID(user, noteId)));
+	}
 }

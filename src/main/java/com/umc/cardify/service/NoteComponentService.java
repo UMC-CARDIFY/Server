@@ -443,4 +443,43 @@ public class NoteComponentService {
 			.isLast(notePage.isLast())
 			.build();
 	}
+
+	public NoteResponse.getNoteUUIDDTO createNoteUUID(NoteRequest.MakeLinkDto request, User user){
+		Note note = noteModuleService.getNoteById(request.getNoteId());
+		if (!user.equals(note.getFolder().getUser()))
+			throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
+
+		if(note.getUuid() != null){
+			return NoteResponse.getNoteUUIDDTO.builder()
+					.noteId(note.getNoteId())
+					.UUID(note.getUuid())
+					.build();
+		}
+
+		note.setUuid(UUID.randomUUID().toString());
+		Note result = noteRepository.save(note);
+
+		return NoteResponse.getNoteUUIDDTO.builder()
+				.noteId(result.getNoteId())
+				.UUID(result.getUuid())
+				.build();
+	}
+
+	public Long getNoteIdToUUID(String UUID){
+		Note note = noteRepository.findByUuid(UUID).orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+
+		return note.getNoteId();
+	}
+
+	public Boolean delNoteUUID(User user, Long noteId){
+		Note note = noteRepository.findById(noteId)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+		if (!user.equals(note.getFolder().getUser()))
+			throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
+
+		note.setUuid(null);
+		noteRepository.save(note);
+
+		return true;
+	}
 }
