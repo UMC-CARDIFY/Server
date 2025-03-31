@@ -457,4 +457,22 @@ public class NoteComponentService {
 				.UUID(result.getUuid())
 				.build();
 	}
+
+	public Long getNoteIdToUUID(String UUID){
+		Note note = noteRepository.findByUuid(UUID).orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+
+		return note.getNoteId();
+	}
+
+	public Boolean delNoteUUID(User user, Long noteId){
+		Note note = noteRepository.findById(noteId)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+		if (!user.equals(note.getFolder().getUser()))
+			throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
+
+		note.setUuid(null);
+		noteRepository.save(note);
+
+		return true;
+	}
 }

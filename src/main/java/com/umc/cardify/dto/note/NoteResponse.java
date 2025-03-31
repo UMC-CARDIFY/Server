@@ -188,7 +188,7 @@ public class NoteResponse {
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
-    @Schema(title = "NOTE_RES_10 : 노트 조회 응답(카드) DTO")
+    @Schema(title = "NOTE_RES_10 : 노트 링크 생성 응답 DTO")
     public static class getNoteUUIDDTO{
         Long noteId;
         String UUID;
