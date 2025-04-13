@@ -46,7 +46,7 @@ public class PaymentMethodController {
             @PathVariable("id") Long id) {
 
         paymentMethodService.deletePaymentMethod(id, token);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(id);
 
     }
 
