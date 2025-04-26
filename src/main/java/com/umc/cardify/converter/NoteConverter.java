@@ -49,6 +49,7 @@ public class NoteConverter {
                 .folderName(note.getFolder().getName())
                 .markState(note.getMarkState())
                 .flashCardCount(note.getCards() != null ? (long) note.getCards().size() : 0L)
+                .markAt(note.getMarkAt().toLocalDate().format(DateTimeFormatter.ofPattern("yy/MM/dd")))
                 .editDate(note.getEditDate().toLocalDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
                 .createdAt(note.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
                 .isDownload(note.getDownloadLibId() != null)

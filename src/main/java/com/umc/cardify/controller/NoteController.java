@@ -42,11 +42,14 @@ public class NoteController {
 	public ResponseEntity<NoteResponse.AddNoteResultDTO> addNote(@RequestHeader("Authorization") String token,
 		@RequestParam @Valid Long folderId) {
 		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-		Long userId = userRepository.findByEmail(email)
-				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
-				.getUserId();
+		User user = userRepository.findByEmail(email)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+
+		if(!noteComponentService.checkNoteCnt(user.getUserId()))
+			throw new BadRequestException(ErrorResponseStatus.NOTE_CREATED_NOT_ALLOWED);
+
 		Folder folder = folderService.getFolder(folderId);
-		Note note = noteComponentService.addNote(folder, userId);
+		Note note = noteComponentService.addNote(folder, user.getUserId());
 		return ResponseEntity.ok(NoteConverter.toAddNoteResult(note));
 	}
 
@@ -119,7 +122,10 @@ public class NoteController {
 		User user = userRepository.findByEmail(email)
 				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
-		return ResponseEntity.ok(noteComponentService.searchNoteAll(user, search));
+		NoteResponse.SearchNoteAllDTO dto = noteComponentService.searchNoteAll(user, search);
+		noteComponentService.addSearchHistory(user, search);
+
+		return ResponseEntity.ok(dto);
 	}
 
 	@PostMapping("/shareLib")
@@ -165,5 +171,50 @@ public class NoteController {
 
 		List<NoteResponse.NoteInfoDTO> notes = noteComponentService.getRecentNotes(userId, page, size);
 		return ResponseEntity.ok(notes);
+	}
+
+	@GetMapping("/recent-search")
+	@Operation(summary = "최근 검색어 조회 API", description = "사용자의 최근 검색어 최대 5개 반환")
+	public ResponseEntity<List<String>> getRecentSearch(@RequestHeader("Authorization") String token) {
+		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+		User user = userRepository.findByEmail(email)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+		return ResponseEntity.ok(noteComponentService.getSearchHistory(user));
+	}
+
+	@DeleteMapping("/recent-search")
+	@Operation(summary = "최근 검색어 삭제 API")
+	public ResponseEntity<NoteResponse.IsSuccessNoteDTO> delRecentSearch(@RequestHeader("Authorization") String token, @RequestParam @Valid String search) {
+		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+		User user = userRepository.findByEmail(email)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+
+		return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(noteComponentService.delSearchHistory(user, search)));
+	}
+
+	@PostMapping("/link")
+	@Operation(summary = "노트 링크 생성 API", description = "노트 아이디 입력, 성공 시 노트 고유값 반환")
+	public ResponseEntity<NoteResponse.getNoteUUIDDTO> createNoteUUID(@RequestHeader("Authorization") String token, @RequestBody @Valid NoteRequest.MakeLinkDto request) {
+		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+		User user = userRepository.findByEmail(email)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+
+		return ResponseEntity.ok(noteComponentService.createNoteUUID(request, user));
+	}
+
+	@GetMapping("/link")
+	@Operation(summary = "노트 링크 조회 API", description = "고유값 입력받아 노트 내용 전달")
+	public ResponseEntity<NoteResponse.getNoteDTO> getNoteToUUID(@RequestParam @Valid String uuid) {
+		return ResponseEntity.ok(noteComponentService.getNote(noteComponentService.getNoteIdToUUID(uuid)));
+	}
+
+	@DeleteMapping("/link")
+	@Operation(summary = "노트 링크 삭제 API")
+	public ResponseEntity<NoteResponse.IsSuccessNoteDTO> delNoteLink(@RequestHeader("Authorization") String token, @RequestParam @Valid Long noteId) {
+		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+		User user = userRepository.findByEmail(email)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+
+		return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(noteComponentService.delNoteUUID(user, noteId)));
 	}
 }

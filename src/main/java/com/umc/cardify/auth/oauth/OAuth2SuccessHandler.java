@@ -13,7 +13,6 @@ import org.springframework.security.oauth2.client.authentication.OAuth2Authentic
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
-import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import lombok.extern.slf4j.Slf4j;
 import java.io.IOException;
@@ -75,39 +74,18 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         user.setRefreshToken(refreshToken);
         userService.saveUser(user);
 
-        // 쿠키 생성
-        Cookie accessTokenCookie = new Cookie("accessToken", accessToken);
-        accessTokenCookie.setHttpOnly(true);
-        accessTokenCookie.setSecure(!activeProfile.equals("local")); // 로컬에서는 false
-        accessTokenCookie.setPath("/");
-        accessTokenCookie.setMaxAge(3600); // 1시간
+        // accessToken을 세션에 저장
+        request.getSession().setAttribute("OAUTH2_ACCESS_TOKEN", accessToken);
 
+        // refreshToken은 HttpOnly 쿠키에 저장
         Cookie refreshTokenCookie = new Cookie("refreshToken", refreshToken);
         refreshTokenCookie.setHttpOnly(true);
-        refreshTokenCookie.setSecure(!activeProfile.equals("local")); // 로컬에서는 false
+        refreshTokenCookie.setSecure(!activeProfile.equals("local"));
         refreshTokenCookie.setPath("/");
         refreshTokenCookie.setMaxAge(604800); // 7일
-
-        // 쿠키 추가
-        response.addCookie(accessTokenCookie);
         response.addCookie(refreshTokenCookie);
 
-        // 토큰 없이 리다이렉트
+        // 클린 URL로 리다이렉트
         getRedirectStrategy().sendRedirect(request, response, redirectUri);
-
-
-          // 프론트엔드로 리다이렉트 (토큰과 함께)
-//        String targetUrl = UriComponentsBuilder.fromUriString(redirectUri)
-//                .queryParam("accessToken", accessToken)
-//                .queryParam("refreshToken", refreshToken)
-//                .build().toUriString();
-//
-//        getRedirectStrategy().sendRedirect(request, response, targetUrl);
-//
-//        // 응답 설정
-//        response.setContentType("application/json;charset=UTF-8");
-//        response.getWriter().write(String.format(
-//                "{\"accessToken\":\"%s\",\"refreshToken\":\"%s\"}",
-//                accessToken, refreshToken));
     }
 }

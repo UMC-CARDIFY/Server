@@ -70,6 +70,12 @@ public class StudyCardSet extends BaseEntity {
 	@Column(name = "next_study_date")
 	private LocalDateTime nextStudyDate;
 
+	@Column(name = "completed_cards_count")
+	private int completedCardsCount;
+
+	@Column(name = "cards_due_for_study")
+	private int cardsDueForStudy;
+
 	@OneToMany(mappedBy = "studyCardSet", cascade = CascadeType.REMOVE)
 	private List<ImageCard> imageCards;
 
@@ -88,5 +94,10 @@ public class StudyCardSet extends BaseEntity {
 	public void setFolderInfo(Folder folder) {
 		this.folder = folder;
 		this.color = folder.getColor();
+	}
+
+	// 진도율 계산 헬퍼 메소드
+	public double getProgressRate() {
+		return cardsDueForStudy == 0 ? 0.0 : (double) completedCardsCount / cardsDueForStudy;
 	}
 }

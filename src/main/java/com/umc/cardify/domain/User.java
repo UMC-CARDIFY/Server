@@ -51,9 +51,6 @@ public class User extends BaseEntity {
     @Setter
     private Integer point = 5000;
 
-    @Column(name = "subscribe")
-    private boolean subscribe = false;
-
     @Column(name = "today_check")
     @Setter
     private int todayCheck = 0;
@@ -63,6 +60,9 @@ public class User extends BaseEntity {
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<Download> downloadList = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<SearchHistory> searchHistoryList = new ArrayList<>();
 
     // Subscription 관계 추가
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)

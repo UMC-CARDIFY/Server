@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import com.umc.cardify.domain.*;
+import com.umc.cardify.domain.enums.SubscriptionStatus;
 import com.umc.cardify.repository.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -20,14 +22,7 @@ import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.DatabaseException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.converter.NoteConverter;
-import com.umc.cardify.domain.Category;
-import com.umc.cardify.domain.ContentsNote;
-import com.umc.cardify.domain.Folder;
-import com.umc.cardify.domain.Library;
-import com.umc.cardify.domain.LibraryCategory;
-import com.umc.cardify.domain.Note;
 import com.umc.cardify.domain.ProseMirror.Node;
-import com.umc.cardify.domain.User;
 import com.umc.cardify.domain.enums.MarkStatus;
 import com.umc.cardify.dto.note.NoteRequest;
 import com.umc.cardify.dto.note.NoteResponse;
@@ -46,6 +41,7 @@ public class NoteComponentService {
 	private final LibraryCategoryRepository libraryCategoryRepository;
 	private final ContentsNoteRepository contentsNoteRepository;
 	private final FolderRepository folderRepository;
+	private final SearchHistoryRepository searchHistoryRepository;
 
 	private final NoteModuleService noteModuleService;
 	private final CardModuleService cardModuleService;
@@ -73,6 +69,23 @@ public class NoteComponentService {
 		}
 	}
 
+	public Boolean checkNoteCnt(Long userId){
+		User user = userRepository.findById(userId)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+
+		if(user.getSubscriptions().stream()
+				.anyMatch(subscription -> subscription.getStatus() == SubscriptionStatus.ACTIVE))
+			return true;
+
+		int note_cnt = 0;
+		List<Integer> cnt_list = folderRepository.findByUser(user).stream()
+				.map(folder -> folder.getNotes().size())
+				.toList();
+        for (Integer cnt : cnt_list)
+            note_cnt += cnt;
+
+        return note_cnt <= 9;
+	}
 	public Boolean deleteNote(Long noteId, Long userId) {
 		Note note_del = noteRepository.findById(noteId)
 			.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
@@ -242,6 +255,50 @@ public class NoteComponentService {
 				.build();
 	}
 
+	public void addSearchHistory(User user, String search){
+		SearchHistory searchHistory = searchHistoryRepository.findFirstByUserAndSearch(user, search);
+		if(searchHistory != null){
+			//set history
+			searchHistory.setSearchAt(LocalDateTime.now());
+			searchHistoryRepository.save(searchHistory);
+			return ;
+		}
+
+		//last history del
+		List<SearchHistory> searchHistoryList = searchHistoryRepository.findAllByUser(user)
+				.stream().sorted(Comparator.comparing(SearchHistory::getSearchAt).reversed()).toList();
+
+		int list_size = searchHistoryList.size();
+		if(list_size >= 5 ){
+			searchHistoryRepository.delete(searchHistoryList.get(list_size - 1));
+		}
+
+		//add new history
+		SearchHistory history_input = SearchHistory.builder()
+				.user(user)
+				.search(search)
+				.searchAt(LocalDateTime.now())
+				.build();
+		searchHistoryRepository.save(history_input);
+	}
+
+	public List<String> getSearchHistory(User user){
+		return searchHistoryRepository.findAllByUser(user).stream()
+				.sorted(Comparator.comparing(SearchHistory::getSearchAt).reversed())
+				.map(SearchHistory::getSearch)
+				.toList();
+	}
+
+	public Boolean delSearchHistory(User user, String search){
+		SearchHistory searchHistory = searchHistoryRepository.findFirstByUserAndSearch(user, search);
+		if(searchHistory == null)
+			throw new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR);
+
+		searchHistoryRepository.delete(searchHistory);
+
+		return true;
+	}
+
 	public Boolean shareLib(Long userId, NoteRequest.ShareLibDto request) {
 		Note note = noteModuleService.getNoteById(request.getNoteId());
 		if (!userId.equals(note.getFolder().getUser().getUserId()))
@@ -385,5 +442,44 @@ public class NoteComponentService {
 			.isFirst(notePage.isFirst())
 			.isLast(notePage.isLast())
 			.build();
+	}
+
+	public NoteResponse.getNoteUUIDDTO createNoteUUID(NoteRequest.MakeLinkDto request, User user){
+		Note note = noteModuleService.getNoteById(request.getNoteId());
+		if (!user.equals(note.getFolder().getUser()))
+			throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
+
+		if(note.getUuid() != null){
+			return NoteResponse.getNoteUUIDDTO.builder()
+					.noteId(note.getNoteId())
+					.UUID(note.getUuid())
+					.build();
+		}
+
+		note.setUuid(UUID.randomUUID().toString());
+		Note result = noteRepository.save(note);
+
+		return NoteResponse.getNoteUUIDDTO.builder()
+				.noteId(result.getNoteId())
+				.UUID(result.getUuid())
+				.build();
+	}
+
+	public Long getNoteIdToUUID(String UUID){
+		Note note = noteRepository.findByUuid(UUID).orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+
+		return note.getNoteId();
+	}
+
+	public Boolean delNoteUUID(User user, Long noteId){
+		Note note = noteRepository.findById(noteId)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+		if (!user.equals(note.getFolder().getUser()))
+			throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
+
+		note.setUuid(null);
+		noteRepository.save(note);
+
+		return true;
 	}
 }
