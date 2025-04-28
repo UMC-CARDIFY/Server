@@ -1,15 +1,14 @@
 package com.umc.cardify.domain;
 
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+@Builder
+@AllArgsConstructor
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -41,16 +40,4 @@ public class Product extends BaseEntity{
 
     @OneToMany(mappedBy = "product")
     private List<Subscription> subscriptions = new ArrayList<>();
-
-    @Builder
-    public Product(String name, Integer price, String period, Boolean isActive,
-                   String description, LocalDateTime validFrom, LocalDateTime validUntil) {
-        this.name = name;
-        this.price = price;
-        this.period = period;
-        this.isActive = isActive;
-        this.description = description;
-        this.validFrom = validFrom;
-        this.validUntil = validUntil;
-    }
 }

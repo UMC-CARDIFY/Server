@@ -45,6 +45,11 @@ public class PaymentMethodService {
         // 카드 번호는 마지막 4자리만 저장
         String maskedCardNumber = maskCardNumber(request.cardNumber());
 
+        // 중복 검사
+        if (paymentMethodRepository.existsByUserAndCardNumber(userRepository.findByUserId(userId), maskedCardNumber)) {
+            throw new BadRequestException(ErrorResponseStatus.DUPLICATE_PAYMENT_METHOD);
+        }
+
         // 유효 기간
         LocalDate validUntil = createExpiryDate(request.expiryYear(), request.expiryMonth());
 
@@ -63,18 +68,18 @@ public class PaymentMethodService {
         }
 
         PaymentMethod savedPaymentMethod = paymentMethodRepository.save(paymentMethod);
-        return PaymentMethodResponse.registerPaymentMethodRes.builder()
-                .id(savedPaymentMethod.getId())
-                .type(savedPaymentMethod.getType())
-                .provider(savedPaymentMethod.getProvider())
-                .cardNumber(savedPaymentMethod.getCardNumber())
-                .isDefault(savedPaymentMethod.getIsDefault())
-                .createdAt(savedPaymentMethod.getCreatedAt())
-                .build();
+        return new PaymentMethodResponse.registerPaymentMethodRes(
+            savedPaymentMethod.getId(),
+            savedPaymentMethod.getType(),
+            savedPaymentMethod.getProvider(),
+            savedPaymentMethod.getCardNumber(),
+            savedPaymentMethod.getIsDefault(),
+            savedPaymentMethod.getCreatedAt()
+        );
 
     }
 
-    // TODO : 이후 디자인에 보고 수정
+    // TODO : 이후 디자인 보고 수정
     // 2. 결제 수단 목록 조회
     public List<PaymentMethodResponse.registerPaymentMethodRes> getPaymentMethods(String token) {
         Long userId = findUserId(token);
@@ -87,12 +92,6 @@ public class PaymentMethodService {
         return responses;
     }
 
-    // 결제 수단 조회
-    @Transactional(readOnly = true)
-    public PaymentMethod findById(Long id) {
-        return paymentMethodRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("결제 수단을 찾을 수 없습니다"));
-    }
 
     // 3. 결제 수단 삭제
     @Transactional
@@ -101,7 +100,7 @@ public class PaymentMethodService {
         PaymentMethod paymentMethod = paymentMethodRepository.findByIdAndUser_UserId(id, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("결제 수단을 찾을 수 없습니다"));
 
-        // 기본 결제 수단이면서 다른 결제 수단이 있는 경우, 다른 결제 수단을 기본으로 설정
+        // 기본 결제 수단이면서 다른 결제 수단이 있는 경우, 뒤의 결제 수단을 기본으로 설정
         if (paymentMethod.getIsDefault()) {
             List<PaymentMethod> otherPaymentMethods = paymentMethodRepository.findByUser_UserIdAndIdNot(userId, id);
             if (!otherPaymentMethods.isEmpty()) {
@@ -127,7 +126,14 @@ public class PaymentMethodService {
         paymentMethod.setIsDefault(true);
         paymentMethodRepository.save(paymentMethod);
 
-        return PaymentMethodResponse.registerPaymentMethodRes.builder().build();
+        return new PaymentMethodResponse.registerPaymentMethodRes(
+            id,
+            paymentMethod.getType(),
+            paymentMethod.getProvider(),
+            paymentMethod.getCardNumber(),
+            paymentMethod.getIsDefault(),
+            paymentMethod.getCreatedAt()
+        );
     }
 
     // 현재 기본 결제 수단 초기화

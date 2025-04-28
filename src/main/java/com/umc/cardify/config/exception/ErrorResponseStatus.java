@@ -35,6 +35,7 @@ public enum ErrorResponseStatus {
 	NOT_EXIST_NOTE(4011, "노트가 존재하지 않습니다."),
 	JSON_PROCESSING_ERROR(4012, "JSON 처리 중 오류가 발생했습니다."),
 	NOT_FOUND_IMAGE(4013, "업로드할 이미지가 존재하지 않습니다."),
+	DUPLICATE_PAYMENT_METHOD(4014, "이미 등록된 결제 수단입니다."),
 
 	// 5000 : Server connection 오류
 	SERVER_ERROR(5000, "서버와의 연결에 실패하였습니다."),

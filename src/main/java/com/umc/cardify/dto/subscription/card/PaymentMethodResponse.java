@@ -44,9 +44,4 @@ public class PaymentMethodResponse {
         }
     }
 
-    @Builder
-    @Schema(title = "PAYMENTMETHOD_RES_02 : 결제 등록 응답")
-    public record changeDefaultPaymentMethodRes (
-
-    ) {}
 }

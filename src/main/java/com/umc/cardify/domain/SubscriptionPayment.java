@@ -3,13 +3,12 @@ package com.umc.cardify.domain;
 
 import com.umc.cardify.domain.enums.PaymentStatus;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
+@Builder
+@AllArgsConstructor
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -42,16 +41,4 @@ public class SubscriptionPayment extends BaseEntity{
     private String pgProvider;
 
     private String failReason;
-
-    @Builder
-    public SubscriptionPayment(Subscription subscription, PaymentMethod paymentMethod,
-                               String merchantUid, PaymentStatus status, Integer amount,
-                               String pgProvider) {
-        this.subscription = subscription;
-        this.paymentMethod = paymentMethod;
-        this.merchantUid = merchantUid;
-        this.status = status;
-        this.amount = amount;
-        this.pgProvider = pgProvider;
-    }
 }

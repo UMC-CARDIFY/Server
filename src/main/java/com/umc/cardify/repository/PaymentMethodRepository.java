@@ -1,6 +1,7 @@
 package com.umc.cardify.repository;
 
 import com.umc.cardify.domain.PaymentMethod;
+import com.umc.cardify.domain.User;
 import com.umc.cardify.domain.enums.PaymentType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -24,7 +25,7 @@ public interface PaymentMethodRepository extends JpaRepository<PaymentMethod, Lo
     List<PaymentMethod> findByUser_UserIdAndIdNot(Long userId, Long id);
 
     // 사용자의 카드 번호로 결제 수단 조회
-    Optional<PaymentMethod> findByUser_UserIdAndCardNumber(Long userId, String cardNumber);
+    boolean existsByUserAndCardNumber(User user, String cardNumber);
 
     // 타입별 결제 수단 조회
     List<PaymentMethod> findByUser_UserIdAndType(Long userId, PaymentType type);

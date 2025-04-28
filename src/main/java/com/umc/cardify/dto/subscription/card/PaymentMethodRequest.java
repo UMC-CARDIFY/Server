@@ -24,12 +24,10 @@ public class PaymentMethodRequest {
             @Schema(description = "카드 번호", example = "1234-5678-9012-3456")
             String cardNumber,
 
-            @NotBlank(message = "유효 기간(년도)은 필수입니다.")
             @Schema(description = "유효 기간(년도)", example = "30")
             int expiryYear,
 
-            @NotBlank(message = "유효 기간(월)은 필수입니다.")
-            @Schema(description = "유효 기간(년도)", example = "30")
+            @Schema(description = "유효 기간(월)", example = "11")
             int expiryMonth,
 
             @NotBlank(message = "카드 제공사는 필수입니다")
