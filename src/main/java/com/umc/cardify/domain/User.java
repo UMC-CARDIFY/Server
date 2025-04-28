@@ -26,7 +26,7 @@ public class User extends BaseEntity {
     @Setter
     private String name;
 
-    @Column(name = "email", columnDefinition = "varchar(320)")
+    @Column(name = "email", columnDefinition = "varchar(320)", unique = true)
     private String email;
 
     @Enumerated(EnumType.STRING)

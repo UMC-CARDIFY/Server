@@ -14,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -35,23 +37,27 @@ public class PaymentMethodService {
 
     // 1. 결제 수단 등록
     @Transactional
-    public PaymentMethodResponse.registerPaymentMethodRes registerPaymentMethod(PaymentMethodRequest.registerPaymentReq paymentMethodRequest, String token) {
+    public PaymentMethodResponse.registerPaymentMethodRes registerPaymentMethod(PaymentMethodRequest.registerPaymentReq request, String token) {
 
         Long userId = findUserId(token);
 
         // 카드 번호는 마지막 4자리만 저장
-        String maskedCardNumber = maskCardNumber(paymentMethodRequest.cardNumber());
+        String maskedCardNumber = maskCardNumber(request.cardNumber());
+
+        // 유효 기간
+        LocalDate validUntil = createExpiryDate(request.expiryYear(), request.expiryMonth());
 
         PaymentMethod paymentMethod = PaymentMethod.builder()
                 .user(userRepository.findByUserId(userId))
                 .type(PaymentType.CARD)
-                .provider(paymentMethodRequest.cardProvider())
+                .provider(request.cardProvider())
                 .cardNumber(maskedCardNumber)
-                .isDefault(paymentMethodRequest.isDefault())
+                .isDefault(request.isDefault())
+                .validUntil(validUntil)
                 .build();
 
         // 새 카드를 기본 카드로 설정하는 경우, 기존 기본 카드 설정 해제
-        if (paymentMethodRequest.isDefault()) {
+        if (request.isDefault()) {
             clearDefaultPaymentMethod(userId);
         }
 
@@ -147,5 +153,15 @@ public class PaymentMethodService {
         return normalized.substring(0, 6) +
                 "*".repeat(length - 10) +
                 normalized.substring(length - 4);
+    }
+
+    // 유효 기간 설정
+    private LocalDate createExpiryDate(int expiryYear, int expiryMonth) {
+        // 현재 세기(2000년대)를 기준으로 2000 + 입력된 연도(YY)로 변환
+        int fullYear = 2000 + expiryYear;
+
+        // 해당 월의 마지막 날짜 구하기
+        YearMonth yearMonth = YearMonth.of(fullYear, expiryMonth);
+        return yearMonth.atEndOfMonth();
     }
 }

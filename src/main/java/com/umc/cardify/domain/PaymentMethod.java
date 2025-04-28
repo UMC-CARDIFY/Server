@@ -4,6 +4,7 @@ import com.umc.cardify.domain.enums.PaymentType;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,7 +30,7 @@ public class PaymentMethod extends BaseEntity{
 
     private String cardNumber;
 
-    private LocalDateTime validUntil;
+    private LocalDate validUntil;
 
     @Column(nullable = false)
     @Setter
@@ -42,7 +43,7 @@ public class PaymentMethod extends BaseEntity{
 
     @Builder
     public PaymentMethod(User user, PaymentType type, String provider,
-                         String cardNumber, LocalDateTime validUntil, Boolean isDefault) {
+                         String cardNumber, LocalDate validUntil, Boolean isDefault) {
         this.user = user;
         this.type = type;
         this.provider = provider;
