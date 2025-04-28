@@ -3,6 +3,7 @@ package com.umc.cardify.service;
 import com.umc.cardify.auth.jwt.JwtTokenProvider;
 import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
+import com.umc.cardify.config.exception.ResourceNotFoundException;
 import com.umc.cardify.domain.User;
 import com.umc.cardify.domain.enums.AuthProvider;
 import com.umc.cardify.dto.user.UserRequest;
@@ -24,9 +25,13 @@ public class UserService {
 
     // 로그아웃
     @Transactional
-    public void logout(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+    public void logout(String token) {
+        String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+        AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", ""));
+
+        User user = userRepository.findByEmailAndProvider(email, provider)
+            .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+
         if (user.getRefreshToken() == null) {
             throw new BadRequestException(ErrorResponseStatus.TOKEN_NOT_FOUND);
         }
@@ -34,11 +39,14 @@ public class UserService {
         userRepository.save(user);
     }
 
-    // 마이페이지 정보 조회
+    // 마이페이지 조회
     @Transactional(readOnly = true)
-    public UserResponse.MyPageInfo getMyPageInfo(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+    public UserResponse.MyPageInfo getMyPageInfo(String token) {
+
+        String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+        AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
+        User user = userRepository.findByEmailAndProvider(email, provider)
+            .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
         return UserResponse.MyPageInfo.builder()
                 .userId(user.getUserId())
@@ -54,9 +62,12 @@ public class UserService {
 
     // 프로필 이미지 수정
     @Transactional
-    public UserResponse.UpdatedProfileImage updateProfileImage(String email, UserRequest.UpdateProfileImage request) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+    public UserResponse.UpdatedProfileImage updateProfileImage(String token, UserRequest.UpdateProfileImage request) {
+
+        String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+        AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
+        User user = userRepository.findByEmailAndProvider(email, provider)
+            .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
         user.setProfileImage(request.getProfileImage());
         User updatedUser = userRepository.save(user);
@@ -68,9 +79,12 @@ public class UserService {
 
     // 이름 수정
     @Transactional
-    public UserResponse.UpdatedName updateName(String email, UserRequest.UpdateName request) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+    public UserResponse.UpdatedName updateName(String token, UserRequest.UpdateName request) {
+
+        String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+        AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
+        User user = userRepository.findByEmailAndProvider(email, provider)
+            .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
         user.setName(request.getName());
         User updatedUser = userRepository.save(user);
@@ -82,9 +96,12 @@ public class UserService {
 
     // 알림 설정 변경
     @Transactional
-    public UserResponse.UpdatedNotification updateNotification(String email, UserRequest.UpdateNotification request) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+    public UserResponse.UpdatedNotification updateNotification(String token, UserRequest.UpdateNotification request) {
+
+        String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+        AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
+        User user = userRepository.findByEmailAndProvider(email, provider)
+            .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
         user.setNotificationEnabled(request.getNotificationEnabled());
         User updatedUser = userRepository.save(user);
@@ -95,9 +112,12 @@ public class UserService {
     }
 
     @Transactional
-    public void attendanceCheck(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+    public void attendanceCheck(String token) {
+
+        String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+        AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
+        User user = userRepository.findByEmailAndProvider(email, provider)
+            .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
         user.setPoint(user.getPoint() + 100);
         user.setTodayCheck(1);
@@ -119,9 +139,9 @@ public class UserService {
 
         // 리프레시 토큰으로 사용자 찾기
         User user = userRepository.findByRefreshToken(refreshToken)
-                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.TOKEN_NOT_FOUND));
+            .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.TOKEN_NOT_FOUND));
 
-        // 새로운 액세스 토큰 발급
+        // 새로운 액세스 토큰 발급 (이메일과 제공자 모두 포함)
         String newAccessToken = jwtTokenProvider.createAccessToken(user.getEmail(), user.getProvider());
         String newRefreshToken = jwtTokenProvider.createRefreshToken();
 
@@ -130,9 +150,9 @@ public class UserService {
         userRepository.save(user);
 
         return UserResponse.TokenInfo.builder()
-                .accessToken(newAccessToken)
-                .refreshToken(newRefreshToken)
-                .build();
+            .accessToken(newAccessToken)
+            .refreshToken(newRefreshToken)
+            .build();
     }
 
     // 소셜 로그인 성공 처리

@@ -29,12 +29,6 @@ public class AuthController {
     private final UserRepository userRepository;
     private final JwtTokenProvider tokenProvider;
 
-    @GetMapping("/user")
-    public ResponseEntity<?> getUser(@AuthenticationPrincipal UserDetails userDetails) {
-        User user = userRepository.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-        return ResponseEntity.ok(user);
-    }
 
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(HttpServletRequest request) {

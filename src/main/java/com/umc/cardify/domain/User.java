@@ -11,6 +11,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
+@Table(name = "user", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"email", "provider"})
+})
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @DynamicUpdate
@@ -26,7 +29,7 @@ public class User extends BaseEntity {
     @Setter
     private String name;
 
-    @Column(name = "email", columnDefinition = "varchar(320)", unique = true)
+    @Column(name = "email", columnDefinition = "varchar(320)")
     private String email;
 
     @Enumerated(EnumType.STRING)

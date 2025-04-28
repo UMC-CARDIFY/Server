@@ -5,6 +5,7 @@ import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.config.exception.ResourceNotFoundException;
 import com.umc.cardify.domain.PaymentMethod;
+import com.umc.cardify.domain.enums.AuthProvider;
 import com.umc.cardify.domain.enums.PaymentType;
 import com.umc.cardify.dto.subscription.card.PaymentMethodRequest;
 import com.umc.cardify.dto.subscription.card.PaymentMethodResponse;
@@ -29,10 +30,10 @@ public class PaymentMethodService {
 
     private Long findUserId(String token) {
         String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-        Long userId = userRepository.findByEmail(email)
-                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
-                .getUserId();
-        return userId;
+        AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
+
+        return userRepository.findByEmailAndProvider(email, provider)
+            .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID)).getUserId();
     }
 
     // 1. 결제 수단 등록
