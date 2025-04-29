@@ -3,6 +3,8 @@ package com.umc.cardify.controller;
 import com.umc.cardify.auth.jwt.JwtTokenProvider;
 import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
+import com.umc.cardify.domain.User;
+import com.umc.cardify.domain.enums.AuthProvider;
 import com.umc.cardify.dto.folder.FolderRequest;
 import com.umc.cardify.dto.folder.FolderResponse;
 import com.umc.cardify.dto.note.NoteResponse;
@@ -38,9 +40,9 @@ public class FolderController {
             @RequestParam(required = false) String order,
             @RequestParam(required = false) String color){
         String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-        Long userId = userRepository.findByEmail(email)
-                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
-                .getUserId();
+        AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
+        Long userId = userRepository.findByEmailAndProvider(email, provider)
+            .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID)).getUserId();
 
         FolderResponse.FolderListDTO folders = folderService.getFoldersBySortFilter(userId, parentFolderId, page, size, order, color);
         return ResponseEntity.ok(folders);
@@ -55,9 +57,9 @@ public class FolderController {
             @RequestParam(required = false) String order,
             @RequestParam(required = false) String color){
         String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-        Long userId = userRepository.findByEmail(email)
-                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
-                .getUserId();
+        AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
+        Long userId = userRepository.findByEmailAndProvider(email, provider)
+            .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID)).getUserId();
 
         NoteResponse.NoteListDTO notes = noteComponentService.getNotesBySortFilter(userId, page, size, order, color);
         return ResponseEntity.ok(notes);
@@ -69,9 +71,9 @@ public class FolderController {
             @RequestHeader("Authorization") String token,
             @PathVariable Long folderId) {
         String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-        Long userId = userRepository.findByEmail(email)
-                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
-                .getUserId();
+        AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
+        Long userId = userRepository.findByEmailAndProvider(email, provider)
+            .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID)).getUserId();
 
         folderService.deleteFolderById(userId, folderId);
         return ResponseEntity.ok(FolderResponse.deleteFolderResultDTO.builder().isSuccess(true).build());
@@ -84,9 +86,9 @@ public class FolderController {
             @RequestHeader("Authorization") String token,
             @RequestBody @Valid FolderRequest.addFolderDto folderRequest) {
         String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-        Long userId = userRepository.findByEmail(email)
-                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
-                .getUserId();
+        AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
+        Long userId = userRepository.findByEmailAndProvider(email, provider)
+            .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID)).getUserId();
 
         FolderResponse.addFolderResultDTO response = folderService.addFolder(userId, folderRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -101,9 +103,9 @@ public class FolderController {
             @PathVariable Long folderId,
             @RequestBody @Valid FolderRequest.addSubFolderDto subFolderRequest) {
         String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-        Long userId = userRepository.findByEmail(email)
-                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
-                .getUserId();
+        AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
+        Long userId = userRepository.findByEmailAndProvider(email, provider)
+            .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID)).getUserId();
 
         FolderResponse.addFolderResultDTO response = folderService.addSubFolder(userId, subFolderRequest, folderId);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -116,9 +118,9 @@ public class FolderController {
             @PathVariable Long folderId,
             @RequestBody @Valid FolderRequest.editFolderDto folderRequest) {
         String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-        Long userId = userRepository.findByEmail(email)
-                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
-                .getUserId();
+        AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
+        Long userId = userRepository.findByEmailAndProvider(email, provider)
+            .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID)).getUserId();
 
         FolderResponse.editFolderResultDTO response = folderService.editFolder(userId, folderId, folderRequest);
         return ResponseEntity.ok(response);
@@ -130,9 +132,9 @@ public class FolderController {
             @RequestHeader("Authorization") String token,
             @PathVariable Long folderId) {
         String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-        Long userId = userRepository.findByEmail(email)
-                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
-                .getUserId();
+        AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
+        Long userId = userRepository.findByEmailAndProvider(email, provider)
+            .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID)).getUserId();
 
         FolderResponse.markFolderResultDTO response = folderService.markFolderById(userId, folderId);
         return ResponseEntity.ok(response);

@@ -2,18 +2,18 @@ package com.umc.cardify.domain;
 
 import com.umc.cardify.domain.enums.PaymentType;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+@Builder
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class PaymentMethod extends BaseEntity{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,9 +32,10 @@ public class PaymentMethod extends BaseEntity{
 
     private String cardNumber;
 
-    private LocalDateTime validUntil;
+    private LocalDate validUntil;
 
     @Column(nullable = false)
+    @Setter
     private Boolean isDefault;
 
     private LocalDateTime deletedAt;
@@ -42,14 +43,4 @@ public class PaymentMethod extends BaseEntity{
     @OneToMany(mappedBy = "paymentMethod")
     private List<SubscriptionPayment> payments = new ArrayList<>();
 
-    @Builder
-    public PaymentMethod(User user, PaymentType type, String provider,
-                         String cardNumber, LocalDateTime validUntil, Boolean isDefault) {
-        this.user = user;
-        this.type = type;
-        this.provider = provider;
-        this.cardNumber = cardNumber;
-        this.validUntil = validUntil;
-        this.isDefault = isDefault;
-    }
 }

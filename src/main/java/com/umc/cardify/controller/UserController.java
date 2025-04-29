@@ -30,8 +30,7 @@ public class UserController {
     @ApiResponse(responseCode = "200", description = "로그아웃 성공")
     public ResponseEntity<UserResponse.LogoutResponse> logout(@RequestHeader("Authorization") String token) {
         try {
-            String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-            userService.logout(email);
+            userService.logout(token);
             return ResponseEntity.ok(new UserResponse.LogoutResponse("로그아웃 되었습니다.", true));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new UserResponse.LogoutResponse(e.getMessage(), false));
@@ -42,8 +41,7 @@ public class UserController {
     @GetMapping("/mypage")
     @Operation(summary = "마이페이지 정보 조회 API")
     public ResponseEntity<UserResponse.MyPageInfo> getMyPageInfo(@RequestHeader("Authorization") String token) {
-        String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-        UserResponse.MyPageInfo myPageInfo = userService.getMyPageInfo(email);
+        UserResponse.MyPageInfo myPageInfo = userService.getMyPageInfo(token);
         return ResponseEntity.ok(myPageInfo);
     }
 
@@ -53,8 +51,8 @@ public class UserController {
     public ResponseEntity<?> updateProfileImage(
             @RequestHeader("Authorization") String token,
             @Valid @RequestBody UserRequest.UpdateProfileImage request) {
-        String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-        UserResponse.UpdatedProfileImage response = userService.updateProfileImage(email, request);
+
+        UserResponse.UpdatedProfileImage response = userService.updateProfileImage(token, request);
         return ResponseEntity.ok(response);
     }
 
@@ -64,8 +62,8 @@ public class UserController {
     public ResponseEntity<?> updateName(
             @RequestHeader("Authorization") String token,
             @Valid @RequestBody UserRequest.UpdateName request) {
-        String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-        UserResponse.UpdatedName response = userService.updateName(email, request);
+
+        UserResponse.UpdatedName response = userService.updateName(token, request);
         return ResponseEntity.ok(response);
     }
 
@@ -75,16 +73,16 @@ public class UserController {
     public ResponseEntity<?> updateNotification(
             @RequestHeader("Authorization") String token,
             @Valid @RequestBody UserRequest.UpdateNotification request) {
-        String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-        UserResponse.UpdatedNotification response = userService.updateNotification(email, request);
+
+        UserResponse.UpdatedNotification response = userService.updateNotification(token, request);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/check")
     @Operation(summary = "출석 체크 API")
     public ResponseEntity<?> attendanceCheck(@RequestHeader("Authorization") String token) {
-        String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-        userService.attendanceCheck(email);
+
+        userService.attendanceCheck(token);
         return ResponseEntity.ok().build();
     }
 }

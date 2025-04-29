@@ -20,6 +20,7 @@ public class CorsConfig {
                 "https://cardify.co.kr",
                 "http://43.201.167.247",
                 "http://localhost:5173",
+                "http://localhost:5174",
                 "http://localhost:8080"
         ));
         config.setAllowedMethods(List.of(
