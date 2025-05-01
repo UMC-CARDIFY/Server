@@ -40,6 +40,14 @@ public class PaymentMethod extends BaseEntity{
 
     private LocalDateTime deletedAt;
 
+    // 부가 정보 저장
+    @Column(name = "meta_data", columnDefinition = "json")
+    private String metaData;
+
+    // 정기 결제를 위한 빌링키
+    @Column(name = "billing_key")
+    private String billingKey;
+
     @OneToMany(mappedBy = "paymentMethod")
     private List<SubscriptionPayment> payments = new ArrayList<>();
 
