@@ -7,8 +7,8 @@ import com.umc.cardify.config.exception.ResourceNotFoundException;
 import com.umc.cardify.domain.PaymentMethod;
 import com.umc.cardify.domain.enums.AuthProvider;
 import com.umc.cardify.domain.enums.PaymentType;
-import com.umc.cardify.dto.subscription.card.PaymentMethodRequest;
-import com.umc.cardify.dto.subscription.card.PaymentMethodResponse;
+import com.umc.cardify.dto.payment.method.PaymentMethodRequest;
+import com.umc.cardify.dto.payment.method.PaymentMethodResponse;
 import com.umc.cardify.repository.PaymentMethodRepository;
 import com.umc.cardify.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -38,7 +38,7 @@ public class PaymentMethodService {
 
     // 1. 결제 수단 등록
     @Transactional
-    public PaymentMethodResponse.registerPaymentMethodRes registerPaymentMethod(PaymentMethodRequest.registerPaymentReq request, String token) {
+    public PaymentMethodResponse.PaymentMethodInfoRes registerPaymentMethod(PaymentMethodRequest.RegisterPaymentReq request, String token) {
 
         Long userId = findUserId(token);
 
@@ -68,7 +68,7 @@ public class PaymentMethodService {
         }
 
         PaymentMethod savedPaymentMethod = paymentMethodRepository.save(paymentMethod);
-        return new PaymentMethodResponse.registerPaymentMethodRes(
+        return new PaymentMethodResponse.PaymentMethodInfoRes(
             savedPaymentMethod.getId(),
             savedPaymentMethod.getType(),
             savedPaymentMethod.getProvider(),
@@ -81,12 +81,12 @@ public class PaymentMethodService {
 
     // TODO : 이후 디자인 보고 수정
     // 2. 결제 수단 목록 조회
-    public List<PaymentMethodResponse.registerPaymentMethodRes> getPaymentMethods(String token) {
+    public List<PaymentMethodResponse.PaymentMethodInfoRes> getPaymentMethods(String token) {
         Long userId = findUserId(token);
 
         List<PaymentMethod> paymentMethods = paymentMethodRepository.findByUser_UserId(userId);
-        List<PaymentMethodResponse.registerPaymentMethodRes> responses = paymentMethods.stream()
-                .map(PaymentMethodResponse.registerPaymentMethodRes::new)
+        List<PaymentMethodResponse.PaymentMethodInfoRes> responses = paymentMethods.stream()
+                .map(PaymentMethodResponse.PaymentMethodInfoRes::new)
                 .collect(Collectors.toList());
 
         return responses;
@@ -115,7 +115,7 @@ public class PaymentMethodService {
     // TODO : 이후 디자인에 보고 수정
     // 4. 기본 결제 수단 변경
     @Transactional
-    public PaymentMethodResponse.registerPaymentMethodRes setDefaultPaymentMethod(Long id, String token) {
+    public PaymentMethodResponse.PaymentMethodInfoRes setDefaultPaymentMethod(Long id, String token) {
         Long userId = findUserId(token);
         // 현재 기본 결제 수단 해제
         clearDefaultPaymentMethod(userId);
@@ -126,7 +126,7 @@ public class PaymentMethodService {
         paymentMethod.setIsDefault(true);
         paymentMethodRepository.save(paymentMethod);
 
-        return new PaymentMethodResponse.registerPaymentMethodRes(
+        return new PaymentMethodResponse.PaymentMethodInfoRes(
             id,
             paymentMethod.getType(),
             paymentMethod.getProvider(),

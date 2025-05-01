@@ -1,8 +1,7 @@
-package com.umc.cardify.dto.subscription.card;
+package com.umc.cardify.dto.payment.method;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
-import lombok.Data;
 
 import jakarta.validation.constraints.NotBlank;
 
@@ -11,7 +10,7 @@ public class PaymentMethodRequest {
 
     @Builder
     @Schema(title = "PAYMENT_REQ_01 : 결제 수단 등록 요청")
-    public record registerPaymentReq(
+    public record RegisterPaymentReq(
             @NotBlank(message = "고객 식별자는 필수입니다.")
             @Schema(description = "고객 식별자", example = "cust_12345abcde")
             String customerUid,
@@ -37,5 +36,13 @@ public class PaymentMethodRequest {
             @Schema(description = "기본 결제 수단 여부", example = "true")
             boolean isDefault
     ) {}
+
+  @Builder
+  @Schema(title = "PAYMENT_REQ_02 : 결제 수단 삭제 요청")
+  public record DeletePaymentMethodReq(
+      @NotBlank(message = "결제 수단 ID는 필수입니다.")
+      @Schema(description = "결제 수단 ID", example = "1")
+      Long paymentMethodId
+  ) {}
 
 }

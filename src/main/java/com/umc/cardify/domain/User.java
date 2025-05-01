@@ -20,6 +20,7 @@ import java.util.List;
 @DynamicInsert
 public class User extends BaseEntity {
 
+    @Setter()
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")

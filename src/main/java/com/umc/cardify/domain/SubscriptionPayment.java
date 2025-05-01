@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Entity
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor()
 public class SubscriptionPayment extends BaseEntity{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,20 +25,28 @@ public class SubscriptionPayment extends BaseEntity{
     @JoinColumn(name = "payment_method_id", nullable = false)
     private PaymentMethod paymentMethod;
 
+    @Setter
     @Column(nullable = false)
     private String merchantUid;
 
+    @Setter
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PaymentStatus status;
 
+    @Setter
     @Column(nullable = false)
     private Integer amount;
 
+    @Setter
+    @Column
     private LocalDateTime paidAt;
 
+    @Setter
     @Column(nullable = false)
     private String pgProvider;
 
-    private String failReason;
+    @Setter
+    @Column(name = "pg_response", columnDefinition = "TEXT")
+    private String pgResponse;
 }

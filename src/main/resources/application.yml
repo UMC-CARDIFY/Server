@@ -91,9 +91,9 @@ logging:
     com.umc.cardify: WARN  # 애플리케이션 전체에서 경고 및 오류만 기록
     com.umc.cardify.controller.OAuth2Controller: INFO  # 카카오 로그인 관련 상세 로그는 필요할 수 있으므로 INFO로 유지
     com.umc.cardify.service.KakaoService: INFO  # 카카오 로그인 서비스 관련 상세 로그는 INFO로 유지
-iamport:
-  api:
-    key: ${IAMPORT_API_KEY}
-    secret: ${IAMPORT_API_SECRET}
+portone:
+  api-key: test_api_key # 실제 환경에서는 환경 변수 사용 권장
+  api-secret: test_api_secret
+  pg-code: kakaopay.TC0ONETIME # 테스트용 CID, 실제 환경에서는 발급받은 CID로 변경
 encryption:
   key: ${ENCRYPTION_KEY}
