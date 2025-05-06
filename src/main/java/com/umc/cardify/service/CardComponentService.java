@@ -20,6 +20,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.umc.cardify.auth.jwt.JwtTokenProvider;
+import com.umc.cardify.domain.enums.AuthProvider;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -68,8 +70,20 @@ public class CardComponentService {
 	private final UserRepository userRepository;
 	private final CardRepository cardRepository;
 
+	private final JwtTokenProvider jwtTokenProvider;
+
+	private Long findUserId(String token) {
+		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+		AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
+
+		return userRepository.findByEmailAndProvider(email, provider)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID)).getUserId();
+	}
+
 	@Transactional
-	public CardResponse.getExpectedStudyDateDTO getExpectedStudyDate(Long userId, int years, int month) {
+	public CardResponse.getExpectedStudyDateDTO getExpectedStudyDate(String token, int years, int month) {
+		Long userId = findUserId(token);
+
 		// 해당 년월의 첫날과 마지막 날 계산
 		YearMonth yearMonth = YearMonth.of(years, month);
 		LocalDateTime startDateTime = yearMonth.atDay(1).atStartOfDay(ZoneId.of("Asia/Seoul")).toLocalDateTime();
@@ -94,7 +108,9 @@ public class CardComponentService {
 	}
 
 	@Transactional
-	public void reStudy(Long studyCardSetId) {
+	public void reStudy(String token, Long studyCardSetId) {
+		Long userId = findUserId(token);
+
 		StudyCardSet studyCardSet = cardModuleService.getStudyCardSetById(studyCardSetId);
 		studyCardSet.setStudyStatus(StudyStatus.BEFORE_STUDY);
 		studyCardSet.setNextStudyDate(null);
@@ -124,14 +140,18 @@ public class CardComponentService {
 	}
 
 	@Transactional
-	public void deleteStudyCardSet(Long studyCardSetId) {
+	public void deleteStudyCardSet(String token, Long studyCardSetId) {
+		Long userId = findUserId(token);
+
 		StudyCardSet studyCardSet = cardModuleService.getStudyCardSetById(studyCardSetId);
 		cardModuleService.deleteCardSet(studyCardSetId);
 		noteModuleService.deleteNoteById(studyCardSet.getNote().getNoteId());
 	}
 
 	@Transactional
-	public List<CardResponse.getStudySuggestion> suggestionAnalyzeStudy(Long userId, Timestamp date) {
+	public List<CardResponse.getStudySuggestion> suggestionAnalyzeStudy(String token, Timestamp date) {
+		Long userId = findUserId(token);
+
 		List<Card> cards = cardModuleService.findAllCardsByUserIdAndLearnNextTimeOnDate(userId, date);
 		List<ImageCard> imageCards = cardModuleService.findAllImageCardsByUserIdAndLearnNextTimeOnDate(userId, date);
 
@@ -182,7 +202,8 @@ public class CardComponentService {
 		return String.format("%02d 시간 %02d 분", hours, minutes);
 	}
 	@Transactional
-	public String addImageCard(MultipartFile image, CardRequest.addImageCard request) {
+	public String addImageCard(String token, MultipartFile image, CardRequest.addImageCard request) {
+		Long userId = findUserId(token);
 		String imgUrl = s3Service.upload(image, "imageCards");
 
 		ImageCard imageCard = ImageCard.builder()
@@ -218,7 +239,9 @@ public class CardComponentService {
 	}
 
 	@Transactional
-	public CardResponse.getImageCard viewImageCard(Long imageCardId) {
+	public CardResponse.getImageCard viewImageCard(String token, Long imageCardId) {
+		Long userId = findUserId(token);
+
 		ImageCard imageCard = imageCardRepository.findById(imageCardId)
 			.orElseThrow(() -> new IllegalArgumentException("Image card not found with id: " + imageCardId));
 
@@ -242,7 +265,9 @@ public class CardComponentService {
 	}
 
 	@Transactional
-	public String editImageCard(CardRequest.addImageCard request, Long imgCardId) {
+	public String editImageCard(String token, CardRequest.addImageCard request, Long imgCardId) {
+		Long userId = findUserId(token);
+
 		ImageCard existingImageCard = imageCardRepository.findById(imgCardId)
 			.orElseThrow(() -> new IllegalArgumentException("ImageCard not found with ID: " + imgCardId));
 
@@ -271,8 +296,9 @@ public class CardComponentService {
 	}
 
 	@Transactional
-	public List<CardResponse.getStudyCardSetLists> getStudyCardSetLists(Long userId, String order, String color,
+	public List<CardResponse.getStudyCardSetLists> getStudyCardSetLists(String token, String order, String color,
 		Integer studyStatus) {
+		Long userId = findUserId(token);
 		List<StudyCardSet> studyCardSets = cardModuleService.getStudyCardSetsByUser(userId);
 
 		if (studyStatus != null) {
@@ -337,7 +363,8 @@ public class CardComponentService {
 	}
 
 	@Transactional
-	public Page<Object> getCardLists(Long studyCardSetId, int pageNumber) {
+	public Page<Object> getCardLists(String token, Long studyCardSetId, int pageNumber) {
+		Long userId = findUserId(token);
 		StudyCardSet studyCardSet = cardModuleService.getStudyCardSetById(studyCardSetId);
 
 		List<Card> cards = cardModuleService.getCardsByStudyCardSet(studyCardSet);
@@ -460,7 +487,9 @@ public class CardComponentService {
 		return overlayDtos;
 	}
 
-	public void updateCardDifficulty(CardRequest.difficulty request) {
+	public void updateCardDifficulty(String token, CardRequest.difficulty request) {
+		Long userId = findUserId(token);
+
 		if (request.getDifficulty() > 4 || request.getDifficulty() < 1) {
 			throw new BadRequestException(NOT_EXIST_DIFFICULTY_CODE);
 		}
@@ -477,7 +506,9 @@ public class CardComponentService {
 
 	}
 
-	public CardResponse.cardStudyGraph viewStudyCardGraph(Long studyCardSetId) {
+	public CardResponse.cardStudyGraph viewStudyCardGraph(String token, Long studyCardSetId) {
+		Long userId = findUserId(token);
+
 		StudyCardSet studyCardSet = cardModuleService.getStudyCardSetById(studyCardSetId);
 
 		List<Card> cards = cardModuleService.getCardsByStudyCardSet(studyCardSet);
@@ -546,7 +577,9 @@ public class CardComponentService {
 	}
 
 	@Transactional
-	public Page<CardResponse.getStudyLog> viewStudyLog(Long studyCardSetId, int page, int size) {
+	public Page<CardResponse.getStudyLog> viewStudyLog(String token, Long studyCardSetId, int page, int size) {
+		Long userId = findUserId(token);
+
 		Pageable pageable = PageRequest.of(page, size);
 
 		StudyCardSet studyCardSet = studyCardSetRepository.findById(studyCardSetId)
@@ -673,7 +706,9 @@ public class CardComponentService {
 	}
 
 	@Transactional
-	public void completeStudy(Long studyCardSetId) {
+	public void completeStudy(String token, Long studyCardSetId) {
+		Long userId = findUserId(token);
+
 		StudyCardSet studyCardSet = cardModuleService.getStudyCardSetById(studyCardSetId);
 
 		List<Card> cards = cardModuleService.getCardsByStudyCardSet(studyCardSet);
@@ -774,7 +809,8 @@ public class CardComponentService {
 		cardModuleService.saveCard(newCard);
 	}
 
-	public CardResponse.weeklyResultDTO getCardByWeek(Long userId) {
+	public CardResponse.weeklyResultDTO getCardByWeek(String token) {
+		Long userId = findUserId(token);
 		User user = userRepository.findById(userId).orElseThrow(() -> new BadRequestException(INVALID_USERID));
 
 		LocalDate today = LocalDate.now();
@@ -822,7 +858,8 @@ public class CardComponentService {
 		return weekResult;
 	}
 
-	public List<CardResponse.getExpectedCardSetListDTO> getStudyCardSetsForQuickLearning(Long userId) {
+	public List<CardResponse.getExpectedCardSetListDTO> getStudyCardSetsForQuickLearning(String token) {
+		Long userId = findUserId(token);
 		List<StudyCardSet> studyCardSets = studyCardSetRepository.findByUserOrderByNextStudyDateAsc(userId);
 
 		studyCardSets = studyCardSets.stream()
