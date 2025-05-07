@@ -74,4 +74,39 @@ public class BillingKeyResponse {
           .build();
     }
   }
+
+  @Builder
+  @Schema(title = "BILLING_RES_04 : 빌링키 발급 승인 응답")
+  public record ApproveBillingKeyRes(
+      @Schema(description = "상점 주문번호", example = "subscribe_0146c0c1-47d4-45d7-bca3-aa6f55d45d49")
+      String merchantUid,
+
+      @Schema(description = "고객 식별자", example = "customer_1_1620000000000")
+      String customerUid,
+
+      @Schema(description = "상태", example = "success")
+      String status,
+
+      @Schema(description = "결제 수단 ID", example = "1")
+      Long paymentMethodId,
+
+      @Schema(description = "사용자 ID", example = "1")
+      Long userId,
+
+      @Schema(description = "구독 ID", example = "1")
+      Long subscriptionId
+  ) {}
+
+  @Builder
+  @Schema(title = "BILLING_RES_05 : 빌링키 상태 조회 응답")
+  public record BillingStatusRes(
+      @Schema(description = "상점 주문번호", example = "subscribe_0146c0c1-47d4-45d7-bca3-aa6f55d45d49")
+      String merchantUid,
+
+      @Schema(description = "고객 식별자", example = "customer_1_1620000000000")
+      String customerUid,
+
+      @Schema(description = "상태", example = "paid")
+      String status
+  ) {}
 }

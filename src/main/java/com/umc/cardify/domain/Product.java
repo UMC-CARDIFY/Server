@@ -35,9 +35,6 @@ public class Product extends BaseEntity{
     private String description;
 
     @Column(nullable = false)
-    private LocalDateTime validFrom;
-
-    @Column(nullable = false)
     private LocalDateTime validUntil;
 
     @OneToMany(mappedBy = "product")

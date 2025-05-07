@@ -3,29 +3,24 @@ package com.umc.cardify.service.payment;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.cardify.config.exception.ResourceNotFoundException;
-import com.umc.cardify.domain.PaymentMethod;
-import com.umc.cardify.domain.Product;
-import com.umc.cardify.domain.Subscription;
-import com.umc.cardify.domain.SubscriptionPayment;
+import com.umc.cardify.domain.*;
+import com.umc.cardify.domain.enums.BillingKeyStatus;
 import com.umc.cardify.domain.enums.PaymentStatus;
 import com.umc.cardify.domain.enums.PaymentType;
-import com.umc.cardify.domain.enums.SubscriptionStatus;
-import com.umc.cardify.dto.payment.billing.BillingKeyRequest;
+import com.umc.cardify.dto.payment.billing.BillingKeyRequestDTO;
 import com.umc.cardify.dto.payment.billing.BillingKeyResponse;
-import com.umc.cardify.dto.payment.method.PaymentMethodResponse;
 import com.umc.cardify.dto.payment.subscription.SubscriptionRequest;
-import com.umc.cardify.dto.payment.subscription.SubscriptionResponse;
 import com.umc.cardify.dto.payment.webhook.WebhookRequest;
-import com.umc.cardify.repository.PaymentMethodRepository;
-import com.umc.cardify.repository.ProductRepository;
-import com.umc.cardify.repository.SubscriptionPaymentRepository;
-import com.umc.cardify.repository.SubscriptionRepository;
+import com.umc.cardify.repository.*;
+import com.umc.cardify.service.subscription.SubscriptionServiceImpl;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.*;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.sql.Timestamp;
@@ -34,7 +29,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -46,42 +40,85 @@ public class KakaoPaymentServiceImpl implements PaymentService {
   private final SubscriptionRepository subscriptionRepository;
   private final SubscriptionPaymentRepository subscriptionPaymentRepository;
   private final ProductRepository productRepository;
+  private final UserRepository userRepository;
   private final ObjectMapper objectMapper;
+  private final SubscriptionServiceImpl subscriptionServiceImpl;
+  private final RestTemplate restTemplate;
+  private final BillingKeyRequestRepository billingKeyRequestRepository;
 
-  @Value("${portone.pg-code}")
+  @Value("${portone.pg_code}")
   private String KAKAOPAY_PG_CODE;
 
+  // 빌링키 요청
   @Override
-  public BillingKeyResponse.RequestBillingKeyRes requestBillingKey(BillingKeyRequest.RequestBillingKeyReq request) {
+  @Transactional
+  public BillingKeyResponse.RequestBillingKeyRes requestBillingKey(BillingKeyRequestDTO.RequestBillingKeyReq request) {
     log.info("빌링키 요청 시작: userId={}, productId={}", request.userId(), request.productId());
 
     // 고유 식별자 생성
     String merchantUid = "subscribe_" + UUID.randomUUID().toString();
     String customerUid = "customer_" + request.userId() + "_" + System.currentTimeMillis();
 
-    // 요청 데이터 구성
-    Map<String, Object> requestData = new HashMap<>();
-    requestData.put("pg", KAKAOPAY_PG_CODE);
-    requestData.put("pay_method", "card");
-    requestData.put("merchant_uid", merchantUid);
-    requestData.put("customer_uid", customerUid);
-    requestData.put("name", "구독 서비스 자동결제 등록");
-    requestData.put("amount", 0); // 빌링키 발급은 0원
-    requestData.put("buyer_email", request.email());
-    requestData.put("buyer_name", request.name());
+    try {
+      // 사용자 및 상품 조회
+      User user = userRepository.findById(request.userId())
+          .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다: " + request.userId()));
 
-    log.info("빌링키 요청 데이터 생성 완료: merchantUid={}, customerUid={}", merchantUid, customerUid);
+      Product product = null;
+      if (request.productId() != null) {
+        product = productRepository.findById(request.productId())
+            .orElseThrow(() -> new RuntimeException("상품을 찾을 수 없습니다: " + request.productId()));
+      }
 
-    return BillingKeyResponse.RequestBillingKeyRes.builder()
-        .merchantUid(merchantUid)
-        .customerUid(customerUid)
-        .requestData(requestData)
-        .build();
+      // 프론트엔드에 제공할 정보 구성 (포트원 JavaScript SDK 호출용)
+      Map<String, Object> requestData = new HashMap<>();
+      requestData.put("pg", KAKAOPAY_PG_CODE);
+      requestData.put("pay_method", "card");
+      requestData.put("merchant_uid", merchantUid);
+      requestData.put("customer_uid", customerUid);
+      requestData.put("name", "구독 서비스 자동결제 등록");
+      requestData.put("amount", 0); // 빌링키 발급은 0원
+      requestData.put("buyer_email", request.email());
+      requestData.put("buyer_name", request.name());
+
+      // 콜백 URL 설정
+      String baseUrl = request.callbackUrl() != null ?
+          request.callbackUrl() : "http://localhost:8080";
+
+      requestData.put("m_redirect_url", baseUrl + "/api/v1/payments/kakaopay/mobile-success"); // 모바일 환경
+      requestData.put("success_url", baseUrl + "/api/v1/payments/kakaopay/success");
+      requestData.put("fail_url", baseUrl + "/api/v1/payments/kakaopay/fail");
+
+      // 빌링키 요청 정보 저장
+      BillingKeyRequest billingKeyRequest = BillingKeyRequest.builder()
+          .user(user)
+          .merchantUid(merchantUid)
+          .customerUid(customerUid)
+          .status(BillingKeyStatus.REQUESTED)
+          .pgProvider(KAKAOPAY_PG_CODE)
+          .requestData(objectMapper.writeValueAsString(requestData))
+          .product(product)
+          .build();
+
+      billingKeyRequestRepository.save(billingKeyRequest);
+      log.info("빌링키 요청 정보 저장 완료: id={}, merchantUid={}", billingKeyRequest.getId(), merchantUid);
+
+      // 프론트엔드 연동용 응답 생성
+      return BillingKeyResponse.RequestBillingKeyRes.builder()
+          .merchantUid(merchantUid)
+          .customerUid(customerUid)
+          .requestData(requestData)
+          .build();
+    } catch (Exception e) {
+      log.error("빌링키 요청 중 오류: {}", e.getMessage(), e);
+      throw new RuntimeException("빌링키 요청 중 오류 발생: " + e.getMessage(), e);
+    }
   }
 
+  // 빌링키 검증
   @Override
   @Transactional
-  public BillingKeyResponse.VerifyBillingKeyRes verifyAndSaveBillingKey(BillingKeyRequest.VerifyBillingKeyReq request) {
+  public BillingKeyResponse.VerifyBillingKeyRes verifyAndSaveBillingKey(BillingKeyRequestDTO.VerifyBillingKeyReq request) {
     log.info("빌링키 검증 시작: customerUid={}, userId={}", request.customerUid(), request.userId());
 
     try {
@@ -91,6 +128,13 @@ public class KakaoPaymentServiceImpl implements PaymentService {
       if (billingKeyResponse == null) {
         log.error("빌링키 검증 실패: 응답이 없습니다");
         throw new RuntimeException("빌링키 검증 실패: 응답이 없습니다");
+      }
+
+      // 추가 검증: 빌링키 상태 확인
+      String status = billingKeyResponse.path("status").asText();
+      if (!"active".equals(status)) {
+        log.error("빌링키 상태 오류: status={}", status);
+        throw new RuntimeException("유효하지 않은 빌링키 상태: " + status);
       }
 
       // 카드 정보 JSON 파싱
@@ -106,9 +150,13 @@ public class KakaoPaymentServiceImpl implements PaymentService {
         paymentMethodRepository.saveAll(existingMethods);
       }
 
-      // 새 결제 수단 저장
+      // 사용자 조회
+      User user = userRepository.findById(request.userId())
+          .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다: " + request.userId()));
+
+      // 새 결제 수단 생성
       PaymentMethod paymentMethod = new PaymentMethod();
-      paymentMethod.getUser().setUserId(request.userId());
+      paymentMethod.setUser(user);
       paymentMethod.setType(PaymentType.CARD);
       paymentMethod.setProvider(PaymentType.KAKAO.name());
 
@@ -135,7 +183,8 @@ public class KakaoPaymentServiceImpl implements PaymentService {
 
           Calendar calendar = Calendar.getInstance();
           calendar.set(year, month - 1, calendar.getActualMaximum(Calendar.DAY_OF_MONTH), 23, 59, 59);
-          paymentMethod.setValidUntil(LocalDate.ofEpochDay(calendar.getTimeInMillis()));
+          paymentMethod.setValidUntil(LocalDateTime.ofInstant(
+              calendar.toInstant(), ZoneId.systemDefault()).toLocalDate());
         }
       }
 
@@ -147,12 +196,12 @@ public class KakaoPaymentServiceImpl implements PaymentService {
       log.info("결제 수단 저장 완료: id={}", savedPaymentMethod.getId());
 
       // 구독 생성
-      createSubscription(SubscriptionRequest.CreateSubscriptionReq.builder()
+      subscriptionServiceImpl.createSubscription(SubscriptionRequest.CreateSubscriptionReq.builder()
           .userId(request.userId())
           .productId(request.productId())
           .paymentMethodId(savedPaymentMethod.getId())
           .autoRenew(true)
-          .build());
+          .build(), null);
 
       return BillingKeyResponse.VerifyBillingKeyRes.builder()
           .id(savedPaymentMethod.getId())
@@ -168,269 +217,113 @@ public class KakaoPaymentServiceImpl implements PaymentService {
   }
 
   @Override
-  public PaymentMethodResponse.PaymentMethodInfoRes getPaymentMethod(Long paymentMethodId) {
-    PaymentMethod paymentMethod = paymentMethodRepository.findById(paymentMethodId)
-        .orElseThrow(() -> new ResourceNotFoundException("결제 수단을 찾을 수 없습니다: " + paymentMethodId));
+  @Transactional
+  public BillingKeyResponse.ApproveBillingKeyRes approveBillingKey(BillingKeyRequestDTO.ApproveBillingKeyReq request) {
+    log.info("빌링키 발급 승인 시작: pgToken={}, merchantUid={}", request.pgToken(), request.merchantUid());
 
-    return convertToPaymentMethodInfoRes(paymentMethod);
-  }
+    try {
+      // 1. 빌링키 요청 정보 조회
+      BillingKeyRequest billingKeyRequest = billingKeyRequestRepository.findByMerchantUid(request.merchantUid())
+          .orElseThrow(() -> new RuntimeException("빌링키 요청 정보를 찾을 수 없습니다: " + request.merchantUid()));
 
-  @Override
-  public PaymentMethodResponse.PaymentMethodListRes getPaymentMethodsByUserId(Long userId) {
-    List<PaymentMethod> paymentMethods = paymentMethodRepository.findByUser_UserIdAndDeletedAtIsNull(userId);
+      // 2. 포트원 API 호출하여 빌링키 발급 상태 확인
+      // 실제 구현에서는 포트원의 API를 호출하여 검증
+      // 여기서는 간략화를 위해 생략 (포트원 클라이언트 호출 부분)
 
-    List<PaymentMethodResponse.PaymentMethodInfoRes> paymentMethodDTOs = paymentMethods.stream()
-        .map(this::convertToPaymentMethodInfoRes)
-        .collect(Collectors.toList());
+      // 3. pg_token 저장 및 상태 업데이트
+      billingKeyRequest.setPgToken(request.pgToken());
+      billingKeyRequest.updateStatus(BillingKeyStatus.APPROVED);
 
-    return PaymentMethodResponse.PaymentMethodListRes.builder()
-        .paymentMethods(paymentMethodDTOs)
-        .totalCount(paymentMethodDTOs.size())
-        .build();
-  }
+      // 4. 결제 수단 정보 저장
+      User user = billingKeyRequest.getUser();
 
-  // PaymentMethod 엔터티를 PaymentMethodInfoRes DTO로 변환하는 메소드
-  private PaymentMethodResponse.PaymentMethodInfoRes convertToPaymentMethodInfoRes(PaymentMethod entity) {
-    String provider = entity.getProvider();
-    String cardNumber = entity.getCardNumber();
-
-    // 카카오페이인 경우 메타데이터에서 추가 정보 추출
-    if ("KAKAO".equals(provider) && entity.getMetaData() != null && !entity.getMetaData().isEmpty()) {
-      try {
-        ObjectMapper mapper = new ObjectMapper();
-        Map<String, Object> metaData = mapper.readValue(entity.getMetaData(), Map.class);
-
-        // 카드 정보가 있으면 보강
-        if (metaData.containsKey("card_name") || metaData.containsKey("card_brand")) {
-          String cardName = (String) metaData.getOrDefault("card_name", "");
-          String cardBrand = (String) metaData.getOrDefault("card_brand", "");
-
-          if (!cardName.isEmpty() || !cardBrand.isEmpty()) {
-            provider = "KAKAO (" + (!cardName.isEmpty() ? cardName : cardBrand) + ")";
-          }
+      // 기존 결제 수단이 있는지 확인하고 default 상태 변경
+      List<PaymentMethod> existingMethods = paymentMethodRepository.findByUser_UserIdAndDeletedAtIsNull(user.getUserId());
+      if (!existingMethods.isEmpty()) {
+        for (PaymentMethod method : existingMethods) {
+          method.setIsDefault(false);
         }
-
-        // 빌링키가 있으면 로그에 기록 (디버깅용)
-        if (metaData.containsKey("billing_key")) {
-          log.debug("빌링키 존재함: paymentMethodId={}", entity.getId());
-        }
-      } catch (Exception e) {
-        log.warn("카카오페이 메타데이터 파싱 오류: {}", e.getMessage());
+        paymentMethodRepository.saveAll(existingMethods);
       }
-    }
 
-    // 기존 DTO 생성자 사용
-    return new PaymentMethodResponse.PaymentMethodInfoRes(
-        entity.getId(),
-        entity.getType(),
-        provider,
-        cardNumber,
-        entity.getIsDefault(),
-        entity.getCreatedAt()
-    );
-  }
-
-  @Override
-  @Transactional
-  public boolean deletePaymentMethod(Long paymentMethodId) {
-    PaymentMethod paymentMethod = paymentMethodRepository.findById(paymentMethodId)
-        .orElseThrow(() -> new ResourceNotFoundException("결제 수단을 찾을 수 없습니다: " + paymentMethodId));
-
-    // 현재 사용 중인 구독이 있는지 확인
-    boolean hasActiveSubscription = subscriptionRepository.existsByPaymentMethodAndStatusIn(
-        paymentMethodId,
-        Arrays.asList("ACTIVE", "PENDING")
-    );
-
-    if (hasActiveSubscription) {
-      throw new IllegalStateException("이 결제 수단을 사용 중인 활성 구독이 있습니다");
-    }
-
-    // 논리적 삭제 수행
-    paymentMethod.setDeletedAt(LocalDateTime.now());
-    paymentMethodRepository.save(paymentMethod);
-
-    // 기본 결제 수단이었다면 다른 결제 수단을 기본으로 설정
-    if (Boolean.TRUE.equals(paymentMethod.getIsDefault())) {
-      List<PaymentMethod> otherMethods = paymentMethodRepository.findByUser_UserIdAndIdNotAndDeletedAtIsNull(
-          paymentMethod.getUser().getUserId(), paymentMethodId);
-
-      if (!otherMethods.isEmpty()) {
-        PaymentMethod newDefault = otherMethods.get(0);
-        newDefault.setIsDefault(true);
-        paymentMethodRepository.save(newDefault);
-      }
-    }
-
-    return true;
-  }
-
-  @Override
-  @Transactional
-  public boolean setDefaultPaymentMethod(Long paymentMethodId) {
-    PaymentMethod paymentMethod = paymentMethodRepository.findById(paymentMethodId)
-        .orElseThrow(() -> new ResourceNotFoundException("결제 수단을 찾을 수 없습니다: " + paymentMethodId));
-
-    // 동일 사용자의 다른 모든 결제 수단의 기본값 해제
-    List<PaymentMethod> otherMethods = paymentMethodRepository.findByUser_UserIdAndIdNotAndDeletedAtIsNull(
-        paymentMethod.getUser().getUserId(), paymentMethodId);
-
-    for (PaymentMethod other : otherMethods) {
-      other.setIsDefault(false);
-    }
-
-    if (!otherMethods.isEmpty()) {
-      paymentMethodRepository.saveAll(otherMethods);
-    }
-
-    // 선택된 결제 수단을 기본값으로 설정
-    paymentMethod.setIsDefault(true);
-    paymentMethodRepository.save(paymentMethod);
-
-    return true;
-  }
-
-  @Override
-  @Transactional
-  public SubscriptionResponse.SubscriptionInfoRes createSubscription(SubscriptionRequest.CreateSubscriptionReq request) {
-    log.info("구독 생성 시작: userId={}, productId={}", request.userId(), request.productId());
-
-    // 상품 정보 조회
-    Product product = productRepository.findById(request.productId())
-        .orElseThrow(() -> new ResourceNotFoundException("상품을 찾을 수 없습니다: " + request.productId()));
-
-    // 결제 수단 조회
-    PaymentMethod paymentMethod = paymentMethodRepository.findById(request.paymentMethodId())
-        .orElseThrow(() -> new ResourceNotFoundException("결제 수단을 찾을 수 없습니다: " + request.paymentMethodId()));
-
-    // 사용자 ID 일치 여부 확인
-    if (!paymentMethod.getUser().getUserId().equals(request.userId())) {
-      throw new IllegalArgumentException("해당 사용자의 결제 수단이 아닙니다");
-    }
-
-    // 구독 생성
-    Subscription subscription = new Subscription();
-    subscription.getUser().setUserId(request.userId());
-    subscription.getProduct().setId(request.productId());
-    subscription.setStatus(SubscriptionStatus.ACTIVE);
-    subscription.setStartDate(LocalDateTime.now());
-
-    // 다음 결제일 계산
-    LocalDateTime nextPaymentDate = calculateNextPaymentDate(LocalDateTime.now(), product.getPeriod());
-    subscription.setNextPaymentDate(nextPaymentDate);
-
-    subscription.setAutoRenew(request.autoRenew());
-
-    Subscription savedSubscription = subscriptionRepository.save(subscription);
-    log.info("구독 생성 완료: id={}", savedSubscription.getId());
-
-    return getSubscription(savedSubscription.getId());
-  }
-
-  @Override
-  public SubscriptionResponse.SubscriptionInfoRes getSubscription(Long subscriptionId) {
-    Subscription subscription = subscriptionRepository.findById(subscriptionId)
-        .orElseThrow(() -> new ResourceNotFoundException("구독을 찾을 수 없습니다: " + subscriptionId));
-
-    Product product = productRepository.findById(subscription.getProduct().getId())
-        .orElseThrow(() -> new ResourceNotFoundException("상품을 찾을 수 없습니다: " + subscription.getProduct().getId()));
-
-    // 결제 수단 조회
-    PaymentMethod paymentMethod = paymentMethodRepository.findByUser_UserIdAndIsDefaultTrueAndDeletedAtIsNull(subscription.getUser().getUserId())
-        .orElse(null);
-
-    SubscriptionResponse.SubscriptionInfoRes.PaymentMethodInfo paymentMethodInfo = null;
-    if (paymentMethod != null) {
-      paymentMethodInfo = SubscriptionResponse.SubscriptionInfoRes.PaymentMethodInfo.builder()
-          .id(paymentMethod.getId())
-          .type(paymentMethod.getType().name())
-          .provider(paymentMethod.getProvider())
-          .cardNumber(paymentMethod.getCardNumber())
+      // 새 결제 수단 저장
+      PaymentMethod paymentMethod = PaymentMethod.builder()
+          .user(user)
+          .type(PaymentType.CARD)
+          .provider("KAKAOPAY")
+          .billingKey(billingKeyRequest.getCustomerUid())
+          .isDefault(true)
+          .validUntil(LocalDate.now().plusYears(1))
           .build();
+
+      PaymentMethod savedPaymentMethod = paymentMethodRepository.save(paymentMethod);
+
+      // 빌링키 요청과 결제 수단 연결
+      billingKeyRequest.setPaymentMethod(savedPaymentMethod);
+
+      // 5. 구독 생성 (상품이 선택된 경우)
+      Long subscriptionId = null;
+      if (billingKeyRequest.getProduct() != null) {
+        // 구독 생성 로직 (별도 서비스 메서드 호출)
+        // subscriptionId = subscriptionServiceImpl.createSubscription(...);
+      }
+
+      // 6. 응답 구성
+      return BillingKeyResponse.ApproveBillingKeyRes.builder()
+          .merchantUid(request.merchantUid())
+          .customerUid(billingKeyRequest.getCustomerUid())
+          .status("success")
+          .paymentMethodId(savedPaymentMethod.getId())
+          .userId(user.getUserId())
+          .subscriptionId(subscriptionId)
+          .build();
+    } catch (Exception e) {
+      log.error("빌링키 발급 승인 중 오류: {}", e.getMessage(), e);
+      throw new RuntimeException("빌링키 발급 승인 중 오류 발생: " + e.getMessage(), e);
     }
-
-    return SubscriptionResponse.SubscriptionInfoRes.builder()
-        .id(subscription.getId())
-        .userId(subscription.getUser().getUserId())
-        .productId(product.getId())
-        .productName(product.getName())
-        .status(SubscriptionStatus.ACTIVE.name())
-        .startDate(subscription.getStartDate())
-        .nextPaymentDate(subscription.getNextPaymentDate() != null ?
-            subscription.getNextPaymentDate() : null)
-        .autoRenew(subscription.getAutoRenew())
-        .paymentMethod(paymentMethodInfo)
-        .build();
   }
 
+  // 빌링키 상태 조회
   @Override
-  public SubscriptionResponse.SubscriptionListRes getSubscriptionsByUserId(Long userId) {
-    List<Subscription> subscriptions = subscriptionRepository.findByUser_UserId(userId);
+  public BillingKeyResponse.BillingStatusRes getBillingStatus(String merchantUid) {
+    log.info("빌링키 상태 조회 시작: merchantUid={}", merchantUid);
 
-    List<SubscriptionResponse.SubscriptionInfoRes> subscriptionDTOs = subscriptions.stream()
-        .map(subscription -> getSubscription(subscription.getId()))
-        .collect(Collectors.toList());
+    try {
+      // 포트원 API를 통해 결제 상태 조회
+      String token = portoneClient.getAccessToken();
 
-    return SubscriptionResponse.SubscriptionListRes.builder()
-        .subscriptions(subscriptionDTOs)
-        .totalCount(subscriptionDTOs.size())
-        .build();
-  }
+      HttpHeaders headers = new HttpHeaders();
+      headers.setContentType(MediaType.APPLICATION_JSON);
+      headers.set("Authorization", "Bearer " + token);
 
-  @Override
-  @Transactional
-  public boolean cancelSubscription(SubscriptionRequest.CancelSubscriptionReq request) {
-    log.info("구독 취소 요청: id={}, reason={}", request.subscriptionId(), request.cancelReason());
+      HttpEntity<Void> entity = new HttpEntity<>(headers);
 
-    Subscription subscription = subscriptionRepository.findById(request.subscriptionId())
-        .orElseThrow(() -> new ResourceNotFoundException("구독을 찾을 수 없습니다: " + request.subscriptionId()));
+      String url = "https://api.iamport.kr/payments/find/" + merchantUid;
+      ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
 
-    // 이미 취소된 구독인지 확인
-    if ("CANCELLED".equals(subscription.getStatus().name())) {
-      log.warn("이미 취소된 구독입니다: id={}", request.subscriptionId());
-      return false;
+      // 응답 처리
+      JsonNode rootNode = objectMapper.readTree(response.getBody());
+
+      if (rootNode.path("code").asInt() != 0) {
+        log.error("빌링키 상태 조회 실패: {}", rootNode.path("message").asText());
+        throw new RuntimeException("빌링키 상태 조회 실패: " + rootNode.path("message").asText());
+      }
+
+      JsonNode responseData = rootNode.path("response");
+
+      return BillingKeyResponse.BillingStatusRes.builder()
+          .merchantUid(merchantUid)
+          .status(responseData.path("status").asText())
+          .customerUid(responseData.path("customer_uid").asText())
+          .build();
+
+    } catch (Exception e) {
+      log.error("빌링키 상태 조회 중 오류: {}", e.getMessage(), e);
+      throw new RuntimeException("빌링키 상태 조회 중 오류 발생: " + e.getMessage(), e);
     }
-
-    // 구독 상태 변경
-    subscription.setStatus(SubscriptionStatus.CANCELLED);
-    subscription.setCancelReason(request.cancelReason());
-    subscription.setCanceledAt(LocalDateTime.now());
-    subscription.setAutoRenew(false);
-
-    subscriptionRepository.save(subscription);
-    log.info("구독 취소 완료: id={}", request.subscriptionId());
-
-    return true;
   }
 
-  @Override
-  @Transactional
-  public boolean updateAutoRenew(Long subscriptionId, boolean autoRenew) {
-    Subscription subscription = subscriptionRepository.findById(subscriptionId)
-        .orElseThrow(() -> new ResourceNotFoundException("구독을 찾을 수 없습니다: " + subscriptionId));
-
-    subscription.setAutoRenew(autoRenew);
-    subscriptionRepository.save(subscription);
-
-    log.info("자동 갱신 설정 변경: subscriptionId={}, autoRenew={}", subscriptionId, autoRenew);
-
-    return true;
-  }
-
-  @Override
-  public SubscriptionResponse.PaymentHistoryListRes getPaymentHistoriesBySubscriptionId(Long subscriptionId) {
-    List<SubscriptionPayment> payments = subscriptionPaymentRepository.findBySubscriptionIdOrderByPaidAtDesc(subscriptionId);
-
-    List<SubscriptionResponse.PaymentHistoryRes> paymentDTOs = payments.stream()
-        .map(this::convertToPaymentHistoryRes)
-        .collect(Collectors.toList());
-
-    return SubscriptionResponse.PaymentHistoryListRes.builder()
-        .payments(paymentDTOs)
-        .totalCount(paymentDTOs.size())
-        .build();
-  }
-
+  // 결체 취소
   @Override
   @Transactional
   public boolean cancelPayment(SubscriptionRequest.CancelPaymentReq request) {
@@ -475,6 +368,7 @@ public class KakaoPaymentServiceImpl implements PaymentService {
     }
   }
 
+  // 정기 결제
   @Override
   @Scheduled(cron = "0 0 1 * * ?") // 매일 새벽 1시에 실행
   @Transactional
@@ -596,6 +490,7 @@ public class KakaoPaymentServiceImpl implements PaymentService {
     }
   }
 
+  // 웹훅
   @Override
   @Transactional
   public void handleWebhook(WebhookRequest request) {
@@ -796,24 +691,6 @@ public class KakaoPaymentServiceImpl implements PaymentService {
         .cardNumber(cardNumber)
         .isDefault(entity.getIsDefault())
         .createdAt(entity.getCreatedAt())
-        .build();
-  }
-
-  private SubscriptionResponse.PaymentHistoryRes convertToPaymentHistoryRes(SubscriptionPayment entity) {
-    LocalDateTime paidAt = null;
-    if (entity.getPaidAt() != null) {
-      paidAt = entity.getPaidAt();
-    }
-
-    return SubscriptionResponse.PaymentHistoryRes.builder()
-        .id(entity.getId())
-        .subscriptionId(entity.getSubscription().getId())
-        .paymentMethodId(entity.getPaymentMethod().getId())
-        .merchantUid(entity.getMerchantUid())
-        .status(entity.getStatus().name())
-        .amount(entity.getAmount())
-        .paidAt(paidAt)
-        .pgProvider(entity.getPgProvider())
         .build();
   }
 

@@ -9,7 +9,7 @@ import java.util.List;
 public class SubscriptionResponse {
 
   @Builder
-  @Schema(title = "SUBSCRIPTION_RES_01 : 구독 정보")
+  @Schema(title = "SUBSCRIPTION_RES_01 : 구독 정보 응답")
   public record SubscriptionInfoRes(
       @Schema(description = "구독 ID", example = "1")
       Long id,
@@ -43,7 +43,7 @@ public class SubscriptionResponse {
         @Schema(description = "결제 수단 ID", example = "2")
         Long id,
 
-        @Schema(description = "결제 수단 유형", example = "CARD")
+        @Schema(description = "결제 수단 유형", example = "KAKAO")
         String type,
 
         @Schema(description = "결제사", example = "KAKAO")

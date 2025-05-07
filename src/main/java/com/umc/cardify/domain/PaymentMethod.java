@@ -12,7 +12,7 @@ import java.util.List;
 @Builder
 @Entity
 @Getter
-@NoArgsConstructor()
+@NoArgsConstructor
 @AllArgsConstructor
 public class PaymentMethod extends BaseEntity{
 
@@ -21,6 +21,7 @@ public class PaymentMethod extends BaseEntity{
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Setter
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;

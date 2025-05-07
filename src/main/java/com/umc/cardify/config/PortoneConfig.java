@@ -6,12 +6,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-public class IamportConfig {
+public class PortoneConfig {
 
-  @Value("${portone.api-key}")
+  @Value("${portone.imp_key}")
   private String apiKey;
 
-  @Value("${portone.api-secret}")
+  @Value("${portone.imp_secret}")
   private String apiSecret;
 
   @Bean

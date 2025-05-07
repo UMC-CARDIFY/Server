@@ -2,7 +2,7 @@ package com.umc.cardify.controller;
 
 import com.umc.cardify.dto.payment.method.PaymentMethodRequest;
 import com.umc.cardify.dto.payment.method.PaymentMethodResponse;
-import com.umc.cardify.service.PaymentMethodService;
+import com.umc.cardify.service.paymentMethod.PaymentMethodServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +18,7 @@ import java.util.List;
 @RequestMapping("/api/v1/payment-methods")
 public class PaymentMethodController {
 
-    private final PaymentMethodService paymentMethodService;
+    private final PaymentMethodServiceImpl paymentMethodServiceImpl;
 
     @PostMapping
     @Operation(summary = "PAYMENT_METHOD_API_01 : 결제 수단 등록 API")
@@ -26,7 +26,7 @@ public class PaymentMethodController {
             @RequestHeader("Authorization") String token,
             @Valid @RequestBody PaymentMethodRequest.RegisterPaymentReq request) {
 
-        PaymentMethodResponse.PaymentMethodInfoRes savedPaymentMethod = paymentMethodService.registerPaymentMethod(request, token);
+        PaymentMethodResponse.PaymentMethodInfoRes savedPaymentMethod = paymentMethodServiceImpl.createPaymentMethod(request, token);
         return ResponseEntity.ok(savedPaymentMethod);
     }
 
@@ -35,7 +35,7 @@ public class PaymentMethodController {
     @Operation(summary = "PAYMENT_METHOD_API_02 : 결제 수단 목록 조회 API")
     public ResponseEntity<List<PaymentMethodResponse.PaymentMethodInfoRes>> getPaymentMethods(
             @RequestHeader("Authorization") String token) {
-        List<PaymentMethodResponse.PaymentMethodInfoRes> responses = paymentMethodService.getPaymentMethods(token);
+        List<PaymentMethodResponse.PaymentMethodInfoRes> responses = paymentMethodServiceImpl.getPaymentMethods(token);
         return ResponseEntity.ok(responses);
     }
 
@@ -45,7 +45,7 @@ public class PaymentMethodController {
             @RequestHeader("Authorization") String token,
             @PathVariable("id") Long id) {
 
-        paymentMethodService.deletePaymentMethod(id, token);
+        paymentMethodServiceImpl.deletePaymentMethod(id, token);
         return ResponseEntity.ok(id);
 
     }
@@ -56,7 +56,7 @@ public class PaymentMethodController {
             @RequestHeader("Authorization") String token,
             @PathVariable("id") Long id) {
 
-        PaymentMethodResponse.PaymentMethodInfoRes paymentMethod = paymentMethodService.setDefaultPaymentMethod(id, token);
+        PaymentMethodResponse.PaymentMethodInfoRes paymentMethod = paymentMethodServiceImpl.setDefaultPaymentMethod(id, token);
         return ResponseEntity.ok(paymentMethod);
     }
 

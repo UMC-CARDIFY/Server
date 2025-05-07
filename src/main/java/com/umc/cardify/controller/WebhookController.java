@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/webhook")
 @RequiredArgsConstructor
-@Tag(name = "웹훅 API", description = "결제 웹훅 처리 API")
+@Tag(name = "WebhookController", description = "결제 웹훅 처리 API")
 public class WebhookController {
 
   private final PaymentService paymentService;

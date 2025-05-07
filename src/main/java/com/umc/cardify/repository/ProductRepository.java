@@ -15,8 +15,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
   List<Product> findByIsActiveTrue();
 
   // 현재 유효한 상품 목록 조회 (활성화 상태이며 유효 기간 내인 상품)
-  List<Product> findByIsActiveTrueAndValidFromBeforeAndValidUntilAfter(
-      Timestamp currentTime, Timestamp currentTime2);
+  //List<Product> findByIsActiveTrueAndValidUntilBeforeAndValidUntilAfter(
+  //    Timestamp currentTime, Timestamp currentTime2);
 
   // 상품명으로 검색
   Optional<Product> findByNameAndIsActiveTrue(String name);

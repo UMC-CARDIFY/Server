@@ -33,10 +33,12 @@ public class Subscription extends BaseEntity{
     @Column(nullable = false)
     private SubscriptionStatus status;
 
+    // 사용자의 구독 시작 날짜
     @Setter
     @Column(nullable = false)
     private LocalDateTime startDate;
 
+    // 사용자의 구독 종료 날짜
     @Column(nullable = false)
     private LocalDateTime endDate;
 
@@ -48,6 +50,7 @@ public class Subscription extends BaseEntity{
     @Column
     private LocalDateTime canceledAt;
 
+    // 자동 갱신 여부
     @Setter
     @Column(nullable = false)
     private Boolean autoRenew;
