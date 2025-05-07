@@ -85,7 +85,8 @@ public class KakaoPaymentServiceImpl implements PaymentService {
       String baseUrl = request.callbackUrl() != null ?
           request.callbackUrl() : "http://localhost:8080";
 
-      requestData.put("m_redirect_url", baseUrl + "/api/v1/payments/kakaopay/mobile-success"); // 모바일 환경
+      // TODO: 이후 완성
+      // requestData.put("m_redirect_url", baseUrl + "/api/v1/payments/kakaopay/mobile-success"); // 모바일 환경
       requestData.put("success_url", baseUrl + "/api/v1/payments/kakaopay/success");
       requestData.put("fail_url", baseUrl + "/api/v1/payments/kakaopay/fail");
 
@@ -249,7 +250,7 @@ public class KakaoPaymentServiceImpl implements PaymentService {
       // 새 결제 수단 저장
       PaymentMethod paymentMethod = PaymentMethod.builder()
           .user(user)
-          .type(PaymentType.CARD)
+          .type(PaymentType.KAKAO)
           .provider("KAKAOPAY")
           .billingKey(billingKeyRequest.getCustomerUid())
           .isDefault(true)

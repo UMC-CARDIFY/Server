@@ -60,40 +60,58 @@ public class KakaoPayController {
     }
   }
 
-  // 빌링키 발급 성공
+  @PostMapping("/billing-key/approve")
+  public ResponseEntity<?> approveBillingKey(@RequestBody BillingKeyRequestDTO.ApproveBillingKeyReq request) {
+    log.info("빌링키 승인 요청: pgToken={}, merchantUid={}, customerUid={}",
+        request.pgToken(), request.merchantUid(), request.customerUid());
+
+    try {
+      // 빌링키 승인 처리
+      BillingKeyResponse.ApproveBillingKeyRes response =
+          kakaoPaymentServiceImpl.approveBillingKey(request);
+
+      log.info("빌링키 승인 성공: customerUid={}", response.customerUid());
+      return ResponseEntity.ok(response);
+    } catch (Exception e) {
+      log.error("빌링키 승인 처리 오류: {}", e.getMessage(), e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .body(Map.of(
+              "success", false,
+              "error", e.getMessage()
+          ));
+    }
+  }
+
   @GetMapping("/success")
   public ResponseEntity<?> billingKeySuccess(
       @RequestParam("pg_token") String pgToken,
-      @RequestParam("merchant_uid") String merchantUid,
-      @RequestParam(value = "customer_uid", required = false) String customerUid,
-      @RequestParam(value = "tid", required = false) String tid) {
+      @RequestParam(value = "merchant_uid", required = false) String merchantUid,
+      @RequestParam(value = "customer_uid", required = false) String customerUid) {
 
-    log.info("빌링키 발급 성공 콜백: pgToken={}, merchantUid={}, customerUid={}, tid={}",
-        pgToken, merchantUid, customerUid, tid);
+    log.info("빌링키 발급 콜백: pgToken={}, merchantUid={}, customerUid={}",
+        pgToken, merchantUid, customerUid);
 
-    try {
-      // 빌링키 발급 승인 처리
-      BillingKeyResponse.ApproveBillingKeyRes response =
-          kakaoPaymentServiceImpl.approveBillingKey(BillingKeyRequestDTO.ApproveBillingKeyReq.builder()
-              .pgToken(pgToken)
-              .merchantUid(merchantUid)
-              .customerUid(customerUid)
-              .tid(tid)
-              .build());
+    // 프론트엔드로 데이터 전달을 위한 HTML 페이지 생성
+    String html = "<!DOCTYPE html>"
+        + "<html><head><title>결제 성공</title><meta charset=\"UTF-8\"></head>"
+        + "<body>"
+        + "<script>"
+        + "  window.opener.postMessage({"
+        + "    status: 'success',"
+        + "    pgToken: '" + pgToken + "',"
+        + "    merchantUid: '" + merchantUid + "',"
+        + "    customerUid: '" + customerUid + "'"
+        + "  }, '*');"
+        + "  setTimeout(function() { window.close(); }, 1000);"
+        + "</script>"
+        + "<h2>결제가 성공적으로 완료되었습니다.</h2>"
+        + "<p>잠시 후 창이 닫힙니다.</p>"
+        + "</body></html>";
 
-      // 프론트엔드에서 처리할 수 있도록 결과 페이지로 리다이렉트
-      // 실제 구현에서는 프론트엔드 URL을 사용해야 함
-      return ResponseEntity.status(HttpStatus.FOUND)
-          .header("Location", "/billing-success?merchant_uid=" + merchantUid)
-          .build();
-    } catch (Exception e) {
-      log.error("빌링키 승인 처리 오류: {}", e.getMessage(), e);
-
-      // 오류 발생 시 오류 페이지로 리다이렉트
-      return ResponseEntity.status(HttpStatus.FOUND)
-          .header("Location", "/billing-fail?error=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8))
-          .build();
-    }
+    return ResponseEntity.ok()
+        .contentType(MediaType.TEXT_HTML)
+        .header("Content-Type", "text/html; charset=UTF-8")
+        .body(html);
   }
 
   // 빌링키 발급 실패 콜백 처리
@@ -122,42 +140,6 @@ public class KakaoPayController {
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
           .body(Map.of("error", e.getMessage()));
     }
-  }
-
-  @GetMapping("/test-redirect")
-  public ResponseEntity<?> testRedirect(
-      @RequestParam("merchant_uid") String merchantUid,
-      @RequestParam("customer_uid") String customerUid) {
-
-    // 테스트용 HTML 페이지 반환
-    String html = "<!DOCTYPE html>"
-        + "<html>"
-        + "<head>"
-        + "<title>카카오페이 테스트</title>"
-        + "<meta charset=\"UTF-8\">"  // UTF-8 인코딩 명시
-        + "</head>"
-        + "<body>"
-        + "<h1>카카오페이 빌링키 발급 시뮬레이션</h1>"
-        + "<p>merchant_uid: " + merchantUid + "</p>"
-        + "<p>customer_uid: " + customerUid + "</p>"
-        + "<form action='/api/v1/payments/kakaopay/success' method='get'>"
-        + "<input type='hidden' name='pg_token' value='test_pg_token' />"
-        + "<input type='hidden' name='merchant_uid' value='" + merchantUid + "' />"
-        + "<input type='hidden' name='customer_uid' value='" + customerUid + "' />"
-        + "<button type='submit'>결제 성공</button>"
-        + "</form>"
-        + "<form action='/api/v1/payments/kakaopay/fail' method='get'>"
-        + "<input type='hidden' name='merchant_uid' value='" + merchantUid + "' />"
-        + "<input type='hidden' name='error_msg' value='사용자 취소' />"
-        + "<button type='submit'>결제 취소</button>"
-        + "</form>"
-        + "</body>"
-        + "</html>";
-
-    return ResponseEntity.ok()
-        .contentType(MediaType.TEXT_HTML)
-        .header("Content-Type", "text/html; charset=UTF-8")  // 헤더에도 UTF-8 명시
-        .body(html);
   }
 
   @Operation(summary = "결제 취소", description = "카카오페이 결제를 취소합니다.")
