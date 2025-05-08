@@ -382,10 +382,14 @@ public class NoteComponentService {
 	}
 
 	// 노트 조회, 정렬, 필터링 통합 Service
-	public NoteResponse.NoteListDTO getNotesBySortFilter(Long userId, Integer page, Integer size, String order,
-		String color) {
+	// FIXME :  노트 조회, 정렬, 필터링 하는 데에 color 필요 없는 거 같아서 없앴습니다. 확인 부탁드립니다.
+	public NoteResponse.NoteListDTO getNotesBySortFilter(Long userId, Integer page, Integer size, String order, Long folderId) {
 		User user = userRepository.findById(userId)
-			.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+
+		// 폴더 존재 여부 확인
+		Folder folder = folderRepository.findById(folderId)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_FOLDERID));
 
 		int getNotePage = (page != null) ? page : 0;
 		int getNoteSize = (size != null) ? size : Integer.MAX_VALUE;
@@ -399,29 +403,11 @@ public class NoteComponentService {
 		}
 
 		Page<Note> notePage;
-		// color 파라미터 주어질 때와 아닐때, order가 같이 주어질 때
-		if (color != null && !color.isEmpty()) {
-			List<String> colorList = Arrays.asList(color.split(","));
-
-			// cardify 규격 색상, 잘못 입력하면 error처리
-			List<String> allowedColors = Arrays.asList("blue", "ocean", "lavender", "mint", "sage", "gray", "orange",
-				"coral", "rose", "plum");
-
-			for (String c : colorList) {
-				if (!allowedColors.contains(c)) {
-					throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
-				}
-			}
-
-			if (order != null && !order.isEmpty()) {
-				notePage = noteRepository.findByUserColorAndSort(user, colorList, order, pageable);
-			} else {
-				notePage = noteRepository.findByNoteIdAndUser(user, colorList, pageable);
-			}
-		} else if (order != null && !order.isEmpty()) {
-			notePage = noteRepository.findByUserAndSort(user, order, pageable);
+		// order 파라미터가 주어질 때
+		if (order != null && !order.isEmpty()) {
+			notePage = noteRepository.findByFolderAndSort(folder, order, pageable);
 		} else {
-			notePage = noteRepository.findByUser(user, pageable);
+			notePage = noteRepository.findByFolder(folder, pageable);
 		}
 
 		if (notePage.isEmpty()) {
@@ -429,19 +415,28 @@ public class NoteComponentService {
 		}
 
 		List<NoteResponse.NoteInfoDTO> notes = notePage.getContent()
-			.stream()
-			.map(noteConverter::toNoteInfoDTO)
-			.collect(Collectors.toList());
+				.stream()
+				.map(note -> {
+					try {
+						return noteConverter.toNoteInfoDTO(note);
+					} catch (Exception e) {
+						System.err.println("노트 변환 실패 - ID: " + note.getNoteId() + ", 오류: " + e.getMessage());
+						// null을 반환하면 아래 filter에서 제외됨
+						return null;
+					}
+				})
+				.filter(Objects::nonNull)
+				.collect(Collectors.toList());
 
 		return NoteResponse.NoteListDTO.builder()
-			.noteList(notes)
-			.listsize(getNoteSize)
-			.currentPage(getNotePage + 1)
-			.totalPage(notePage.getTotalPages())
-			.totalElements(notePage.getTotalElements())
-			.isFirst(notePage.isFirst())
-			.isLast(notePage.isLast())
-			.build();
+				.noteList(notes)
+				.listsize(getNoteSize)
+				.currentPage(getNotePage + 1)
+				.totalPage(notePage.getTotalPages())
+				.totalElements(notePage.getTotalElements())
+				.isFirst(notePage.isFirst())
+				.isLast(notePage.isLast())
+				.build();
 	}
 
 	public NoteResponse.getNoteUUIDDTO createNoteUUID(NoteRequest.MakeLinkDto request, User user){

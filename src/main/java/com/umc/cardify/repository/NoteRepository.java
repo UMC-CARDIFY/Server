@@ -57,4 +57,12 @@ public interface NoteRepository extends JpaRepository<Note, Long> {
 
 
     Optional<Note> findByUuid(String UUID);
+
+    // FIXME : 노트 조회
+    @Query("SELECT n FROM Note n WHERE n.folder = :folder ORDER BY " +
+        "CASE WHEN :order = 'asc' THEN n.createdAt END ASC, " +
+        "CASE WHEN :order = 'desc' THEN n.createdAt END DESC, " +
+        "CASE WHEN :order = 'edit-newest' THEN n.updatedAt END DESC, " +
+        "CASE WHEN :order = 'edit-oldest' THEN n.updatedAt END ASC")
+    Page<Note> findByFolderAndSort(@Param("folder") Folder folder, @Param("order") String order, Pageable pageable);
 }

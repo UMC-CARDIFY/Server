@@ -55,13 +55,14 @@ public class FolderController {
             @RequestParam(required = false)  Integer page,
             @RequestParam(required = false)  Integer size,
             @RequestParam(required = false) String order,
-            @RequestParam(required = false) String color){
+            // FIXME :  폴더 아이디 요청
+            @RequestParam Long folderId){
         String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
         AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
         Long userId = userRepository.findByEmailAndProvider(email, provider)
             .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID)).getUserId();
 
-        NoteResponse.NoteListDTO notes = noteComponentService.getNotesBySortFilter(userId, page, size, order, color);
+        NoteResponse.NoteListDTO notes = noteComponentService.getNotesBySortFilter(userId, page, size, order, folderId);
         return ResponseEntity.ok(notes);
     }
 

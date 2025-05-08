@@ -290,7 +290,7 @@ public class KakaoPaymentServiceImpl implements PaymentService {
   }
 
   @Override
-  @Scheduled(cron = "0 * * * * ?") // TODO : 매일 새벽 1시에 실행으로 수정
+  @Scheduled(cron = "0 0 1 * * ?") // TODO : 매일 새벽 1시에 실행으로 수정
   @Transactional
   public void processRecurringPayments() {
     log.info("정기 결제 처리 시작");

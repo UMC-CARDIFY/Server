@@ -42,7 +42,7 @@ public class Folder extends BaseEntity {
     @UpdateTimestamp
     private Timestamp editDate;
 
-    @OneToMany(mappedBy = "folder", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "folder", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Note> notes;
 
     @OneToMany(mappedBy = "folder", cascade = CascadeType.ALL)
