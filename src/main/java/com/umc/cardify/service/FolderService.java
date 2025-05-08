@@ -13,6 +13,7 @@ import com.umc.cardify.dto.folder.FolderResponse;
 import com.umc.cardify.repository.FolderRepository;
 import com.umc.cardify.repository.NoteRepository;
 import com.umc.cardify.repository.UserRepository;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -48,6 +49,7 @@ public class FolderService {
         List<Folder> folders;
         String parentFolderName = "";
         String parentFolderColor = "";
+        MarkStatus parnetMarkStatus = MarkStatus.ACTIVE;
 
         // 1. 상위 폴더와 하위 폴더를 구분하여 기본 폴더 리스트 가져오기
         if (parentFolderId == null) {
@@ -60,6 +62,7 @@ public class FolderService {
             folders = folderRepository.findByParentFolderAndUser(parentFolder, user);
             parentFolderName = parentFolder.getName();
             parentFolderColor = parentFolder.getColor();
+            parnetMarkStatus = parentFolder.getMarkState();
         }
 
         // 2. 색상 필터 적용
@@ -79,6 +82,7 @@ public class FolderService {
         return FolderResponse.FolderListDTO.builder()
                 .parentFolderColor(parentFolderColor)
                 .parentFolderName(parentFolderName)
+                .parentMarkState(parnetMarkStatus)
                 .foldersList(foldersInfo)
                 .listSize(pagedFolders.size())
                 .currentPage(folderPage + 1)

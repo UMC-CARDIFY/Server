@@ -31,6 +31,7 @@ public class Folder extends BaseEntity {
     @Column(name = "color")
     private String color;
 
+    @Getter
     @Enumerated(EnumType.STRING)
     @Column(name = "mark_state", columnDefinition = "VARCHAR(15) DEFAULT 'INACTIVE'")
     private MarkStatus markState;

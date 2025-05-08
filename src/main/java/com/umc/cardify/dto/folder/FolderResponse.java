@@ -49,6 +49,9 @@ public class FolderResponse {
         private String parentFolderName;
         @Schema(description = "부모 폴더 색상")
         private String parentFolderColor;
+        @Schema(description = "폴더 즐겨찾기", example = "INACTIVE")
+        private MarkStatus parentMarkState;
+
         @Schema(description = "폴더 목록")
         private List<FolderInfoDTO> foldersList;
         @Schema(description = "리스트 사이즈", example = "10")

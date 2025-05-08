@@ -10,6 +10,7 @@ import com.umc.cardify.domain.Product;
 import com.umc.cardify.domain.Subscription;
 import com.umc.cardify.domain.SubscriptionPayment;
 import com.umc.cardify.domain.enums.AuthProvider;
+import com.umc.cardify.domain.enums.ProductPeriod;
 import com.umc.cardify.domain.enums.SubscriptionStatus;
 import com.umc.cardify.dto.payment.subscription.SubscriptionRequest;
 import com.umc.cardify.dto.payment.subscription.SubscriptionResponse;
@@ -38,7 +39,6 @@ public class SubscriptionServiceImpl implements SubscriptionService {
   private final ProductRepository productRepository;
   private final UserRepository userRepository;
   private final JwtTokenProvider jwtTokenProvider;
-  private final KakaoPaymentServiceImpl kakaoPaymentServiceImpl;
 
   private Long findUserId(String token) {
     String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
@@ -71,7 +71,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     }
 
     // 구독 생성
-    LocalDateTime nextPaymentDateTime = kakaoPaymentServiceImpl.
+    LocalDateTime nextPaymentDateTime =
         calculateNextPaymentDate(LocalDateTime.now(), product.getPeriod());
 
     // 월말 처리 (예: 1월 31일 -> 2월 28일)
@@ -97,6 +97,14 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     log.info("구독 생성 완료: id={}", savedSubscription.getId());
 
     return getSubscriptionInternal(savedSubscription.getId());
+  }
+
+  private LocalDateTime calculateNextPaymentDate(LocalDateTime currentDate, ProductPeriod period) {
+    return switch (period.name()) {
+      case "MONTH" -> currentDate.plusMonths(1);
+      case "YEAR" -> currentDate.plusYears(1);
+      default -> currentDate.plusMonths(1); // 기본값은 1개월
+    };
   }
 
   // 구독 조회

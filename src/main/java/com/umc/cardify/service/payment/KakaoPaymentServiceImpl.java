@@ -616,7 +616,7 @@ public class KakaoPaymentServiceImpl implements PaymentService {
   }
 
   // 유틸리티 메서드
-  public LocalDateTime calculateNextPaymentDate(LocalDateTime currentDate, ProductPeriod period) {
+  private LocalDateTime calculateNextPaymentDate(LocalDateTime currentDate, ProductPeriod period) {
     return switch (period.name()) {
       case "MONTH" -> currentDate.plusMonths(1);
       case "YEAR" -> currentDate.plusYears(1);
