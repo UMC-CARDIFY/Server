@@ -44,6 +44,11 @@ public class FolderResponse {
     @AllArgsConstructor
     @Schema(title = "FOLDER_RES_02 : 폴더 목록 응답 DTO")
     public static class FolderListDTO {
+        // FIXME : 부모 폴더 내의 폴더 조회시 부모 폴더 이름 및 색상 추가로 응답해야 함
+        @Schema(description = "부모 폴더 이름")
+        private String parentFolderName;
+        @Schema(description = "부모 폴더 색상")
+        private String parentFolderColor;
         @Schema(description = "폴더 목록")
         private List<FolderInfoDTO> foldersList;
         @Schema(description = "리스트 사이즈", example = "10")

@@ -46,6 +46,8 @@ public class FolderService {
         int folderSize = (size != null) ? size : Integer.MAX_VALUE;
 
         List<Folder> folders;
+        String parentFolderName = "";
+        String parentFolderColor = "";
 
         // 1. 상위 폴더와 하위 폴더를 구분하여 기본 폴더 리스트 가져오기
         if (parentFolderId == null) {
@@ -56,6 +58,8 @@ public class FolderService {
             Folder parentFolder = folderRepository.findById(parentFolderId)
                     .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_EXIST_FOLDER));
             folders = folderRepository.findByParentFolderAndUser(parentFolder, user);
+            parentFolderName = parentFolder.getName();
+            parentFolderColor = parentFolder.getColor();
         }
 
         // 2. 색상 필터 적용
@@ -73,6 +77,8 @@ public class FolderService {
         int totalPages = (totalElements + folderSize - 1) / folderSize;
 
         return FolderResponse.FolderListDTO.builder()
+                .parentFolderColor(parentFolderColor)
+                .parentFolderName(parentFolderName)
                 .foldersList(foldersInfo)
                 .listSize(pagedFolders.size())
                 .currentPage(folderPage + 1)
