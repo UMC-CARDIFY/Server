@@ -29,4 +29,8 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
                                            @Param("statuses") List<String> statuses);
 
   Long user(User user);
+
+  // 사용자의 구독 개수 (중복 구독 방지용)
+  long countByUser_UserIdAndStatus(Long userId, SubscriptionStatus status);
+
 }

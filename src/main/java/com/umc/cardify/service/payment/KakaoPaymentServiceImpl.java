@@ -51,6 +51,16 @@ public class KakaoPaymentServiceImpl implements PaymentService {
   public BillingKeyResponse.RequestBillingKeyRes requestBillingKey(BillingKeyRequestDTO.RequestBillingKeyReq request) {
     log.info("빌링키 요청 시작: userId={}, productId={}", request.userId(), request.productId());
 
+    // 구독 중복 확인
+    long activeSubscriptionCount = subscriptionRepository.countByUser_UserIdAndStatus(request.userId(), SubscriptionStatus.ACTIVE);
+
+    if (activeSubscriptionCount > 0) {
+      List<BillingKeyRequest> billingKeyRequestList = billingKeyRequestRepository.findByUserUserIdAndStatus(request.userId(), BillingKeyStatus.REQUESTED);
+      BillingKeyRequest billingKeyRequest = billingKeyRequestList.get(billingKeyRequestList.size() - 1);
+      billingKeyRequest.setStatus(BillingKeyStatus.FAILED);
+      throw new IllegalStateException("이미 활성 상태의 구독이 있습니다. 새로운 구독을 시작하기 전에 기존 구독을 취소해 주세요.");
+    }
+
     // 고유 식별자 생성
     String merchantUid = "subscribe_" + UUID.randomUUID().toString();
     String customerUid = "customer_" + request.userId() + "_" + System.currentTimeMillis();

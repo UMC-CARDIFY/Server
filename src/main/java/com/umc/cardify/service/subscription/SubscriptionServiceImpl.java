@@ -5,14 +5,8 @@ import com.umc.cardify.auth.jwt.JwtTokenProvider;
 import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.config.exception.ResourceNotFoundException;
-import com.umc.cardify.domain.PaymentMethod;
-import com.umc.cardify.domain.Product;
-import com.umc.cardify.domain.Subscription;
-import com.umc.cardify.domain.SubscriptionPayment;
-import com.umc.cardify.domain.enums.AuthProvider;
-import com.umc.cardify.domain.enums.PaymentStatus;
-import com.umc.cardify.domain.enums.ProductPeriod;
-import com.umc.cardify.domain.enums.SubscriptionStatus;
+import com.umc.cardify.domain.*;
+import com.umc.cardify.domain.enums.*;
 import com.umc.cardify.dto.payment.subscription.SubscriptionRequest;
 import com.umc.cardify.dto.payment.subscription.SubscriptionResponse;
 import com.umc.cardify.repository.*;
@@ -40,6 +34,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
   private final ProductRepository productRepository;
   private final UserRepository userRepository;
   private final JwtTokenProvider jwtTokenProvider;
+  private final BillingKeyRequestRepository billingKeyRequestRepository;
 
   private Long findUserId(String token) {
     String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
@@ -113,6 +108,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     return getSubscriptionInternal(savedSubscription.getId());
   }
 
+  // 다음 결제일 계산
   private LocalDateTime calculateNextPaymentDate(LocalDateTime currentDate, ProductPeriod period) {
     return switch (period.name()) {
       case "MONTH" -> currentDate.plusMonths(1);
