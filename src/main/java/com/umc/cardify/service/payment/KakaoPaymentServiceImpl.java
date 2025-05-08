@@ -156,7 +156,7 @@ public class KakaoPaymentServiceImpl implements PaymentService {
           .type(PaymentType.KAKAO)
           .provider("KAKAOPAY")
           .billingKey(billingKeyRequest.getCustomerUid())
-          .isDefault(true)
+          .isDefault(true) // 결제한 카카오페이를 기본 결제 수단으로
           // 카카오페이는 카드 유효 기간 정보 없음
           // .validUntil(LocalDate.now().plusYears(1))
           .build();
@@ -173,6 +173,7 @@ public class KakaoPaymentServiceImpl implements PaymentService {
           .productId(request.productId())
           .paymentMethodId(savedPaymentMethod.getId())
           .autoRenew(true)
+          .pgProvider(billingKeyRequest.getPgProvider())
           .build();
 
       SubscriptionResponse.SubscriptionInfoRes subscriptionRes =
@@ -290,7 +291,7 @@ public class KakaoPaymentServiceImpl implements PaymentService {
   }
 
   @Override
-  @Scheduled(cron = "0 0 1 * * ?") // TODO : 매일 새벽 1시에 실행으로 수정
+  @Scheduled(cron = "0 0 1 * * ?") // 매일 새벽 1시에 실행
   @Transactional
   public void processRecurringPayments() {
     log.info("정기 결제 처리 시작");
@@ -300,7 +301,7 @@ public class KakaoPaymentServiceImpl implements PaymentService {
     LocalDateTime endOfDay = startOfDay.plusDays(1).minusNanos(1);
 
     List<Subscription> subscriptionsDue = subscriptionRepository.findByStatusAndAutoRenewTrueAndNextPaymentDateBetween(
-        SubscriptionStatus.ACTIVE.name(),
+        SubscriptionStatus.ACTIVE,
         startOfDay,
         endOfDay
     );
@@ -384,7 +385,7 @@ public class KakaoPaymentServiceImpl implements PaymentService {
           .paymentMethod(paymentMethod)  // 사용한 결제 수단 저장
           .merchantUid(merchantUid)
           .amount(product.getPrice())
-          .pgProvider("KAKAO")
+          .pgProvider(paymentMethod.getProvider())
           .pgResponse(objectMapper.writeValueAsString(response))
           .build();
 
@@ -437,14 +438,50 @@ public class KakaoPaymentServiceImpl implements PaymentService {
 
       // 결제 실패 기록
       try {
+        // 상품 가격 정보 가져오기
+        Integer amount = 0; // 기본값
+        if (subscription.getProduct() != null && subscription.getProduct().getPrice() != null) {
+          amount = subscription.getProduct().getPrice();
+        }
+
+        // 결제 방법 확인 (nullable=false)
+        PaymentMethod paymentMethod = null;
+        try {
+          // 1. 최근 결제 내역의 결제 수단 조회 시도
+          List<SubscriptionPayment> recentPayments = subscriptionPaymentRepository
+              .findTop1BySubscriptionIdAndStatusOrderByCreatedAtDesc(
+                  subscription.getId(), PaymentStatus.PAID);
+
+          if (!recentPayments.isEmpty() && recentPayments.get(0).getPaymentMethod() != null) {
+            paymentMethod = recentPayments.get(0).getPaymentMethod();
+          } else {
+            // 2. 사용자의 기본 결제 수단 조회
+            paymentMethod = paymentMethodRepository
+                .findByUser_UserIdAndIsDefaultTrueAndDeletedAtIsNull(subscription.getUser().getUserId())
+                .orElse(null);
+          }
+        } catch (Exception ex) {
+          log.warn("결제 수단 조회 실패: {}", ex.getMessage());
+        }
+
+        // 결제 수단을 찾지 못한 경우 실패 기록을 저장할 수 없음
+        if (paymentMethod == null) {
+          log.error("결제 실패 기록을 저장할 결제 수단을 찾을 수 없습니다: subscriptionId={}", subscription.getId());
+          return;
+        }
+
         SubscriptionPayment failedPayment = SubscriptionPayment.builder()
             .subscription(subscription)
+            .paymentMethod(paymentMethod)  // 필수 필드
             .status(PaymentStatus.FAILED)
-            .pgResponse(e.getMessage())
+            .amount(amount)  // 필수 필드
             .merchantUid("failed_" + subscription.getId() + "_" + System.currentTimeMillis())
+            .pgProvider(paymentMethod.getProvider() != null ? paymentMethod.getProvider() : "UNKNOWN")  // 필수 필드
+            .pgResponse(e.getMessage() != null ? e.getMessage() : "결제 처리 중 오류 발생")
             .build();
 
         subscriptionPaymentRepository.save(failedPayment);
+        log.info("결제 실패 기록 저장 완료: subscriptionId={}", subscription.getId());
       } catch (Exception ex) {
         log.error("결제 실패 기록 저장 중 오류: {}", ex.getMessage());
       }

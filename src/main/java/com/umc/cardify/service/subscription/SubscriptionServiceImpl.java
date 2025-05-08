@@ -10,6 +10,7 @@ import com.umc.cardify.domain.Product;
 import com.umc.cardify.domain.Subscription;
 import com.umc.cardify.domain.SubscriptionPayment;
 import com.umc.cardify.domain.enums.AuthProvider;
+import com.umc.cardify.domain.enums.PaymentStatus;
 import com.umc.cardify.domain.enums.ProductPeriod;
 import com.umc.cardify.domain.enums.SubscriptionStatus;
 import com.umc.cardify.dto.payment.subscription.SubscriptionRequest;
@@ -95,6 +96,19 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     Subscription savedSubscription = subscriptionRepository.save(subscription);
     log.info("구독 생성 완료: id={}", savedSubscription.getId());
+
+    // 결제 내역 생성
+    SubscriptionPayment initialPayment = SubscriptionPayment.builder()
+        .subscription(savedSubscription)
+        .paymentMethod(paymentMethod)
+        .merchantUid("initial_" + savedSubscription.getId() + "_" + System.currentTimeMillis())
+        .status(PaymentStatus.PAID)
+        .amount(product.getPrice())
+        .paidAt(LocalDateTime.now())
+        .pgProvider(request.pgProvider())
+        .pgResponse("초기 구독 결제")
+        .build();
+    subscriptionPaymentRepository.save(initialPayment);
 
     return getSubscriptionInternal(savedSubscription.getId());
   }

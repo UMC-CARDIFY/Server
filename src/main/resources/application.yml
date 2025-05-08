@@ -13,7 +13,7 @@ spring:
       uri: mongodb+srv://cardify:${DB_PASSWORD}@cardify.pckle.mongodb.net/cardify?retryWrites=true&w=majority&appName=Cardify
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: none
       jdbc:
         time_zone: Asia/Seoul
     properties:

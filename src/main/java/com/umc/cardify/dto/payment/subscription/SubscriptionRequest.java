@@ -1,5 +1,6 @@
 package com.umc.cardify.dto.payment.subscription;
 
+import com.umc.cardify.domain.enums.PaymentType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -21,6 +22,11 @@ public class SubscriptionRequest {
       @NotNull(message = "결제 수단 ID는 필수입니다.")
       @Schema(description = "결제 수단 ID", example = "2")
       Long paymentMethodId,
+
+      @NotNull(message = "pg사는 필수입니다.")
+      @Schema(description = "pg사", example = "CARD, KAKAO, NAVER, TOSS")
+      String pgProvider,
+
 
       @Schema(description = "자동 갱신 여부", example = "true")
       boolean autoRenew

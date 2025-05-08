@@ -2,6 +2,7 @@ package com.umc.cardify.repository;
 
 import com.umc.cardify.domain.Subscription;
 import com.umc.cardify.domain.User;
+import com.umc.cardify.domain.enums.SubscriptionStatus;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -17,7 +18,7 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
 
   // 정기결제 예정 구독 조회 메소드
   List<Subscription> findByStatusAndAutoRenewTrueAndNextPaymentDateBetween(
-      String status, LocalDateTime startDate, LocalDateTime endDate);
+      SubscriptionStatus status, LocalDateTime startDate, LocalDateTime endDate);
 
   // 수정이 필요한 메소드 - PaymentMethod와의 관계가 없으므로 @Query 사용
   @Query("SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END FROM Subscription s " +

@@ -38,8 +38,8 @@ public class Product extends BaseEntity{
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(nullable = false)
-    private LocalDateTime validUntil;
+//    @Column(nullable = false)
+//    private LocalDateTime validUntil;
 
     @OneToMany(mappedBy = "product")
     private List<Subscription> subscriptions = new ArrayList<>();
