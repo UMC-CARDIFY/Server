@@ -43,23 +43,6 @@ public class KakaoPayController {
     }
   }
 
-  @Operation(summary = "빌링키 검증", description = "발급된 빌링키를 검증하고 저장합니다.")
-  @PostMapping("/billing-key/verify")
-  public ResponseEntity<?> verifyAndSaveBillingKey(
-      @Valid @RequestBody BillingKeyRequestDTO.VerifyBillingKeyReq request) {
-
-    log.info("카카오페이 빌링키 검증 요청: customerUid={}, userId={}", request.customerUid(), request.userId());
-    try {
-      // 기존 메소드 사용
-      BillingKeyResponse.VerifyBillingKeyRes response = kakaoPaymentServiceImpl.verifyAndSaveBillingKey(request);
-      return ResponseEntity.ok(response);
-    } catch (Exception e) {
-      log.error("카카오페이 빌링키 검증 오류: {}", e.getMessage());
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-          .body("빌링키 검증 중 오류 발생: " + e.getMessage());
-    }
-  }
-
   @PostMapping("/billing-key/approve")
   public ResponseEntity<?> approveBillingKey(@RequestBody BillingKeyRequestDTO.ApproveBillingKeyReq request) {
     log.info("빌링키 승인 요청: pgToken={}, merchantUid={}, customerUid={}",

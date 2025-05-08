@@ -31,6 +31,7 @@ public class BillingKeyRequestDTO {
       String callbackUrl
   ) {}
 
+  // FIXME : 삭제해도 될 거 같음
   @Builder
   @Schema(title = "BILLING_REQ_02 : 빌링키 검증 및 저장 요청")
   public record VerifyBillingKeyReq(
@@ -65,6 +66,14 @@ public class BillingKeyRequestDTO {
       String customerUid,
 
       @Schema(description = "거래 ID", example = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
-      String tid
+      String tid,
+
+      @NotNull(message = "상품 ID는 필수입니다.")
+      @Schema(description = "상품 ID", example = "1")
+      Long productId,
+
+      @NotNull(message = "사용자 ID는 필수입니다.")
+      @Schema(description = "사용자 ID", example = "1")
+      Long userId
   ) {}
 }

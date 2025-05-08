@@ -102,6 +102,14 @@
     <label for="customerUid">Customer UID</label>
     <input type="text" id="customerUid" placeholder="빌링키 요청 시 받은 customerUid">
   </div>
+  <div class="input-group">
+    <label for="productId2">Product ID</label>
+    <input type="text" id="productId2" placeholder="구독하고자 하는 상품 productId">
+  </div>
+  <div class="input-group">
+    <label for="userId2">User ID</label>
+    <input type="text" id="userId2" placeholder="사용자의 id">
+  </div>
 
   <button id="approveBillingKey">빌링키 승인 요청</button>
   <div id="approveResult" style="margin-top: 10px;"></div>
@@ -197,6 +205,7 @@
         const customerUid = $('#customerUid').val();
         const userId = $('#userId').val();
         const backendUrl = $('#backendUrl').val();
+        const productId = $('#productId').val();
 
         if (!pgToken || !merchantUid || !customerUid) {
             alert('PG 토큰, Merchant UID, Customer UID를 모두 입력해주세요.');
@@ -207,7 +216,8 @@
             pgToken: pgToken,
             merchantUid: merchantUid,
             customerUid: customerUid,
-            userId: Number(userId)
+            userId: Number(userId),
+            productId: productId
         };
 
         $('#approveResult').html('요청 중...');

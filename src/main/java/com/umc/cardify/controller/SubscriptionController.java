@@ -23,6 +23,8 @@ public class SubscriptionController {
 
   private final SubscriptionServiceImpl subscriptionServiceImpl;
 
+
+  // FIXME : 삭제해도 될 거 같음
   @Operation(summary = "구독 생성", description = "새로운 구독을 생성합니다.")
   @PostMapping
   public ResponseEntity<SubscriptionInfoRes> createSubscription(

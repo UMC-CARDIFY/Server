@@ -39,7 +39,8 @@ public class Subscription extends BaseEntity{
     private LocalDateTime startDate;
 
     // 사용자의 구독 종료 날짜
-    @Column(nullable = false)
+    @Column
+    @Setter
     private LocalDateTime endDate;
 
     @Setter

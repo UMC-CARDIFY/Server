@@ -1,5 +1,6 @@
 package com.umc.cardify.domain;
 
+import com.umc.cardify.domain.enums.ProductPeriod;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -25,8 +26,11 @@ public class Product extends BaseEntity{
     @Column(nullable = false)
     private Integer price;
 
+
+    // 연간 상품, 월간 상품
     @Column(nullable = false)
-    private String period;
+    @Enumerated(EnumType.STRING)
+    private ProductPeriod period;
 
     @Column(nullable = false)
     private Boolean isActive;

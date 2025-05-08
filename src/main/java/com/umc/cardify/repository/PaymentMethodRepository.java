@@ -38,4 +38,6 @@ public interface PaymentMethodRepository extends JpaRepository<PaymentMethod, Lo
     Optional<PaymentMethod> findByUser_UserIdAndIsDefaultTrueAndDeletedAtIsNull(Long userId);
 
     List<PaymentMethod> findByUser_UserIdAndIdNotAndDeletedAtIsNull(Long userId, Long id);
+
+    Long user(User user);
 }

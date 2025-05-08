@@ -9,7 +9,6 @@ public interface PaymentService {
 
   // 빌링키 관련
   BillingKeyResponse.RequestBillingKeyRes requestBillingKey(BillingKeyRequestDTO.RequestBillingKeyReq request);
-  BillingKeyResponse.VerifyBillingKeyRes verifyAndSaveBillingKey(BillingKeyRequestDTO.VerifyBillingKeyReq request);
   BillingKeyResponse.ApproveBillingKeyRes approveBillingKey(BillingKeyRequestDTO.ApproveBillingKeyReq request);
   BillingKeyResponse.BillingStatusRes getBillingStatus(String merchantUid);
 

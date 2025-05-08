@@ -14,12 +14,15 @@ import com.umc.cardify.domain.enums.SubscriptionStatus;
 import com.umc.cardify.dto.payment.subscription.SubscriptionRequest;
 import com.umc.cardify.dto.payment.subscription.SubscriptionResponse;
 import com.umc.cardify.repository.*;
+import com.umc.cardify.service.payment.KakaoPaymentServiceImpl;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.Month;
+import java.time.Year;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -35,6 +38,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
   private final ProductRepository productRepository;
   private final UserRepository userRepository;
   private final JwtTokenProvider jwtTokenProvider;
+  private final KakaoPaymentServiceImpl kakaoPaymentServiceImpl;
 
   private Long findUserId(String token) {
     String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
@@ -67,17 +71,27 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     }
 
     // 구독 생성
-    Subscription subscription = new Subscription();
-    subscription.getUser().setUserId(request.userId());
-    subscription.getProduct().setId(request.productId());
-    subscription.setStatus(SubscriptionStatus.ACTIVE);
-    subscription.setStartDate(LocalDateTime.now());
+    LocalDateTime nextPaymentDateTime = kakaoPaymentServiceImpl.
+        calculateNextPaymentDate(LocalDateTime.now(), product.getPeriod());
 
-    // 다음 결제일 계산
-    LocalDateTime nextPaymentDate = calculateNextPaymentDate(LocalDateTime.now(), product.getPeriod());
-    subscription.setNextPaymentDate(nextPaymentDate);
+    // 월말 처리 (예: 1월 31일 -> 2월 28일)
+    int currentDay = LocalDateTime.now().getDayOfMonth();
+    Month nextMonth = nextPaymentDateTime.getMonth();
+    int daysInNextMonth = nextMonth.length(Year.isLeap(nextPaymentDateTime.getYear()));
 
-    subscription.setAutoRenew(request.autoRenew());
+    if (currentDay > daysInNextMonth) {
+      // 다음 달의 마지막 날로 조정
+      nextPaymentDateTime = nextPaymentDateTime.withDayOfMonth(daysInNextMonth);
+    }
+    Subscription subscription = Subscription.builder()
+        .user(userRepository.findByUserId(request.userId()))
+        .product(product)
+        .status(SubscriptionStatus.ACTIVE)
+        .startDate(LocalDateTime.now())
+        .nextPaymentDate(nextPaymentDateTime)
+        .autoRenew(true)
+        .endDate(LocalDateTime.now().plusMonths(1))
+        .build();
 
     Subscription savedSubscription = subscriptionRepository.save(subscription);
     log.info("구독 생성 완료: id={}", savedSubscription.getId());
@@ -85,16 +99,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     return getSubscriptionInternal(savedSubscription.getId());
   }
 
-  private LocalDateTime calculateNextPaymentDate(LocalDateTime currentDate, String period) {
-    return switch (period) {
-      case "MONTHLY" -> currentDate.plusMonths(1);
-      case "YEARLY" -> currentDate.plusYears(1);
-      case "WEEKLY" -> currentDate.plusWeeks(1);
-      case "DAILY" -> currentDate.plusDays(1);
-      default -> currentDate.plusMonths(1); // 기본값은 1개월
-    };
-  }
-
+  // 구독 조회
   @Override
   public SubscriptionResponse.SubscriptionInfoRes getSubscription(Long subscriptionId, String token) {
     Long userId = findUserId(token);
@@ -152,6 +157,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         .build();
   }
 
+  // 구독 최소
   @Override
   @Transactional
   public boolean cancelSubscription(SubscriptionRequest.CancelSubscriptionReq request, String token) {
@@ -179,6 +185,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     return true;
   }
 
+  // 자동 결제(갱신) 변경
   @Override
   @Transactional
   public boolean updateAutoRenew(Long subscriptionId, boolean autoRenew, String token) {

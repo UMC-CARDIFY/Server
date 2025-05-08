@@ -4,12 +4,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.cardify.config.exception.ResourceNotFoundException;
 import com.umc.cardify.domain.*;
-import com.umc.cardify.domain.enums.BillingKeyStatus;
-import com.umc.cardify.domain.enums.PaymentStatus;
-import com.umc.cardify.domain.enums.PaymentType;
+import com.umc.cardify.domain.enums.*;
 import com.umc.cardify.dto.payment.billing.BillingKeyRequestDTO;
 import com.umc.cardify.dto.payment.billing.BillingKeyResponse;
 import com.umc.cardify.dto.payment.subscription.SubscriptionRequest;
+import com.umc.cardify.dto.payment.subscription.SubscriptionResponse;
 import com.umc.cardify.dto.payment.webhook.WebhookRequest;
 import com.umc.cardify.repository.*;
 import com.umc.cardify.service.subscription.SubscriptionServiceImpl;
@@ -24,10 +23,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.sql.Timestamp;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.*;
 import java.util.*;
 
 @Slf4j
@@ -116,107 +112,6 @@ public class KakaoPaymentServiceImpl implements PaymentService {
     }
   }
 
-  // 빌링키 검증
-  @Override
-  @Transactional
-  public BillingKeyResponse.VerifyBillingKeyRes verifyAndSaveBillingKey(BillingKeyRequestDTO.VerifyBillingKeyReq request) {
-    log.info("빌링키 검증 시작: customerUid={}, userId={}", request.customerUid(), request.userId());
-
-    try {
-      // 빌링키 유효성 검증
-      JsonNode billingKeyResponse = portoneClient.getBillingKey(request.customerUid());
-
-      if (billingKeyResponse == null) {
-        log.error("빌링키 검증 실패: 응답이 없습니다");
-        throw new RuntimeException("빌링키 검증 실패: 응답이 없습니다");
-      }
-
-      // 추가 검증: 빌링키 상태 확인
-      String status = billingKeyResponse.path("status").asText();
-      if (!"active".equals(status)) {
-        log.error("빌링키 상태 오류: status={}", status);
-        throw new RuntimeException("유효하지 않은 빌링키 상태: " + status);
-      }
-
-      // 카드 정보 JSON 파싱
-      Map<String, Object> cardInfo = objectMapper.readValue(request.cardInfo(), Map.class);
-
-      // 기존 결제 수단이 있는지 확인하고 default 상태 변경
-      List<PaymentMethod> existingMethods = paymentMethodRepository.findByUser_UserIdAndDeletedAtIsNull(request.userId());
-
-      if (!existingMethods.isEmpty()) {
-        for (PaymentMethod method : existingMethods) {
-          method.setIsDefault(false);
-        }
-        paymentMethodRepository.saveAll(existingMethods);
-      }
-
-      // 사용자 조회
-      User user = userRepository.findById(request.userId())
-          .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다: " + request.userId()));
-
-      // 새 결제 수단 생성
-      PaymentMethod paymentMethod = new PaymentMethod();
-      paymentMethod.setUser(user);
-      paymentMethod.setType(PaymentType.CARD);
-      paymentMethod.setProvider(PaymentType.KAKAO.name());
-
-      // 빌링키 저장
-      paymentMethod.setBillingKey(request.customerUid());
-
-      // 카드 정보 마스킹 처리
-      if (cardInfo.containsKey("card_number")) {
-        String maskedCardNumber = maskCardNumber((String) cardInfo.get("card_number"));
-        paymentMethod.setCardNumber(maskedCardNumber);
-        cardInfo.put("card_number", maskedCardNumber); // 마스킹된 번호로 교체
-      }
-
-      // 메타데이터에 카드 상세 정보 저장
-      paymentMethod.setMetaData(objectMapper.writeValueAsString(cardInfo));
-
-      // 유효기간 설정 (있는 경우)
-      if (cardInfo.containsKey("expiry")) {
-        String expiry = (String) cardInfo.get("expiry");
-        if (expiry != null && expiry.length() >= 4) {
-          // YYMM 형식 가정
-          int year = Integer.parseInt(expiry.substring(0, 2)) + 2000;
-          int month = Integer.parseInt(expiry.substring(2, 4));
-
-          Calendar calendar = Calendar.getInstance();
-          calendar.set(year, month - 1, calendar.getActualMaximum(Calendar.DAY_OF_MONTH), 23, 59, 59);
-          paymentMethod.setValidUntil(LocalDateTime.ofInstant(
-              calendar.toInstant(), ZoneId.systemDefault()).toLocalDate());
-        }
-      }
-
-      // 기본 결제 수단으로 설정
-      paymentMethod.setIsDefault(true);
-
-      // 저장
-      PaymentMethod savedPaymentMethod = paymentMethodRepository.save(paymentMethod);
-      log.info("결제 수단 저장 완료: id={}", savedPaymentMethod.getId());
-
-      // 구독 생성
-      subscriptionServiceImpl.createSubscription(SubscriptionRequest.CreateSubscriptionReq.builder()
-          .userId(request.userId())
-          .productId(request.productId())
-          .paymentMethodId(savedPaymentMethod.getId())
-          .autoRenew(true)
-          .build(), null);
-
-      return BillingKeyResponse.VerifyBillingKeyRes.builder()
-          .id(savedPaymentMethod.getId())
-          .userId(savedPaymentMethod.getUser().getUserId())
-          .type(savedPaymentMethod.getType().name())
-          .provider(savedPaymentMethod.getProvider())
-          .isDefault(savedPaymentMethod.getIsDefault())
-          .build();
-    } catch (IOException e) {
-      log.error("데이터 처리 오류: {}", e.getMessage());
-      throw new RuntimeException("데이터 처리 오류: " + e.getMessage());
-    }
-  }
-
   @Override
   @Transactional
   public BillingKeyResponse.ApproveBillingKeyRes approveBillingKey(BillingKeyRequestDTO.ApproveBillingKeyReq request) {
@@ -230,16 +125,24 @@ public class KakaoPaymentServiceImpl implements PaymentService {
       // 2. 포트원 API 호출하여 빌링키 발급 상태 확인
       // 실제 구현에서는 포트원의 API를 호출하여 검증
       // 여기서는 간략화를 위해 생략 (포트원 클라이언트 호출 부분)
+      String customerUid = billingKeyRequest.getCustomerUid();
+      try {
+        log.info("포트원 API 빌링키 승인 호출: customerUid={}, pgToken={}", customerUid, request.pgToken());
+      } catch (Exception e) {
+        log.error("포트원 API 빌링키 승인 실패: {}", e.getMessage());
+        billingKeyRequest.updateStatus(BillingKeyStatus.FAILED);
+        throw new RuntimeException("빌링키 발급 승인에 실패했습니다: " + e.getMessage());
+      }
 
       // 3. pg_token 저장 및 상태 업데이트
       billingKeyRequest.setPgToken(request.pgToken());
       billingKeyRequest.updateStatus(BillingKeyStatus.APPROVED);
 
       // 4. 결제 수단 정보 저장
-      User user = billingKeyRequest.getUser();
+      Long userId = request.userId();
 
       // 기존 결제 수단이 있는지 확인하고 default 상태 변경
-      List<PaymentMethod> existingMethods = paymentMethodRepository.findByUser_UserIdAndDeletedAtIsNull(user.getUserId());
+      List<PaymentMethod> existingMethods = paymentMethodRepository.findByUser_UserIdAndDeletedAtIsNull(userId);
       if (!existingMethods.isEmpty()) {
         for (PaymentMethod method : existingMethods) {
           method.setIsDefault(false);
@@ -249,25 +152,31 @@ public class KakaoPaymentServiceImpl implements PaymentService {
 
       // 새 결제 수단 저장
       PaymentMethod paymentMethod = PaymentMethod.builder()
-          .user(user)
+          .user(userRepository.findByUserId(userId))
           .type(PaymentType.KAKAO)
           .provider("KAKAOPAY")
           .billingKey(billingKeyRequest.getCustomerUid())
           .isDefault(true)
-          .validUntil(LocalDate.now().plusYears(1))
+          // 카카오페이는 카드 유효 기간 정보 없음
+          // .validUntil(LocalDate.now().plusYears(1))
           .build();
 
       PaymentMethod savedPaymentMethod = paymentMethodRepository.save(paymentMethod);
+      log.info("결제 수단 저장 완료: id={}, billingKey={}", savedPaymentMethod.getId(), maskString(customerUid));
 
       // 빌링키 요청과 결제 수단 연결
       billingKeyRequest.setPaymentMethod(savedPaymentMethod);
 
-      // 5. 구독 생성 (상품이 선택된 경우)
-      Long subscriptionId = null;
-      if (billingKeyRequest.getProduct() != null) {
-        // 구독 생성 로직 (별도 서비스 메서드 호출)
-        // subscriptionId = subscriptionServiceImpl.createSubscription(...);
-      }
+      // 구독 생성
+      SubscriptionRequest.CreateSubscriptionReq subscriptionRequest = SubscriptionRequest.CreateSubscriptionReq.builder()
+          .userId(userId)
+          .productId(request.productId())
+          .paymentMethodId(savedPaymentMethod.getId())
+          .autoRenew(true)
+          .build();
+
+      SubscriptionResponse.SubscriptionInfoRes subscriptionRes =
+          subscriptionServiceImpl.createSubscription(subscriptionRequest, null);
 
       // 6. 응답 구성
       return BillingKeyResponse.ApproveBillingKeyRes.builder()
@@ -275,13 +184,24 @@ public class KakaoPaymentServiceImpl implements PaymentService {
           .customerUid(billingKeyRequest.getCustomerUid())
           .status("success")
           .paymentMethodId(savedPaymentMethod.getId())
-          .userId(user.getUserId())
-          .subscriptionId(subscriptionId)
+          .userId(userId)
+          .subscriptionId(subscriptionRes.id())
           .build();
     } catch (Exception e) {
       log.error("빌링키 발급 승인 중 오류: {}", e.getMessage(), e);
       throw new RuntimeException("빌링키 발급 승인 중 오류 발생: " + e.getMessage(), e);
     }
+  }
+
+  // 민감한 정보 마스킹 유틸리티 메서드
+  private String maskString(String input) {
+    if (input == null || input.length() < 8) {
+      return "****";
+    }
+    int visibleChars = Math.min(4, input.length() / 4);
+    return input.substring(0, visibleChars) +
+        "*".repeat(input.length() - 2 * visibleChars) +
+        input.substring(input.length() - visibleChars);
   }
 
   // 빌링키 상태 조회
@@ -369,9 +289,8 @@ public class KakaoPaymentServiceImpl implements PaymentService {
     }
   }
 
-  // 정기 결제
   @Override
-  @Scheduled(cron = "0 0 1 * * ?") // 매일 새벽 1시에 실행
+  @Scheduled(cron = "0 * * * * ?") // TODO : 매일 새벽 1시에 실행으로 수정
   @Transactional
   public void processRecurringPayments() {
     log.info("정기 결제 처리 시작");
@@ -381,9 +300,9 @@ public class KakaoPaymentServiceImpl implements PaymentService {
     LocalDateTime endOfDay = startOfDay.plusDays(1).minusNanos(1);
 
     List<Subscription> subscriptionsDue = subscriptionRepository.findByStatusAndAutoRenewTrueAndNextPaymentDateBetween(
-        "ACTIVE",
-        Timestamp.valueOf(startOfDay),
-        Timestamp.valueOf(endOfDay)
+        SubscriptionStatus.ACTIVE.name(),
+        startOfDay,
+        endOfDay
     );
 
     log.info("오늘 결제 대상 구독 수: {}", subscriptionsDue.size());
@@ -400,18 +319,38 @@ public class KakaoPaymentServiceImpl implements PaymentService {
   }
 
   private void processSubscriptionPayment(Subscription subscription) {
-
     log.info("구독 ID {}의 결제 처리 시작", subscription.getId());
-
 
     try {
       // 상품 정보 조회
-      Product product = productRepository.findById(subscription.getProduct().getId())
-          .orElseThrow(() -> new ResourceNotFoundException("상품을 찾을 수 없습니다: " + subscription.getProduct().getId()));
+      Product product = subscription.getProduct();
+      if (product == null) {
+        throw new ResourceNotFoundException("상품을 찾을 수 없습니다: " + subscription.getId());
+      }
 
-      // 결제 수단 조회
-      PaymentMethod paymentMethod = paymentMethodRepository.findByUser_UserIdAndIsDefaultTrueAndDeletedAtIsNull(subscription.getUser().getUserId())
-          .orElseThrow(() -> new RuntimeException("기본 결제 수단을 찾을 수 없습니다: " + subscription.getUser().getUserId()));
+      // 결제 수단 조회 - 구독에 결제 수단이 없으므로 최근 결제 내역의 결제 수단 또는 사용자의 기본 결제 수단 사용
+      PaymentMethod paymentMethod = null;
+
+      // 1. 최근 결제 내역의 결제 수단 조회 시도
+      List<SubscriptionPayment> recentPayments = subscriptionPaymentRepository
+          .findTop1BySubscriptionIdAndStatusOrderByCreatedAtDesc(
+              subscription.getId(), PaymentStatus.PAID);
+
+      if (!recentPayments.isEmpty() && recentPayments.get(0).getPaymentMethod() != null) {
+        paymentMethod = recentPayments.get(0).getPaymentMethod();
+        log.debug("최근 결제 내역의 결제 수단을 사용합니다: {}", paymentMethod.getId());
+      } else {
+        // 2. 사용자의 기본 결제 수단 조회
+        paymentMethod = paymentMethodRepository
+            .findByUser_UserIdAndIsDefaultTrueAndDeletedAtIsNull(subscription.getUser().getUserId())
+            .orElseThrow(() -> new RuntimeException("결제 수단을 찾을 수 없습니다: " + subscription.getUser().getUserId()));
+        log.debug("사용자의 기본 결제 수단을 사용합니다: {}", paymentMethod.getId());
+      }
+
+      // 빌링키 확인
+      if (paymentMethod.getBillingKey() == null || paymentMethod.getBillingKey().isEmpty()) {
+        throw new RuntimeException("결제 수단에 빌링키가 없습니다: " + paymentMethod.getId());
+      }
 
       // 금액 체크
       if (product.getPrice() <= 0) {
@@ -440,54 +379,75 @@ public class KakaoPaymentServiceImpl implements PaymentService {
       String paymentStatus = paymentInfo.path("status").asText();
 
       // 결제 결과 저장
-      SubscriptionPayment subscriptionPayment = new SubscriptionPayment();
-      subscriptionPayment.getSubscription().setId(subscription.getId());
-      subscriptionPayment.getPaymentMethod().setId(paymentMethod.getId());
-      subscriptionPayment.setMerchantUid(merchantUid);
-      subscriptionPayment.setAmount(product.getPrice());
+      SubscriptionPayment subscriptionPayment = SubscriptionPayment.builder()
+          .subscription(subscription)
+          .paymentMethod(paymentMethod)  // 사용한 결제 수단 저장
+          .merchantUid(merchantUid)
+          .amount(product.getPrice())
+          .pgProvider("KAKAO")
+          .pgResponse(objectMapper.writeValueAsString(response))
+          .build();
 
       // 결제 상태 설정
       if ("paid".equals(paymentStatus)) {
         subscriptionPayment.setStatus(PaymentStatus.PAID);
         subscriptionPayment.setPaidAt(LocalDateTime.now());
+
+        // 다음 결제일 계산 (현재 결제일로부터 한 달 후)
+        LocalDateTime currentNextPaymentDate = subscription.getNextPaymentDate();
+        LocalDateTime nextPaymentDateTime = currentNextPaymentDate.plusMonths(1);
+
+        // 월말 처리
+        int currentDay = currentNextPaymentDate.getDayOfMonth();
+        Month nextMonth = nextPaymentDateTime.getMonth();
+        int daysInNextMonth = nextMonth.length(Year.isLeap(nextPaymentDateTime.getYear()));
+
+        if (currentDay > daysInNextMonth) {
+          // 다음 달의 마지막 날로 조정
+          nextPaymentDateTime = nextPaymentDateTime.withDayOfMonth(daysInNextMonth);
+        }
+
+        subscription.setNextPaymentDate(nextPaymentDateTime);
+
+        // 구독 종료일 확인 및 자동 갱신 처리
+        if (subscription.getEndDate() != null && subscription.getEndDate().isBefore(LocalDateTime.now())) {
+          // 구독 기간 연장
+          String period = subscription.getProduct().getPeriod().name();
+          LocalDateTime newEndDate = ("YEAR".equals(period)) ?
+              subscription.getEndDate().plusYears(1) : subscription.getEndDate().plusMonths(1);
+
+          subscription.setEndDate(newEndDate);
+          log.info("구독 기간 연장: id={}, 새 종료일={}", subscription.getId(), newEndDate);
+        }
+
+        subscriptionRepository.save(subscription);
+        log.info("다음 결제일 업데이트: subscriptionId={}, nextPaymentDate={}",
+            subscription.getId(), nextPaymentDateTime);
       } else {
         subscriptionPayment.setStatus(PaymentStatus.FAILED);
-        subscriptionPayment.setPgResponse("결제 상태 확인 실패: " + paymentStatus);
+        // 결제 실패 처리 - 필요시 알림 발송, 재시도 로직 등 추가
       }
 
-      subscriptionPayment.setPgProvider("KAKAO");
-
-      // 응답 데이터 저장
-      subscriptionPayment.setPgResponse(objectMapper.writeValueAsString(response));
-
-      SubscriptionPayment savedPayment = subscriptionPaymentRepository.save(subscriptionPayment);
+      subscriptionPaymentRepository.save(subscriptionPayment);
       log.info("결제 기록 저장 완료: id={}, merchantUid={}, status={}",
-          savedPayment.getId(), merchantUid, subscriptionPayment.getStatus());
-
-      // 결제 성공 시 다음 결제일 업데이트
-      if ("PAID".equals(subscriptionPayment.getStatus().name())) {
-        LocalDateTime nextPaymentDate = calculateNextPaymentDate(
-            subscription.getNextPaymentDate(),
-            product.getPeriod()
-        );
-        subscription.setNextPaymentDate(nextPaymentDate);
-        subscriptionRepository.save(subscription);
-
-        log.info("다음 결제일 업데이트: subscriptionId={}, nextPaymentDate={}",
-            subscription.getId(), nextPaymentDate);
-      }
+          subscriptionPayment.getId(), merchantUid, subscriptionPayment.getStatus());
 
     } catch (Exception e) {
-      log.error("정기 결제 처리 중 오류 발생: {}", e.getMessage());
+      log.error("정기 결제 처리 중 오류 발생: {}", e.getMessage(), e);
 
       // 결제 실패 기록
-      SubscriptionPayment failedPayment = new SubscriptionPayment();
-      failedPayment.getSubscription().setId(subscription.getId());
-      failedPayment.setStatus(PaymentStatus.FAILED);
-      failedPayment.setPgResponse(e.getMessage());
-      failedPayment.setMerchantUid("failed_" + subscription.getId() + "_" + System.currentTimeMillis());
+      try {
+        SubscriptionPayment failedPayment = SubscriptionPayment.builder()
+            .subscription(subscription)
+            .status(PaymentStatus.FAILED)
+            .pgResponse(e.getMessage())
+            .merchantUid("failed_" + subscription.getId() + "_" + System.currentTimeMillis())
+            .build();
 
-      subscriptionPaymentRepository.save(failedPayment);
+        subscriptionPaymentRepository.save(failedPayment);
+      } catch (Exception ex) {
+        log.error("결제 실패 기록 저장 중 오류: {}", ex.getMessage());
+      }
     }
   }
 
@@ -631,15 +591,23 @@ public class KakaoPaymentServiceImpl implements PaymentService {
       if (subscription != null && "ACTIVE".equals(subscription.getStatus().name()) && Boolean.TRUE.equals(subscription.getAutoRenew())) {
         Product product = productRepository.findById(subscription.getProduct().getId()).orElse(null);
         if (product != null) {
-          LocalDateTime nextPaymentDate = calculateNextPaymentDate(
-              subscription.getNextPaymentDate(),
-              product.getPeriod()
-          );
-          subscription.setNextPaymentDate(nextPaymentDate);
+          LocalDateTime nextPaymentDateTime =
+              calculateNextPaymentDate(LocalDateTime.now(), product.getPeriod());
+
+          // 월말 처리 (예: 1월 31일 -> 2월 28일)
+          int currentDay = LocalDateTime.now().getDayOfMonth();
+          Month nextMonth = nextPaymentDateTime.getMonth();
+          int daysInNextMonth = nextMonth.length(Year.isLeap(nextPaymentDateTime.getYear()));
+
+          if (currentDay > daysInNextMonth) {
+            // 다음 달의 마지막 날로 조정
+            nextPaymentDateTime = nextPaymentDateTime.withDayOfMonth(daysInNextMonth);
+          }
+          subscription.setNextPaymentDate(nextPaymentDateTime);
           subscriptionRepository.save(subscription);
 
           log.info("웹훅 이후 다음 결제일 업데이트: subscriptionId={}, nextPaymentDate={}",
-              subscription.getId(), nextPaymentDate);
+              subscription.getId(), nextPaymentDateTime);
         }
       }
     } catch (Exception e) {
@@ -648,12 +616,10 @@ public class KakaoPaymentServiceImpl implements PaymentService {
   }
 
   // 유틸리티 메서드
-  private LocalDateTime calculateNextPaymentDate(LocalDateTime currentDate, String period) {
-    return switch (period) {
-      case "MONTHLY" -> currentDate.plusMonths(1);
-      case "YEARLY" -> currentDate.plusYears(1);
-      case "WEEKLY" -> currentDate.plusWeeks(1);
-      case "DAILY" -> currentDate.plusDays(1);
+  public LocalDateTime calculateNextPaymentDate(LocalDateTime currentDate, ProductPeriod period) {
+    return switch (period.name()) {
+      case "MONTH" -> currentDate.plusMonths(1);
+      case "YEAR" -> currentDate.plusYears(1);
       default -> currentDate.plusMonths(1); // 기본값은 1개월
     };
   }
