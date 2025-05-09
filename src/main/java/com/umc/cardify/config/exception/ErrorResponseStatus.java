@@ -16,6 +16,7 @@ public enum ErrorResponseStatus {
 	SUBFOLDER_CREATION_NOT_ALLOWED(2007, "하위 폴더를 생성할 수 없습니다."),
 	FOLDER_CREATED_NOT_ALLOWED(2008, "폴더를 생성할 수 없습니다."),
 	NOTE_CREATED_NOT_ALLOWED(2009, "노트를 생성할 수 없습니다."),
+	INVALID_FOLDERID(2010, "폴더를  찾을 수 없습니다."),
 
 	// 3000 : Response 오류
 	RESPONSE_ERROR(3000, "값을 불러오는데 실패하였습니다."),

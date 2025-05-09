@@ -12,8 +12,10 @@ import java.util.List;
 @AllArgsConstructor
 @Entity
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor()
 public class Subscription extends BaseEntity{
+
+    @Setter
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -26,23 +28,35 @@ public class Subscription extends BaseEntity{
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Setter
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private SubscriptionStatus status;
 
+    // 사용자의 구독 시작 날짜
+    @Setter
     @Column(nullable = false)
     private LocalDateTime startDate;
 
-    @Column(nullable = false)
+    // 사용자의 구독 종료 날짜
+    @Column
+    @Setter
     private LocalDateTime endDate;
 
+    @Setter
+    @Column
     private String cancelReason;
 
+    @Setter
+    @Column
     private LocalDateTime canceledAt;
 
+    // 자동 갱신 여부
+    @Setter
     @Column(nullable = false)
     private Boolean autoRenew;
 
+    @Setter
     @Column(nullable = false)
     private LocalDateTime nextPaymentDate;
 

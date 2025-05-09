@@ -63,7 +63,7 @@ spring:
       max-request-size: 10MB
 app:
   oauth2:
-    redirect-uri: http://localhost:5173/archive # 프론트엔드 서버 주소
+    redirect-uri: http://localhost:8080/token-check.html # 프론트엔드 서버 주소
 jwt:
   secret: ${SECRET_KEY}
   refreshTokenValidity: ${REFRESH_TOKEN}
@@ -91,9 +91,9 @@ logging:
     com.umc.cardify: WARN  # 애플리케이션 전체에서 경고 및 오류만 기록
     com.umc.cardify.controller.OAuth2Controller: INFO  # 카카오 로그인 관련 상세 로그는 필요할 수 있으므로 INFO로 유지
     com.umc.cardify.service.KakaoService: INFO  # 카카오 로그인 서비스 관련 상세 로그는 INFO로 유지
-iamport:
-  api:
-    key: ${IAMPORT_API_KEY}
-    secret: ${IAMPORT_API_SECRET}
+portone:
+  imp_key: ${REST_API_KEY}
+  imp_secret: ${REST_API_SECRET}
+  pg_code: kakaopay.TCSUBSCRIP
 encryption:
   key: ${ENCRYPTION_KEY}

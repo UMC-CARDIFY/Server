@@ -31,6 +31,7 @@ public class Folder extends BaseEntity {
     @Column(name = "color")
     private String color;
 
+    @Getter
     @Enumerated(EnumType.STRING)
     @Column(name = "mark_state", columnDefinition = "VARCHAR(15) DEFAULT 'INACTIVE'")
     private MarkStatus markState;
@@ -41,7 +42,7 @@ public class Folder extends BaseEntity {
     @UpdateTimestamp
     private Timestamp editDate;
 
-    @OneToMany(mappedBy = "folder", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "folder", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Note> notes;
 
     @OneToMany(mappedBy = "folder", cascade = CascadeType.ALL)

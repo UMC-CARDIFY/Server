@@ -32,4 +32,12 @@ public interface PaymentMethodRepository extends JpaRepository<PaymentMethod, Lo
 
     // 결제 수단 개수 조회
     long countByUser_UserId(Long userId);
+
+    List<PaymentMethod> findByUser_UserIdAndDeletedAtIsNull(Long userId);
+
+    Optional<PaymentMethod> findByUser_UserIdAndIsDefaultTrueAndDeletedAtIsNull(Long userId);
+
+    List<PaymentMethod> findByUser_UserIdAndIdNotAndDeletedAtIsNull(Long userId, Long id);
+
+    Long user(User user);
 }

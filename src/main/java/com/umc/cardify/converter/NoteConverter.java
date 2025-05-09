@@ -41,20 +41,57 @@ public class NoteConverter {
                 .build();
     }
     public NoteResponse.NoteInfoDTO toNoteInfoDTO(Note note) {
-        return NoteResponse.NoteInfoDTO.builder()
-                .noteId(note.getNoteId())
-                .name(note.getName())
-                .folderId(note.getFolder().getFolderId())
+        // 기본 빌더 시작
+        NoteResponse.NoteInfoDTO.NoteInfoDTOBuilder builder = NoteResponse.NoteInfoDTO.builder()
+            .noteId(note.getNoteId())
+            .name(note.getName())
+            .markState(note.getMarkState())
+            .flashCardCount(note.getCards() != null ? (long) note.getCards().size() : 0L);
+
+        // 폴더 관련 필드 안전하게 처리
+        if (note.getFolder() != null) {
+            builder.folderId(note.getFolder().getFolderId())
                 .folderColor(note.getFolder().getColor())
-                .folderName(note.getFolder().getName())
-                .markState(note.getMarkState())
-                .flashCardCount(note.getCards() != null ? (long) note.getCards().size() : 0L)
-                .markAt(note.getMarkAt().toLocalDate().format(DateTimeFormatter.ofPattern("yy/MM/dd")))
-                .editDate(note.getEditDate().toLocalDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
-                .createdAt(note.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
-                .isDownload(note.getDownloadLibId() != null)
-                .isUpload(libraryService.isUploadLib(note))
-                .build();
+                .folderName(note.getFolder().getName());
+        } else {
+            // 폴더가 null인 경우 기본값 설정
+            builder.folderId(null)
+                .folderColor(null)
+                .folderName(null);
+        }
+
+        // 날짜 필드 안전하게 처리
+        if (note.getMarkAt() != null) {
+            builder.markAt(note.getMarkAt().toLocalDate().format(DateTimeFormatter.ofPattern("yy/MM/dd")));
+        } else {
+            builder.markAt(null);
+        }
+
+        if (note.getEditDate() != null) {
+            builder.editDate(note.getEditDate().toLocalDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+        } else {
+            builder.editDate(null);
+        }
+
+        if (note.getCreatedAt() != null) {
+            builder.createdAt(note.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+        } else {
+            builder.createdAt(null);
+        }
+
+        // 다운로드 상태
+        builder.isDownload(note.getDownloadLibId() != null);
+
+        // 업로드 상태 - 예외가 발생할 수 있는 메서드 호출을 try-catch로 감싸기
+        try {
+            builder.isUpload(libraryService.isUploadLib(note));
+        } catch (Exception e) {
+            // 문제 발생 시 기본값으로 설정하고 로그 기록
+            builder.isUpload(false);
+            System.err.println("Upload status check failed for note ID: " + note.getNoteId() + " - " + e.getMessage());
+        }
+
+        return builder.build();
     }
     public static NoteResponse.IsSuccessNoteDTO isSuccessNoteResult(Boolean isSuccess){
         return com.umc.cardify.dto.note.NoteResponse.IsSuccessNoteDTO.builder()

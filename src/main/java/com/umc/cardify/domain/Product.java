@@ -1,5 +1,6 @@
 package com.umc.cardify.domain;
 
+import com.umc.cardify.domain.enums.ProductPeriod;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -13,6 +14,8 @@ import java.util.List;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Product extends BaseEntity{
+
+    @Setter
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -23,8 +26,11 @@ public class Product extends BaseEntity{
     @Column(nullable = false)
     private Integer price;
 
+
+    // 연간 상품, 월간 상품
     @Column(nullable = false)
-    private String period;
+    @Enumerated(EnumType.STRING)
+    private ProductPeriod period;
 
     @Column(nullable = false)
     private Boolean isActive;
@@ -32,11 +38,8 @@ public class Product extends BaseEntity{
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(nullable = false)
-    private LocalDateTime validFrom;
-
-    @Column(nullable = false)
-    private LocalDateTime validUntil;
+//    @Column(nullable = false)
+//    private LocalDateTime validUntil;
 
     @OneToMany(mappedBy = "product")
     private List<Subscription> subscriptions = new ArrayList<>();

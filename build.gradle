@@ -21,6 +21,7 @@ configurations {
 
 repositories {
     mavenCentral()
+    maven { url 'https://jitpack.io' }  // JitPack 저장소 추가
 }
 
 dependencies {
@@ -71,6 +72,7 @@ dependencies {
     // 아임포트 연동을 위한 추가 의존성
     implementation 'org.springframework.retry:spring-retry'
     implementation 'org.springframework:spring-aspects'
+    implementation 'com.github.iamport:iamport-rest-client-java:0.2.22'
 
     // HTTP 통신 관련 유틸리티 (옵션)
     implementation 'org.apache.httpcomponents:httpclient:4.5.14'
