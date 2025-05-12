@@ -2,6 +2,12 @@ package com.umc.cardify.service.payment;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.siot.IamportRestClient.IamportClient;
+import com.siot.IamportRestClient.exception.IamportResponseException;
+import com.siot.IamportRestClient.request.AgainPaymentData;
+import com.siot.IamportRestClient.request.CancelData;
+import com.siot.IamportRestClient.response.IamportResponse;
+import com.siot.IamportRestClient.response.Payment;
 import com.umc.cardify.config.exception.ResourceNotFoundException;
 import com.umc.cardify.domain.*;
 import com.umc.cardify.domain.enums.*;
@@ -14,23 +20,31 @@ import com.umc.cardify.repository.*;
 import com.umc.cardify.service.subscription.SubscriptionServiceImpl;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.*;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
-import java.sql.Timestamp;
-import java.time.*;
-import java.util.*;
+import java.time.LocalDateTime;
+import java.time.Month;
+import java.time.Year;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class KakaoPaymentServiceImpl implements PaymentService {
+public class SimplePayServiceImpl implements SimplePayService {
 
+  private final IamportClient iamportClient;
   private final PortoneClient portoneClient;
   private final PaymentMethodRepository paymentMethodRepository;
   private final SubscriptionRepository subscriptionRepository;
@@ -42,22 +56,34 @@ public class KakaoPaymentServiceImpl implements PaymentService {
   private final RestTemplate restTemplate;
   private final BillingKeyRequestRepository billingKeyRequestRepository;
 
-  @Value("${portone.pg_code}")
+  @Value("${portone.kakaopay_pg_code}")
   private String KAKAOPAY_PG_CODE;
+
+  @Value("${portone.tosspay_pg_code}")
+  private String TOSSPAY_PG_CODE;
+
+  @Value("${portone.naverpay_pg_code}")
+  private String NAVERPAY_PG_CODE;
 
   // 빌링키 요청
   @Override
   @Transactional
   public BillingKeyResponse.RequestBillingKeyRes requestBillingKey(BillingKeyRequestDTO.RequestBillingKeyReq request) {
-    log.info("빌링키 요청 시작: userId={}, productId={}", request.userId(), request.productId());
+    log.info("빌링키 요청 시작: userId={}, productId={}, pgProvider={}",
+        request.userId(), request.productId(), request.pgProvider());
+
+    // PG사 코드 결정
+    String pgCode = getPgCode(request.pgProvider());
 
     // 구독 중복 확인
     long activeSubscriptionCount = subscriptionRepository.countByUser_UserIdAndStatus(request.userId(), SubscriptionStatus.ACTIVE);
 
     if (activeSubscriptionCount > 0) {
       List<BillingKeyRequest> billingKeyRequestList = billingKeyRequestRepository.findByUserUserIdAndStatus(request.userId(), BillingKeyStatus.REQUESTED);
-      BillingKeyRequest billingKeyRequest = billingKeyRequestList.get(billingKeyRequestList.size() - 1);
-      billingKeyRequest.setStatus(BillingKeyStatus.FAILED);
+      if (!billingKeyRequestList.isEmpty()) {
+        BillingKeyRequest billingKeyRequest = billingKeyRequestList.get(billingKeyRequestList.size() - 1);
+        billingKeyRequest.setStatus(BillingKeyStatus.FAILED);
+      }
       throw new IllegalStateException("이미 활성 상태의 구독이 있습니다. 새로운 구독을 시작하기 전에 기존 구독을 취소해 주세요.");
     }
 
@@ -76,25 +102,49 @@ public class KakaoPaymentServiceImpl implements PaymentService {
             .orElseThrow(() -> new RuntimeException("상품을 찾을 수 없습니다: " + request.productId()));
       }
 
-      // 프론트엔드에 제공할 정보 구성 (포트원 JavaScript SDK 호출용)
-      Map<String, Object> requestData = new HashMap<>();
-      requestData.put("pg", KAKAOPAY_PG_CODE);
-      requestData.put("pay_method", "card");
-      requestData.put("merchant_uid", merchantUid);
-      requestData.put("customer_uid", customerUid);
-      requestData.put("name", "구독 서비스 자동결제 등록");
-      requestData.put("amount", 0); // 빌링키 발급은 0원
-      requestData.put("buyer_email", request.email());
-      requestData.put("buyer_name", request.name());
-
       // 콜백 URL 설정
-      String baseUrl = request.callbackUrl() != null ?
-          request.callbackUrl() : "http://localhost:8080";
+      String baseUrl = request.callbackUrl() != null ? request.callbackUrl() : "http://localhost:8080";
+      String successUrl = baseUrl + "/api/v1/payments/simple-pay/success";
+      String failUrl = baseUrl + "/api/v1/payments/simple-pay/fail";
 
-      // TODO: 이후 완성
-      // requestData.put("m_redirect_url", baseUrl + "/api/v1/payments/kakaopay/mobile-success"); // 모바일 환경
-      requestData.put("success_url", baseUrl + "/api/v1/payments/kakaopay/success");
-      requestData.put("fail_url", baseUrl + "/api/v1/payments/kakaopay/fail");
+      // PG사별 빌링키 요청 처리
+      Map<String, Object> requestData;
+      String authUrl = null;
+
+      // pg사 별 빌링키 발급 요청
+      if (TOSSPAY_PG_CODE.equals(pgCode)) {
+        // 토스페이 빌링키 발급 요청
+        authUrl = requestTosspayBillingKey(customerUid, request.name(), request.email(),
+            successUrl + "?merchant_uid=" + merchantUid + "&customer_uid=" + customerUid,
+            failUrl + "?merchant_uid=" + merchantUid);
+
+        // 프론트엔드 요청 데이터
+        requestData = Map.of(
+            "authenticationUrl", authUrl,
+            "merchantUid", merchantUid,
+            "customerUid", customerUid
+        );
+      } else if (KAKAOPAY_PG_CODE.equals(pgCode)) {
+        // 카카오페이 빌링키 발급 요청 데이터 구성
+        // 프론트엔드에 제공할 정보 구성 (포트원 JavaScript SDK 호출용)
+        requestData = new HashMap<>();
+        requestData.put("pg", pgCode);
+        requestData.put("pay_method", "card");
+        requestData.put("merchant_uid", merchantUid);
+        requestData.put("customer_uid", customerUid);
+        requestData.put("name", "구독 서비스 자동결제 등록");
+        requestData.put("amount", 0); // 빌링키 발급은 0원
+        requestData.put("buyer_email", request.email());
+        requestData.put("buyer_name", request.name());
+        // TODO : 모바일 버전 확인 후 수정
+        //requestData.put("m_redirect_url", baseUrl + "/api/v1/payments/mobile-success"); // 모바일 환경
+        requestData.put("success_url", successUrl);
+        requestData.put("fail_url", failUrl);
+      } else {
+        // TODO : 이후 수정
+        // 다른 PG사 요청 데이터 구성 (네이버페이 등)
+        throw new RuntimeException("지원하지 않는 PG사입니다: " + pgCode);
+      }
 
       // 빌링키 요청 정보 저장
       BillingKeyRequest billingKeyRequest = BillingKeyRequest.builder()
@@ -102,7 +152,7 @@ public class KakaoPaymentServiceImpl implements PaymentService {
           .merchantUid(merchantUid)
           .customerUid(customerUid)
           .status(BillingKeyStatus.REQUESTED)
-          .pgProvider(KAKAOPAY_PG_CODE)
+          .pgProvider(pgCode)
           .requestData(objectMapper.writeValueAsString(requestData))
           .product(product)
           .build();
@@ -122,6 +172,83 @@ public class KakaoPaymentServiceImpl implements PaymentService {
     }
   }
 
+  // 토스페이 빌링키 발급 요청
+  private String requestTosspayBillingKey(String customerUid, String customerName, String customerEmail,
+                                          String successUrl, String failUrl) throws Exception {
+    // 토스페이 빌링키 발급 요청 URL
+    String requestUrl = "https://api.iamport.kr/subscribe/customers/" + customerUid;
+
+    // 요청 헤더와 본문 생성
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+    headers.set("Authorization", portoneClient.getAccessToken());
+
+    Map<String, Object> body = new HashMap<>();
+    body.put("pg", TOSSPAY_PG_CODE);
+    body.put("customer_name", customerName);
+    body.put("customer_email", customerEmail);
+    body.put("summary", "정기결제를 위한 인증");
+    body.put("bypass", Map.of(
+        "tosspay_v2", Map.of(
+            "customer_key", customerUid,
+            "success_url", successUrl,
+            "fail_url", failUrl
+        )
+    ));
+    // 요청 내용 로깅
+    log.debug("토스페이 빌링키 발급 요청 URL: {}", requestUrl);
+    log.debug("토스페이 빌링키 발급 요청 본문: {}", body);
+
+    // API 호출
+    HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+
+    try {
+      Map<String, Object> response = restTemplate.postForObject(requestUrl, entity, Map.class);
+
+      // 응답 로깅
+      log.debug("토스페이 빌링키 발급 응답: {}", response);
+
+      if (response == null) {
+        throw new RuntimeException("빌링키 발급 요청 실패: 응답이 없습니다.");
+      }
+
+      if (!response.containsKey("response")) {
+        // 에러 응답일 경우 추가 확인
+        if (response.containsKey("error_code") || response.containsKey("message")) {
+          String errorCode = response.containsKey("error_code") ? response.get("error_code").toString() : "unknown";
+          String message = response.containsKey("message") ? response.get("message").toString() : "unknown error";
+          log.error("포트원 API 오류: code={}, message={}", errorCode, message);
+          throw new RuntimeException("빌링키 발급 요청 실패: " + message + " (코드: " + errorCode + ")");
+        }
+
+        throw new RuntimeException("빌링키 발급 요청 실패: 응답에 'response' 키가 없습니다.");
+      }
+
+      Object responseObj = response.get("response");
+      if (responseObj == null) {
+        throw new RuntimeException("빌링키 발급 요청 실패: 'response' 값이 null입니다.");
+      }
+
+      try {
+        Map<String, Object> responseData = (Map<String, Object>) responseObj;
+
+        if (!responseData.containsKey("authentication_url")) {
+          log.error("인증 URL이 응답에 없습니다: {}", responseData);
+          throw new RuntimeException("빌링키 발급 요청 실패: 인증 URL이 응답에 없습니다.");
+        }
+
+        return (String) responseData.get("authentication_url");
+      } catch (ClassCastException e) {
+        log.error("response를 Map으로 변환할 수 없습니다: {}", responseObj);
+        throw new RuntimeException("빌링키 발급 요청 실패: 응답 형식이 잘못되었습니다.");
+      }
+    } catch (RestClientException e) {
+      log.error("API 호출 중 오류 발생: {}", e.getMessage(), e);
+      throw new RuntimeException("빌링키 발급 요청 API 호출 중 오류: " + e.getMessage());
+    }
+  }
+
+  // 빌링키 발급 승인
   @Override
   @Transactional
   public BillingKeyResponse.ApproveBillingKeyRes approveBillingKey(BillingKeyRequestDTO.ApproveBillingKeyReq request) {
@@ -132,16 +259,34 @@ public class KakaoPaymentServiceImpl implements PaymentService {
       BillingKeyRequest billingKeyRequest = billingKeyRequestRepository.findByMerchantUid(request.merchantUid())
           .orElseThrow(() -> new RuntimeException("빌링키 요청 정보를 찾을 수 없습니다: " + request.merchantUid()));
 
-      // 2. 포트원 API 호출하여 빌링키 발급 상태 확인
-      // 실제 구현에서는 포트원의 API를 호출하여 검증
-      // 여기서는 간략화를 위해 생략 (포트원 클라이언트 호출 부분)
-      String customerUid = billingKeyRequest.getCustomerUid();
-      try {
-        log.info("포트원 API 빌링키 승인 호출: customerUid={}, pgToken={}", customerUid, request.pgToken());
-      } catch (Exception e) {
-        log.error("포트원 API 빌링키 승인 실패: {}", e.getMessage());
+      // PG사 코드 확인
+      String pgCode = billingKeyRequest.getPgProvider();
+      PaymentType paymentType = getPaymentType(pgCode);
+
+      // 2. 포트원 API 호출하여 결제 정보 조회
+      Payment payment = null;
+      String cardCompany = null;
+      String cardNumber = null;
+
+      // PG사별 결제 정보 조회
+      if (TOSSPAY_PG_CODE.equals(pgCode)) {
+        // 토스페이는 imp_uid(tid) 사용
+        IamportResponse<Payment> paymentResponse = iamportClient.paymentByImpUid(request.tid());
+        payment = paymentResponse.getResponse();
+
+        if (payment != null) {
+          cardCompany = payment.getCardName();
+          cardNumber = payment.getCardNumber();
+        }
+      } else if (KAKAOPAY_PG_CODE.equals(pgCode)) {
+        // 카카오페이는 별도 검증 로직 필요 없음 (프론트에서 처리)
+        // 필요시 카카오페이 결제 정보 조회 API 호출
+      }
+
+      // 결제 정보 검증
+      if (payment == null && TOSSPAY_PG_CODE.equals(pgCode)) {
         billingKeyRequest.updateStatus(BillingKeyStatus.FAILED);
-        throw new RuntimeException("빌링키 발급 승인에 실패했습니다: " + e.getMessage());
+        throw new RuntimeException("결제 정보를 찾을 수 없습니다: " + request.tid());
       }
 
       // 3. pg_token 저장 및 상태 업데이트
@@ -163,16 +308,15 @@ public class KakaoPaymentServiceImpl implements PaymentService {
       // 새 결제 수단 저장
       PaymentMethod paymentMethod = PaymentMethod.builder()
           .user(userRepository.findByUserId(userId))
-          .type(PaymentType.KAKAO)
-          .provider("KAKAOPAY")
+          .type(paymentType)
+          .provider(getProviderName(pgCode))
           .billingKey(billingKeyRequest.getCustomerUid())
-          .isDefault(true) // 결제한 카카오페이를 기본 결제 수단으로
-          // 카카오페이는 카드 유효 기간 정보 없음
-          // .validUntil(LocalDate.now().plusYears(1))
+          .cardNumber(cardNumber)
+          .isDefault(true) // 결제한 수단을 기본 결제 수단으로
           .build();
 
       PaymentMethod savedPaymentMethod = paymentMethodRepository.save(paymentMethod);
-      log.info("결제 수단 저장 완료: id={}, billingKey={}", savedPaymentMethod.getId(), maskString(customerUid));
+      log.info("결제 수단 저장 완료: id={}, billingKey={}", savedPaymentMethod.getId(), maskString(billingKeyRequest.getCustomerUid()));
 
       // 빌링키 요청과 결제 수단 연결
       billingKeyRequest.setPaymentMethod(savedPaymentMethod);
@@ -186,6 +330,7 @@ public class KakaoPaymentServiceImpl implements PaymentService {
           .pgProvider(billingKeyRequest.getPgProvider())
           .build();
 
+      // 구독 생성
       SubscriptionResponse.SubscriptionInfoRes subscriptionRes =
           subscriptionServiceImpl.createSubscription(subscriptionRequest, null);
 
@@ -198,108 +343,64 @@ public class KakaoPaymentServiceImpl implements PaymentService {
           .userId(userId)
           .subscriptionId(subscriptionRes.id())
           .build();
-    } catch (Exception e) {
+
+    } catch (IamportResponseException | IOException e) {
       log.error("빌링키 발급 승인 중 오류: {}", e.getMessage(), e);
       throw new RuntimeException("빌링키 발급 승인 중 오류 발생: " + e.getMessage(), e);
     }
   }
 
-  // 민감한 정보 마스킹 유틸리티 메서드
-  private String maskString(String input) {
-    if (input == null || input.length() < 8) {
-      return "****";
-    }
-    int visibleChars = Math.min(4, input.length() / 4);
-    return input.substring(0, visibleChars) +
-        "*".repeat(input.length() - 2 * visibleChars) +
-        input.substring(input.length() - visibleChars);
-  }
-
   // 빌링키 상태 조회
   @Override
   public BillingKeyResponse.BillingStatusRes getBillingStatus(String merchantUid) {
-    log.info("빌링키 상태 조회 시작: merchantUid={}", merchantUid);
+    log.info("빌링키 상태 조회: merchantUid={}", merchantUid);
 
-    try {
-      // 포트원 API를 통해 결제 상태 조회
-      String token = portoneClient.getAccessToken();
+    BillingKeyRequest billingKeyRequest = billingKeyRequestRepository.findByMerchantUid(merchantUid)
+        .orElseThrow(() -> new RuntimeException("빌링키 요청 정보를 찾을 수 없습니다: " + merchantUid));
 
-      HttpHeaders headers = new HttpHeaders();
-      headers.setContentType(MediaType.APPLICATION_JSON);
-      headers.set("Authorization", "Bearer " + token);
-
-      HttpEntity<Void> entity = new HttpEntity<>(headers);
-
-      String url = "https://api.iamport.kr/payments/find/" + merchantUid;
-      ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
-
-      // 응답 처리
-      JsonNode rootNode = objectMapper.readTree(response.getBody());
-
-      if (rootNode.path("code").asInt() != 0) {
-        log.error("빌링키 상태 조회 실패: {}", rootNode.path("message").asText());
-        throw new RuntimeException("빌링키 상태 조회 실패: " + rootNode.path("message").asText());
-      }
-
-      JsonNode responseData = rootNode.path("response");
-
-      return BillingKeyResponse.BillingStatusRes.builder()
-          .merchantUid(merchantUid)
-          .status(responseData.path("status").asText())
-          .customerUid(responseData.path("customer_uid").asText())
-          .build();
-
-    } catch (Exception e) {
-      log.error("빌링키 상태 조회 중 오류: {}", e.getMessage(), e);
-      throw new RuntimeException("빌링키 상태 조회 중 오류 발생: " + e.getMessage(), e);
-    }
+    return BillingKeyResponse.BillingStatusRes.builder()
+        .merchantUid(billingKeyRequest.getMerchantUid())
+        .customerUid(billingKeyRequest.getCustomerUid())
+        .status(billingKeyRequest.getStatus().name())
+        .build();
   }
 
-  // 결체 취소
+  // 결제 취소
   @Override
   @Transactional
   public boolean cancelPayment(SubscriptionRequest.CancelPaymentReq request) {
-    log.info("결제 취소 요청: merchantUid={}, reason={}", request.merchantUid(), request.reason());
+    log.info("결제 취소 요청: subscriptionId={}", request.merchantUid());
 
-    try {
-      // 결제 조회
-      SubscriptionPayment subscriptionPayment = subscriptionPaymentRepository.findByMerchantUid(request.merchantUid())
-          .orElseThrow(() -> new ResourceNotFoundException("결제 내역을 찾을 수 없습니다: " + request.merchantUid()));
+    // 결제 조회
+    SubscriptionPayment subscriptionPayment = subscriptionPaymentRepository.findByMerchantUid(request.merchantUid())
+        .orElseThrow(() -> new ResourceNotFoundException("결제 내역을 찾을 수 없습니다: " + request.merchantUid()));
 
-      // 이미 취소된 결제인지 확인
-      if ("CANCELLED".equals(subscriptionPayment.getStatus().name())) {
-        log.warn("이미 취소된 결제입니다: merchantUid={}", request.merchantUid());
-        return false;
-      }
-
-      // 결제 취소 요청
-      JsonNode cancelResponse = portoneClient.cancelPayment(request.merchantUid(), request.reason());
-
-      // 취소 성공 시 상태 업데이트
-      if (cancelResponse == null) {
-        subscriptionPayment.setStatus(PaymentStatus.CANCELED);
-        subscriptionPaymentRepository.save(subscriptionPayment);
-
-        // 취소 응답 정보 저장 (선택사항)
-        try {
-          subscriptionPayment.setPgResponse(objectMapper.writeValueAsString(cancelResponse));
-        } catch (Exception e) {
-          log.warn("취소 응답 저장 실패: {}", e.getMessage());
-        }
-
-        log.info("결제 취소 성공: merchantUid={}", request.merchantUid());
-        return true;
-      } else {
-        log.error("결제 취소 실패: 응답이 없습니다");
-        return false;
-      }
-
-    } catch (Exception e) {
-      log.error("결제 취소 중 오류 발생: {}", e.getMessage());
+    // 이미 취소된 결제인지 확인
+    if ("CANCELLED".equals(subscriptionPayment.getStatus().name())) {
+      log.warn("이미 취소된 결제입니다: merchantUid={}", request.merchantUid());
       return false;
     }
+
+    // 포트원 API를 통해 결제 취소
+    CancelData cancelData = cancelData(subscriptionPayment.getMerchantUid(), "사용자 요청에 의한 취소");
+
+    // 결제 상태 업데이트
+    subscriptionPayment.setStatus(PaymentStatus.CANCELED);
+    subscriptionPaymentRepository.save(subscriptionPayment);
+
+    // 구독 상태 업데이트
+    Subscription subscription = subscriptionPayment.getSubscription();
+    subscription.setStatus(SubscriptionStatus.CANCELLED);
+    subscription.setEndDate(LocalDateTime.now());
+    subscription.setAutoRenew(false);
+    subscriptionRepository.save(subscription);
+
+    log.info("결제 취소 완료: subscriptionId={}, paymentId={}", subscription.getId(), subscriptionPayment.getId());
+    return true;
+
   }
 
+  // 정기 결제 처리
   @Override
   @Scheduled(cron = "0 0 1 * * ?") // 매일 새벽 1시에 실행
   @Transactional
@@ -322,13 +423,15 @@ public class KakaoPaymentServiceImpl implements PaymentService {
       try {
         processSubscriptionPayment(subscription);
       } catch (Exception e) {
-        log.error("구독 ID {}의 결제 처리 중 오류 발생: {}", subscription.getId(), e.getMessage());
+        log.error("구독 ID {}의 정기 결제 처리 중 오류: {}", subscription.getId(), e.getMessage(), e);
+        // 실패해도 다음 구독 계속 처리
       }
     }
 
     log.info("정기 결제 처리 완료");
   }
 
+  // 구독 처리
   private void processSubscriptionPayment(Subscription subscription) {
     log.info("구독 ID {}의 결제 처리 시작", subscription.getId());
 
@@ -502,136 +605,156 @@ public class KakaoPaymentServiceImpl implements PaymentService {
   @Override
   @Transactional
   public void handleWebhook(WebhookRequest request) {
-    log.info("웹훅 수신: impUid={}, merchantUid={}, status={}",
-        request.getImp_uid(), request.getMerchant_uid(), request.getStatus());
+    log.info("웹훅 수신: imp_uid={}, merchant_uid={}, status={}", request.getImp_uid(), request.getMerchant_uid(), request.getStatus());
 
     try {
-      // 결제 정보 조회 및 검증
-      JsonNode paymentData = portoneClient.getPaymentData(request.getImp_uid());
+      // imp_uid로 결제 정보 조회
+      IamportResponse<Payment> response = iamportClient.paymentByImpUid(request.getImp_uid());
+      Payment payment = response.getResponse();
 
-      // 결제 검증
-      if (paymentData == null) {
-        log.error("웹훅 처리 실패: 유효하지 않은 결제 정보");
+      if (payment == null) {
+        log.warn("웹훅에 해당하는 결제 정보를 찾을 수 없습니다: {}", request.getImp_uid());
         return;
       }
 
-      // 웹훅 데이터와 실제 결제 정보 검증
-      String merchantUid = paymentData.path("merchant_uid").asText();
-      if (!merchantUid.equals(request.getMerchant_uid())) {
-        log.error("웹훅 처리 실패: 주문번호 불일치 webhook={}, actual={}",
-            request.getMerchant_uid(), merchantUid);
-        return;
-      }
+      String merchantUid = payment.getMerchantUid();
 
-      // merchantUid로 기존 결제 내역 조회
-      Optional<SubscriptionPayment> optionalPayment = subscriptionPaymentRepository.findByMerchantUid(request.getMerchant_uid());
-
-      if (optionalPayment.isPresent()) {
-        SubscriptionPayment subscriptionPayment = optionalPayment.get();
-
-        // 결제 상태 업데이트
-        String status = paymentData.path("status").asText();
-        switch (status) {
-          case "paid":
-            // 이미 처리된 결제인지 확인
-            if ("PAID".equals(subscriptionPayment.getStatus().name())) {
-              log.info("이미 처리된 결제입니다: {}", request.getMerchant_uid());
-              return;
-            }
-
-            subscriptionPayment.setStatus(PaymentStatus.PAID);
-            // JSON에서 timestamp를 가져오고 변환
-            long paidAtTimestamp = paymentData.path("paid_at").asLong(); // 초 단위
-            LocalDateTime paidAtDateTime = LocalDateTime.ofInstant(
-                Instant.ofEpochSecond(paidAtTimestamp),
-                ZoneId.systemDefault());
-            subscriptionPayment.setPaidAt(paidAtDateTime);
-
-            // 다음 결제일 업데이트
-            updateNextPaymentDateAfterWebhook(subscriptionPayment.getSubscription().getId());
-            break;
-
-          case "failed":
-            subscriptionPayment.setStatus(PaymentStatus.FAILED);
-            subscriptionPayment.setPgResponse("결제 실패: " + paymentData.path("fail_reason").asText());
-            break;
-
-          case "cancelled":
-            subscriptionPayment.setStatus(PaymentStatus.CANCELED);
-            break;
-        }
-
-        // 응답 데이터 업데이트
-        subscriptionPayment.setPgResponse(objectMapper.writeValueAsString(paymentData));
-
-        subscriptionPaymentRepository.save(subscriptionPayment);
-        log.info("웹훅 처리 완료: merchantUid={}, 상태={}", request.getMerchant_uid(), status);
+      // merchant_uid 접두어로 처리 분기
+      if (merchantUid.startsWith("subscribe_")) {
+        // 빌링키 발급 관련 웹훅
+        handleBillingKeyWebhook(merchantUid, payment, request.getStatus());
+      } else if (merchantUid.startsWith("recurring_")) {
+        // 정기 결제 관련 웹훅
+        handleRecurringPaymentWebhook(merchantUid, payment, request.getStatus());
       } else {
-        // 결제 내역이 없는 경우 새로 생성 (웹훅이 먼저 도착한 경우)
-        // 주문번호 형식에서 구독 ID 추출 (예: recurring_123_timestamp)
-        String webHookMerchantUid  = request.getMerchant_uid();
-        if (merchantUid.startsWith("recurring_")) {
-          try {
-            String[] parts = merchantUid.split("_");
-            if (parts.length >= 2) {
-              Long subscriptionId = Long.parseLong(parts[1]);
-              Subscription subscription = subscriptionRepository.findById(subscriptionId)
-                  .orElse(null);
-
-              if (subscription != null) {
-                // 결제 내역 생성
-                SubscriptionPayment newSubscriptionPayment = new SubscriptionPayment();
-                newSubscriptionPayment.getSubscription().setId(subscriptionId);
-                newSubscriptionPayment.setMerchantUid(merchantUid);
-                newSubscriptionPayment.setAmount(paymentData.path("amount").asInt());
-
-                // 결제 수단 설정
-                PaymentMethod paymentMethod = paymentMethodRepository
-                    .findByUser_UserIdAndIsDefaultTrueAndDeletedAtIsNull(subscription.getUser().getUserId())
-                    .orElse(null);
-
-                if (paymentMethod != null) {
-                  newSubscriptionPayment.getPaymentMethod().setId(paymentMethod.getId());
-                }
-
-                // 상태 설정
-                String paymentStatus = paymentData.path("status").asText();
-                if ("paid".equals(paymentStatus)) {
-                  newSubscriptionPayment.setStatus(PaymentStatus.PAID);
-                  long paidAtTimestamp = paymentData.path("paid_at").asLong(); // 초 단위
-                  LocalDateTime paidAtDateTime = LocalDateTime.ofInstant(
-                      Instant.ofEpochSecond(paidAtTimestamp),
-                      ZoneId.systemDefault());
-                  newSubscriptionPayment.setPaidAt(paidAtDateTime);
-
-
-                  // 다음 결제일 업데이트
-                  updateNextPaymentDateAfterWebhook(subscriptionId);
-                } else {
-                  newSubscriptionPayment.setStatus(PaymentStatus.FAILED);
-                  newSubscriptionPayment.setPgResponse("결제 실패: " + paymentData.path("fail_reason").asText());
-                }
-
-                newSubscriptionPayment.setPgProvider("KAKAO");
-                newSubscriptionPayment.setPgResponse(objectMapper.writeValueAsString(paymentData));
-
-                subscriptionPaymentRepository.save(newSubscriptionPayment);
-                log.info("웹훅으로 새 결제 내역 생성: merchantUid={}, 상태={}",
-                    merchantUid, newSubscriptionPayment.getStatus());
-              }
-            }
-          } catch (Exception e) {
-            log.error("웹훅 처리 중 구독 ID 추출 오류: {}", e.getMessage());
-          }
-        } else {
-          log.warn("웹훅 처리: 해당 merchantUid에 대한 결제 내역이 없습니다: {}", merchantUid);
-        }
+        log.warn("알 수 없는 형식의 merchant_uid: {}", merchantUid);
       }
-    } catch (Exception e) {
-      log.error("웹훅 처리 중 오류 발생: {}", e.getMessage());
+
+    } catch (IamportResponseException | IOException e) {
+      log.error("웹훅 처리 중 오류: {}", e.getMessage(), e);
+      throw new RuntimeException("웹훅 처리 중 오류 발생: " + e.getMessage(), e);
     }
   }
 
+  // 빌링키 발급 웹훅 처리
+  private void handleBillingKeyWebhook(String merchantUid, Payment payment, String status) {
+    BillingKeyRequest billingKeyRequest = billingKeyRequestRepository.findByMerchantUid(merchantUid)
+        .orElse(null);
+
+    if (billingKeyRequest == null) {
+      log.warn("웹훅에 해당하는 빌링키 요청을 찾을 수 없습니다: {}", merchantUid);
+      return;
+    }
+
+    if ("paid".equals(status)) {
+      billingKeyRequest.updateStatus(BillingKeyStatus.APPROVED);
+      log.info("빌링키 발급 성공 처리: {}", merchantUid);
+    } else if ("failed".equals(status)) {
+      billingKeyRequest.updateStatus(BillingKeyStatus.FAILED);
+      log.warn("빌링키 발급 실패 처리: {}", merchantUid);
+    }
+  }
+
+  // 정기 결제 웹훅 처리
+  private void handleRecurringPaymentWebhook(String merchantUid, Payment payment, String status) {
+    SubscriptionPayment subscriptionPayment = subscriptionPaymentRepository.findByMerchantUid(merchantUid)
+        .orElse(null);
+
+    if (subscriptionPayment == null) {
+      log.warn("웹훅에 해당하는 결제 내역을 찾을 수 없습니다: {}", merchantUid);
+      return;
+    }
+
+    if ("paid".equals(status)) {
+      subscriptionPayment.setStatus(PaymentStatus.PAID);
+      subscriptionPayment.setPaidAt(LocalDateTime.now());
+      log.info("결제 성공 처리: {}", merchantUid);
+
+      // 다음 결제일 별도 메소드로 업데이트 (에러 핸들링 포함)
+      updateNextPaymentDateAfterWebhook(subscriptionPayment.getSubscription().getId());
+
+    } else if ("failed".equals(status)) {
+      subscriptionPayment.setStatus(PaymentStatus.FAILED);
+      log.warn("결제 실패 처리: {}", merchantUid);
+
+    } else if ("cancelled".equals(status)) {
+      subscriptionPayment.setStatus(PaymentStatus.CANCELED);
+      log.info("결제 취소 처리: {}", merchantUid);
+
+      // 구독 취소 로직 추가 가능
+      Subscription subscription = subscriptionPayment.getSubscription();
+      subscription.setStatus(SubscriptionStatus.CANCELLED);
+      subscription.setAutoRenew(false);
+      subscription.setEndDate(LocalDateTime.now());
+      subscriptionRepository.save(subscription);
+    }
+
+    // 결제 정보 업데이트
+    subscriptionPayment.setPgResponse(payment.getStatus());
+    subscriptionPaymentRepository.save(subscriptionPayment);
+  }
+
+  private CancelData cancelData(String merchantUid, String reason) {
+    // merchantUid를 사용하여 CancelData 생성 (두 번째 파라미터 false는 merchant_uid 사용을 의미)
+    CancelData cancelData = new CancelData(merchantUid, false);
+    cancelData.setReason(reason);
+    return cancelData;
+  }
+
+  // pg사 이름 변환
+  private String getProviderName(String pgCode) {
+    if (pgCode.equals(KAKAOPAY_PG_CODE)) {
+      return "KAKAOPAY";
+    } else if (pgCode.equals(TOSSPAY_PG_CODE)) {
+      return "TOSSPAY";
+    } else if (pgCode.equals(NAVERPAY_PG_CODE)) {
+      return "NAVERPAY";
+    } else {
+      return "CARD";
+    }
+  }
+  
+  // PG사 코드 변환
+  private String getPgCode(String pgProvider) {
+    return switch (pgProvider.toUpperCase()) {
+      case "KAKAO", "KAKAOPAY" -> KAKAOPAY_PG_CODE;
+      case "TOSS", "TOSSPAY" -> TOSSPAY_PG_CODE;
+      case "NAVER", "NAVERPAY" -> NAVERPAY_PG_CODE;
+      default -> throw new IllegalArgumentException("지원하지 않는 PG사: " + pgProvider);
+    };
+  }
+
+  // 결제 타입 변환
+  private PaymentType getPaymentType(String pgCode) {
+    if (pgCode.equals(KAKAOPAY_PG_CODE)) {
+      return PaymentType.KAKAO;
+    } else if (pgCode.equals(TOSSPAY_PG_CODE)) {
+      return PaymentType.TOSS;
+    } else if (pgCode.equals(NAVERPAY_PG_CODE)) {
+      return PaymentType.NAVER;
+    } else {
+      return PaymentType.CARD;
+    }
+  }
+
+  // 민감 정보 마스킹 처리
+  private String maskString(String str) {
+    if (str == null || str.length() <= 8) {
+      return "****";
+    }
+    return str.substring(0, 4) + "*".repeat(str.length() - 8) + str.substring(str.length() - 4);
+  }
+
+  // 다음 결제일 계산
+  private LocalDateTime calculateNextPaymentDate(LocalDateTime currentDate, ProductPeriod period) {
+    return switch (period.name()) {
+      case "MONTH" -> currentDate.plusMonths(1);
+      case "YEAR" -> currentDate.plusYears(1);
+      default -> currentDate.plusMonths(1); // 기본값은 1개월
+    };
+  }
+
+  // 다음 결제일 저장
   private void updateNextPaymentDateAfterWebhook(Long subscriptionId) {
     try {
       Subscription subscription = subscriptionRepository.findById(subscriptionId).orElse(null);
@@ -662,61 +785,4 @@ public class KakaoPaymentServiceImpl implements PaymentService {
     }
   }
 
-  // 유틸리티 메서드
-  private LocalDateTime calculateNextPaymentDate(LocalDateTime currentDate, ProductPeriod period) {
-    return switch (period.name()) {
-      case "MONTH" -> currentDate.plusMonths(1);
-      case "YEAR" -> currentDate.plusYears(1);
-      default -> currentDate.plusMonths(1); // 기본값은 1개월
-    };
-  }
-
-  private BillingKeyResponse.KakaoPayMethodRes convertToKakaoPayMethodRes(PaymentMethod entity) {
-    String provider = entity.getProvider();
-    String cardNumber = entity.getCardNumber();
-
-    // 카카오페이 제공사인 경우 특별 처리
-    if ("KAKAO".equals(provider)) {
-      try {
-        // 메타데이터에서 추가 정보 추출 (있는 경우)
-        if (entity.getMetaData() != null && !entity.getMetaData().isEmpty()) {
-          ObjectMapper mapper = new ObjectMapper();
-          Map<String, Object> metaData = mapper.readValue(entity.getMetaData(), Map.class);
-
-          // 카드 브랜드 정보가 있으면 provider에 추가
-          if (metaData.containsKey("card_name") || metaData.containsKey("card_brand")) {
-            String cardName = (String) metaData.getOrDefault("card_name", "");
-            String cardBrand = (String) metaData.getOrDefault("card_brand", "");
-
-            if (!cardName.isEmpty() || !cardBrand.isEmpty()) {
-              provider = "KAKAO (" + (!cardName.isEmpty() ? cardName : cardBrand) + ")";
-            }
-          }
-        }
-      } catch (Exception e) {
-        log.warn("카카오페이 메타데이터 파싱 중 오류 발생: {}", e.getMessage());
-      }
-    }
-
-    return BillingKeyResponse.KakaoPayMethodRes.builder()
-        .id(entity.getId())
-        .type(entity.getType())
-        .provider(provider)
-        .cardNumber(cardNumber)
-        .isDefault(entity.getIsDefault())
-        .createdAt(entity.getCreatedAt())
-        .build();
-  }
-
-  private String maskCardNumber(String cardNumber) {
-    if (cardNumber == null || cardNumber.length() < 8) {
-      return cardNumber;
-    }
-
-    // 앞 6자리와 뒤 4자리만 남기고 마스킹
-    String prefix = cardNumber.substring(0, 6);
-    String suffix = cardNumber.substring(cardNumber.length() - 4);
-
-    return prefix + "******" + suffix;
-  }
 }

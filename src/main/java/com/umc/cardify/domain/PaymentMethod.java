@@ -32,6 +32,7 @@ public class PaymentMethod extends BaseEntity{
     private PaymentType type;
 
     @Setter
+    @Getter
     @Column(nullable = false)
     private String provider;
 

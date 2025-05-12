@@ -1,6 +1,5 @@
 package com.umc.cardify.service.subscription;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.cardify.auth.jwt.JwtTokenProvider;
 import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
@@ -10,7 +9,6 @@ import com.umc.cardify.domain.enums.*;
 import com.umc.cardify.dto.payment.subscription.SubscriptionRequest;
 import com.umc.cardify.dto.payment.subscription.SubscriptionResponse;
 import com.umc.cardify.repository.*;
-import com.umc.cardify.service.payment.KakaoPaymentServiceImpl;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +18,6 @@ import java.time.LocalDateTime;
 import java.time.Month;
 import java.time.Year;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -34,7 +31,6 @@ public class SubscriptionServiceImpl implements SubscriptionService {
   private final ProductRepository productRepository;
   private final UserRepository userRepository;
   private final JwtTokenProvider jwtTokenProvider;
-  private final BillingKeyRequestRepository billingKeyRequestRepository;
 
   private Long findUserId(String token) {
     String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));

@@ -80,6 +80,10 @@
     <input type="text" id="name" value="홍길동">
   </div>
   <div class="input-group">
+    <label for="pgProvider">pg사</label>
+    <input type="text" id="pgProvider" value="KAKAOPAY">
+  </div>
+  <div class="input-group">
     <label for="backendUrl">백엔드 URL</label>
     <input type="text" id="backendUrl" value="http://localhost:8080">
   </div>
@@ -147,20 +151,22 @@
         const email = $('#email').val();
         const name = $('#name').val();
         const backendUrl = $('#backendUrl').val();
+        const pgProvider = $('#pgProvider').val();
 
         const requestData = {
             userId: Number(userId),
             productId: Number(productId),
             email: email,
             name: name,
-            callbackUrl: window.location.origin
+            callbackUrl: window.location.origin,
+            pgProvider: pgProvider
         };
 
         $('#requestResult').html('요청 중...');
 
         // 백엔드 API 호출
         $.ajax({
-            url: `${backendUrl}/api/v1/payments/kakaopay/billing-key`,
+            url: `${backendUrl}/api/v1/payments/simple-pay/billing-key/request`,
             type: 'POST',
             contentType: 'application/json',
             data: JSON.stringify(requestData),
@@ -224,7 +230,7 @@
 
         // 백엔드 API 호출
         $.ajax({
-            url: `${backendUrl}/api/v1/payments/kakaopay/billing-key/approve`,
+            url: `${backendUrl}/api/v1/payments/simple-pay/billing-key/approve`,
             type: 'POST',
             contentType: 'application/json',
             data: JSON.stringify(requestData),

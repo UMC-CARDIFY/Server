@@ -68,7 +68,6 @@ jwt:
   secret: ${SECRET_KEY}
   refreshTokenValidity: ${REFRESH_TOKEN}
   accessTokenValidity: ${ACCESS_TOKEN}
-
 cloud:
   aws:
     credentials:
@@ -94,6 +93,9 @@ logging:
 portone:
   imp_key: ${REST_API_KEY}
   imp_secret: ${REST_API_SECRET}
-  pg_code: kakaopay.TCSUBSCRIP
+  kakaopay_pg_code: kakaopay.TCSUBSCRIP
+  tosspay_pg_code : tosspay_v2.tosstest
+  naverpay_pg_code : naverpay # 수정해야 함
+
 encryption:
   key: ${ENCRYPTION_KEY}
