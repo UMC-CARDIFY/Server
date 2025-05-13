@@ -65,6 +65,12 @@ public class SimplePayServiceImpl implements SimplePayService {
   @Value("${portone.naverpay_pg_code}")
   private String NAVERPAY_PG_CODE;
 
+  @Value("${tosspay.api.channel_key}")
+  private String TOSS_CHANNEL_KEY;
+
+  @Value("${tosspay.api.key}")
+  private String TOSS_API_KEY;
+
   // 빌링키 요청
   @Override
   @Transactional
@@ -183,18 +189,36 @@ public class SimplePayServiceImpl implements SimplePayService {
     headers.setContentType(MediaType.APPLICATION_JSON);
     headers.set("Authorization", portoneClient.getAccessToken());
 
+    // PG 코드에서 MID 추출 (tosspay_v2.tosstest에서 tosstest 추출)
+    String mid = null;
+    if (TOSSPAY_PG_CODE.contains(".")) {
+      String[] parts = TOSSPAY_PG_CODE.split("\\.");
+      if (parts.length > 1) {
+        mid = parts[1];
+      }
+    }
+
+    // 토스페이 bypass 데이터 구성
+    Map<String, Object> tosspayBypassData = new HashMap<>();
+    tosspayBypassData.put("customer_key", customerUid);
+    tosspayBypassData.put("success_url", successUrl);
+    tosspayBypassData.put("fail_url", failUrl);
+    tosspayBypassData.put("channelKey", TOSS_CHANNEL_KEY);
+    tosspayBypassData.put("mid", mid);
+    tosspayBypassData.put("apiKey", TOSS_API_KEY);
+
+    // 요청 본문 구성
     Map<String, Object> body = new HashMap<>();
     body.put("pg", TOSSPAY_PG_CODE);
     body.put("customer_name", customerName);
     body.put("customer_email", customerEmail);
     body.put("summary", "정기결제를 위한 인증");
-    body.put("bypass", Map.of(
-        "tosspay_v2", Map.of(
-            "customer_key", customerUid,
-            "success_url", successUrl,
-            "fail_url", failUrl
-        )
-    ));
+
+    // bypass 데이터 설정 (HashMap 사용)
+    Map<String, Object> bypassMap = new HashMap<>();
+    bypassMap.put("tosspay_v2", tosspayBypassData);
+    body.put("bypass", bypassMap);
+
     // 요청 내용 로깅
     log.debug("토스페이 빌링키 발급 요청 URL: {}", requestUrl);
     log.debug("토스페이 빌링키 발급 요청 본문: {}", body);
@@ -402,7 +426,7 @@ public class SimplePayServiceImpl implements SimplePayService {
 
   // 정기 결제 처리
   @Override
-  @Scheduled(cron = "0 0 1 * * ?") // 매일 새벽 1시에 실행
+  @Scheduled(cron = "0 * * * * ?") // 매일 새벽 1시에 실행
   @Transactional
   public void processRecurringPayments() {
     log.info("정기 결제 처리 시작");
