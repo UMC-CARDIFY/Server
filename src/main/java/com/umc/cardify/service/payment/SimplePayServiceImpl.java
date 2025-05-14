@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.siot.IamportRestClient.IamportClient;
 import com.siot.IamportRestClient.exception.IamportResponseException;
-import com.siot.IamportRestClient.request.AgainPaymentData;
 import com.siot.IamportRestClient.request.CancelData;
 import com.siot.IamportRestClient.response.IamportResponse;
 import com.siot.IamportRestClient.response.Payment;
@@ -187,7 +186,8 @@ public class SimplePayServiceImpl implements SimplePayService {
     // 요청 헤더와 본문 생성
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
-    headers.set("Authorization", portoneClient.getAccessToken());
+    // 여기서 토스페이용 V2 토큰을 사용하도록 수정
+    headers.set("Authorization", portoneClient.getAccessToken(true)); // true는 토스페이 요청임을 의미
 
     // PG 코드에서 MID 추출 (tosspay_v2.tosstest에서 tosstest 추출)
     String mid = null;
@@ -206,6 +206,12 @@ public class SimplePayServiceImpl implements SimplePayService {
     tosspayBypassData.put("channelKey", TOSS_CHANNEL_KEY);
     tosspayBypassData.put("mid", mid);
     tosspayBypassData.put("apiKey", TOSS_API_KEY);
+    tosspayBypassData.put("type", "BILLING");  // 빌링키 발급임을 명시
+    tosspayBypassData.put("useABI", true);  // 자동빌링 사용 여부
+    tosspayBypassData.put("billingType", "BILLING_KEY_ISSUE");
+    tosspayBypassData.put("methodType", "CARD");
+    tosspayBypassData.put("version", "2.0");
+    tosspayBypassData.put("autoExecute", false);
 
     // 요청 본문 구성
     Map<String, Object> body = new HashMap<>();
@@ -226,8 +232,13 @@ public class SimplePayServiceImpl implements SimplePayService {
     // API 호출
     HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
 
+    log.debug("토스페이 빌링키 발급 요청 URL: {}", requestUrl);
+    log.debug("토스페이 빌링키 발급 요청 헤더: {}", headers);
+    log.debug("토스페이 빌링키 발급 요청 본문: {}", objectMapper.writeValueAsString(body));  // 전체 요청 본문 로깅
+
     try {
       Map<String, Object> response = restTemplate.postForObject(requestUrl, entity, Map.class);
+      log.debug("토스페이 빌링키 발급 응답 전체: {}", objectMapper.writeValueAsString(response));  // 전체 응답 로깅
 
       // 응답 로깅
       log.debug("토스페이 빌링키 발급 응답: {}", response);
