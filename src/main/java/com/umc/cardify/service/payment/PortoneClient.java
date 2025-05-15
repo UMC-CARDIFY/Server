@@ -29,9 +29,6 @@ public class PortoneClient {
   @Value("${portone.imp_secret}")
   private String apiSecret;
 
-  @Value("${portone.v2_imp_secret}")
-  private String v2ApiSecret;
-
   private String cachedV2Token;
   private LocalDateTime v2TokenExpiresAt;
 
@@ -41,19 +38,8 @@ public class PortoneClient {
   private String cachedToken;
   private LocalDateTime tokenExpiresAt;
 
-  // 포트원 클라이언트에 토스페이용 V2 토큰 발급 기능 추가
-  public String getAccessToken(boolean isTosspay) {
-    // 토스페이일 경우, V2 시크릿 키 사용
-    if (isTosspay) {
-      return getV2AccessToken();
-    }
-
-    // 기존 결제 수단들은 기존 메서드 사용 (변경 없음)
-    return getStandardAccessToken();
-  }
-
   // 포트원 API 인증 토큰 발급 (캐싱 기능 추가)
-  public String getStandardAccessToken() {
+  public String getAccessToken() {
     // 토큰이 있고 아직 유효한 경우 캐시된 토큰 반환
     if (cachedToken != null && tokenExpiresAt != null && LocalDateTime.now().plusMinutes(5).isBefore(tokenExpiresAt)) {
       log.debug("캐시된 포트원 토큰 사용: {}", maskToken(cachedToken));
@@ -119,77 +105,11 @@ public class PortoneClient {
     }
   }
 
-  // 토스페이를 위한 V2 토큰 발급 메서드 추가
-  private String getV2AccessToken() {
-    // V2 토큰도 동일하게 캐싱
-    if (cachedV2Token != null && v2TokenExpiresAt != null && LocalDateTime.now().plusMinutes(5).isBefore(v2TokenExpiresAt)) {
-      log.debug("캐시된 포트원 V2 토큰 사용: {}", maskToken(cachedV2Token));
-      return cachedV2Token;
-    }
-
-    log.info("포트원 V2 토큰 새로 발급 시작");
-    String url = PORTONE_API_URL + "/users/getToken";
-
-    HttpHeaders headers = new HttpHeaders();
-    headers.setContentType(MediaType.APPLICATION_JSON);
-
-    log.debug("V2 API 키 정보: imp_key 길이={}, imp_secret 길이={}, v2_secret 길이={}",
-        apiKey != null ? apiKey.length() : 0,
-        apiSecret != null ? apiSecret.length() : 0,
-        v2ApiSecret != null ? v2ApiSecret.length() : 0);
-
-    try {
-      // V2 시크릿 키를 포함한 JSON 요청 바디
-      String jsonBody = String.format(
-          "{\"imp_key\":\"%s\",\"imp_secret\":\"%s\",\"v2_secret\":\"%s\"}",
-          apiKey, apiSecret, v2ApiSecret);
-
-      HttpEntity<String> request = new HttpEntity<>(jsonBody, headers);
-
-      log.debug("포트원 V2 토큰 요청 본문: {}", jsonBody);
-
-      ResponseEntity<String> response = restTemplate.exchange(
-          url, HttpMethod.POST, request, String.class);
-
-      log.debug("포트원 V2 응답 상태 코드: {}", response.getStatusCodeValue());
-
-      if (response.getBody() == null) {
-        log.error("포트원 V2 응답 본문이 없습니다");
-        throw new RuntimeException("포트원 V2 응답 본문이 없습니다");
-      }
-
-      JsonNode rootNode = objectMapper.readTree(response.getBody());
-      log.debug("포트원 V2 응답: {}", rootNode);
-
-      if (rootNode.path("code").asInt() == 0) {
-        // V2 토큰 추출 및 캐싱
-        this.cachedV2Token = rootNode.path("response").path("access_token").asText();
-
-        // 만료 시간 설정
-        long expiresIn = rootNode.path("response").path("expired_at").asLong() -
-            rootNode.path("response").path("now").asLong();
-        this.v2TokenExpiresAt = LocalDateTime.now().plusSeconds(expiresIn);
-
-        log.info("포트원 V2 토큰 발급 성공 (만료: {})", v2TokenExpiresAt);
-        return cachedV2Token;
-      } else {
-        log.error("포트원 V2 토큰 발급 실패: {}", rootNode.path("message").asText());
-        throw new RuntimeException("포트원 V2 인증 실패: " + rootNode.path("message").asText());
-      }
-    } catch (HttpClientErrorException e) {
-      log.error("포트원 V2 API 오류: {} - {}", e.getStatusCode(), e.getResponseBodyAsString());
-      throw new RuntimeException("포트원 V2 토큰 발급 중 오류: " + e.getResponseBodyAsString(), e);
-    } catch (Exception e) {
-      log.error("포트원 V2 토큰 발급 중 오류: {}", e.getMessage(), e);
-      throw new RuntimeException("포트원 V2 토큰 발급 중 오류 발생", e);
-    }
-  }
-
   // 인증 헤더 생성 유틸리티 메소드
   private HttpHeaders getAuthHeaders() {
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
-    headers.set("Authorization", getStandardAccessToken());  // Bearer 접두사 제거 (API에 따라 다를 수 있음)
+    headers.set("Authorization", getAccessToken());  // Bearer 접두사 제거 (API에 따라 다를 수 있음)
     return headers;
   }
 

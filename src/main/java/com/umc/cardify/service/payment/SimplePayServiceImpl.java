@@ -121,17 +121,17 @@ public class SimplePayServiceImpl implements SimplePayService {
 
       // pg사 별 빌링키 발급 요청
       if (TOSSPAY_PG_CODE.equals(pgCode)) {
-        // 토스페이 빌링키 발급 요청
-        authUrl = requestTosspayBillingKey(customerUid, request.name(), request.email(), merchantUid,
-            successUrl + "?merchant_uid=" + merchantUid + "&customer_uid=" + customerUid,
-            failUrl + "?merchant_uid=" + merchantUid);
+       requestData = requestTosspayBillingKey(
+            customerUid,
+            request.name(),
+            request.email(),
+            merchantUid,
+           successUrl,
+           failUrl
+          //  successUrl + "?merchant_uid=" + merchantUid + "&customer_uid=" + customerUid,
+           // failUrl + "?merchant_uid=" + merchantUid
+       );
 
-        // 프론트엔드 요청 데이터
-        requestData = Map.of(
-            "authenticationUrl", authUrl,
-            "merchantUid", merchantUid,
-            "customerUid", customerUid
-        );
       } else if (KAKAOPAY_PG_CODE.equals(pgCode)) {
         // 카카오페이 빌링키 발급 요청 데이터 구성
         // 프론트엔드에 제공할 정보 구성 (포트원 JavaScript SDK 호출용)
@@ -181,108 +181,26 @@ public class SimplePayServiceImpl implements SimplePayService {
   }
 
   // 토스페이 빌링키 발급 요청
-  private String requestTosspayBillingKey(String customerUid, String customerName, String customerEmail,
-                                          String merchantUid, String successUrl, String failUrl) throws Exception {
-    // 토스페이 빌링키 발급 요청 URL
-    String requestUrl = "https://api.iamport.kr/subscribe/customers/" + customerUid;
+  private Map<String, Object> requestTosspayBillingKey(String customerUid, String customerName, String customerEmail,
+                                                       String merchantUid, String successUrl, String failUrl) {
 
+    // 토스페이 V1 빌링키 발급 요청 데이터 구성
+    Map<String, Object> requestData = new HashMap<>();
+    requestData.put("channelKey", TOSS_CHANNEL_KEY);
+    requestData.put("pg", TOSSPAY_PG_CODE); // 예: "tosspay_v2.tosstest"
+    requestData.put("pay_method", "tosspay");
+    requestData.put("merchant_uid", merchantUid);
+    requestData.put("name", "토스페이 정기 결제 빌링키 발급");
+    requestData.put("customer_id", customerUid); // 필수
+    requestData.put("customer_uid", customerUid); // 필수
+    requestData.put("buyer_email", customerEmail);
+    requestData.put("buyer_name", customerName);
 
-    // 요청 헤더와 본문 생성
-    HttpHeaders headers = new HttpHeaders();
-    headers.setContentType(MediaType.APPLICATION_JSON);
-    // 여기서 토스페이용 V2 토큰을 사용하도록 수정 FIXME : 일단 V1으로 테스트
-    headers.set("Authorization", portoneClient.getAccessToken(true)); // true는 토스페이 요청임을 의미, FIXME 일단 V1으로 테스트
+    // 모바일 환경을 위한 리디렉션 URL
+    requestData.put("m_redirect_url", successUrl);
+    requestData.put("notice_url", successUrl);
 
-    // PG 코드에서 MID 추출 (tosspay_v2.tosstest에서 tosstest 추출)
-    String mid = null;
-    if (TOSSPAY_PG_CODE.contains(".")) {
-      String[] parts = TOSSPAY_PG_CODE.split("\\.");
-      if (parts.length > 1) {
-        mid = parts[1];
-      }
-    }
-
-    // 토스페이 V2 bypass 데이터 구성
-    Map<String, Object> tosspayBypassData = new HashMap<>();
-    tosspayBypassData.put("channelKey", TOSS_CHANNEL_KEY);
-    tosspayBypassData.put("storeId", STORE_ID);
-    tosspayBypassData.put("billingKeyMethod", "EASY_PAY"); // 토스페이는 EASY_PAY만 지원
-    tosspayBypassData.put("issueId", merchantUid);
-    tosspayBypassData.put("issueName", "정기 결제 빌링키 발급");
-
-    // customer 객체 생성
-    Map<String, Object> customer = new HashMap<>();
-    customer.put("customerId", customerUid); // 필수 파라미터
-    customer.put("name", customerName);
-    customer.put("email", customerEmail);
-    tosspayBypassData.put("customer", customer);
-
-    tosspayBypassData.put("redirectUrl", successUrl);
-
-    // 요청 본문 구성
-    Map<String, Object> body = new HashMap<>();
-    body.put("pg", TOSSPAY_PG_CODE);
-    body.put("customer_name", customerName);
-    body.put("customer_email", customerEmail);
-    body.put("summary", "정기결제를 위한 인증");
-
-    // bypass 데이터 설정 (HashMap 사용)
-    Map<String, Object> bypassMap = new HashMap<>();
-    bypassMap.put("tosspay_v2", tosspayBypassData);
-    body.put("bypass", bypassMap);
-
-    // API 호출
-    HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
-
-    log.debug("토스페이 빌링키 발급 요청 URL: {}", requestUrl);
-    log.debug("토스페이 빌링키 발급 요청 헤더: {}", headers);
-    log.debug("토스페이 빌링키 발급 요청 본문: {}", objectMapper.writeValueAsString(body));  // 전체 요청 본문 로깅
-
-    try {
-      Map<String, Object> response = restTemplate.postForObject(requestUrl, entity, Map.class);
-      log.debug("토스페이 빌링키 발급 응답 전체: {}", objectMapper.writeValueAsString(response));  // 전체 응답 로깅
-
-      // 응답 로깅
-      log.debug("토스페이 빌링키 발급 응답: {}", response);
-
-      if (response == null) {
-        throw new RuntimeException("빌링키 발급 요청 실패: 응답이 없습니다.");
-      }
-
-      if (!response.containsKey("response")) {
-        // 에러 응답일 경우 추가 확인
-        if (response.containsKey("error_code") || response.containsKey("message")) {
-          String errorCode = response.containsKey("error_code") ? response.get("error_code").toString() : "unknown";
-          String message = response.containsKey("message") ? response.get("message").toString() : "unknown error";
-          log.error("포트원 API 오류: code={}, message={}", errorCode, message);
-          throw new RuntimeException("빌링키 발급 요청 실패: " + message + " (코드: " + errorCode + ")");
-        }
-
-        throw new RuntimeException("빌링키 발급 요청 실패: 응답에 'response' 키가 없습니다.");
-      }
-
-      Object responseObj = response.get("response");
-      if (responseObj == null) {
-        throw new RuntimeException("빌링키 발급 요청 실패: 'response' 값이 null입니다.");
-      }
-
-      try {
-        Map<String, Object> responseData = (Map<String, Object>) responseObj;
-
-        if (!responseData.containsKey("authentication_url")) {
-          log.error("인증 URL이 응답에 없습니다: {}", responseData);
-          throw new RuntimeException("빌링키 발급 요청 실패: 인증 URL이 응답에 없습니다.");
-        }
-
-        return (String) responseData.get("authentication_url");
-      } catch (ClassCastException e) {
-        log.error("response를 Map으로 변환할 수 없습니다: {}", responseObj);
-        throw new RuntimeException("빌링키 발급 요청 실패: 응답 형식이 잘못되었습니다.");
-      }
-    } catch (RestClientException e) {
-      log.error("API 호출 중 오류 발생: {}", e.getMessage(), e);
-      throw new RuntimeException("빌링키 발급 요청 API 호출 중 오류: " + e.getMessage());
-    }
+    return requestData;
   }
 
   // 빌링키 발급 승인

@@ -1,9 +1,14 @@
 package com.umc.cardify.controller;
 
+import com.siot.IamportRestClient.IamportClient;
+import com.siot.IamportRestClient.response.IamportResponse;
+import com.siot.IamportRestClient.response.Payment;
+import com.umc.cardify.domain.BillingKeyRequest;
 import com.umc.cardify.dto.payment.billing.BillingKeyRequestDTO;
 import com.umc.cardify.dto.payment.billing.BillingKeyResponse;
 import com.umc.cardify.dto.payment.subscription.SubscriptionRequest;
 import com.umc.cardify.dto.payment.webhook.WebhookRequest;
+import com.umc.cardify.repository.BillingKeyRequestRepository;
 import com.umc.cardify.service.payment.SimplePayServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -14,7 +19,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
 @RestController
@@ -24,6 +31,8 @@ import java.util.Map;
 public class SimplePayController {
 
   private final SimplePayServiceImpl simplePayServiceImpl;
+  private final BillingKeyRequestRepository billingKeyRequestRepository;
+  private final IamportClient iamportClient;
 
   @Operation(summary = "빌링키 발급 요청", description = "간편결제 정기결제를 위한 빌링키 발급을 요청합니다.")
   @PostMapping("/billing-key/request")
@@ -144,6 +153,44 @@ public class SimplePayController {
       log.error("간편결제 웹훅 처리 오류: {}", e.getMessage());
       // 웹훅은 항상 200 OK 응답 (재시도 방지)
       return ResponseEntity.ok().build();
+    }
+  }
+
+  // SimplePayController.java에 추가
+  @GetMapping("/billing-key/check-status")
+  public ResponseEntity<?> checkBillingKeyStatus(@RequestParam String impUid) {
+    try {
+      // 포트원 API를 통해 결제 정보 조회
+      IamportResponse<Payment> paymentResponse = iamportClient.paymentByImpUid(impUid);
+      Payment payment = paymentResponse.getResponse();
+
+      if (payment == null) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            .body(Map.of("message", "결제 정보를 찾을 수 없습니다."));
+      }
+
+      // BillingKeyRequest 정보 조회
+      Optional<BillingKeyRequest> billingKeyRequestOpt =
+          billingKeyRequestRepository.findByMerchantUid(payment.getMerchantUid());
+
+      Map<String, Object> response = new HashMap<>();
+      response.put("payment", payment);
+
+      if (billingKeyRequestOpt.isPresent()) {
+        BillingKeyRequest billingKeyRequest = billingKeyRequestOpt.get();
+        response.put("billingKeyRequest", Map.of(
+            "id", billingKeyRequest.getId(),
+            "merchantUid", billingKeyRequest.getMerchantUid(),
+            "customerUid", billingKeyRequest.getCustomerUid(),
+            "status", billingKeyRequest.getStatus().name()
+        ));
+      }
+
+      return ResponseEntity.ok(response);
+    } catch (Exception e) {
+      log.error("빌링키 상태 조회 중 오류: {}", e.getMessage(), e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .body(Map.of("message", "빌링키 상태 조회 중 오류 발생: " + e.getMessage()));
     }
   }
 }
