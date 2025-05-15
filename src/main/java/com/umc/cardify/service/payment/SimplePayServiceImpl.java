@@ -70,6 +70,9 @@ public class SimplePayServiceImpl implements SimplePayService {
   @Value("${tosspay.api.key}")
   private String TOSS_API_KEY;
 
+  @Value("${portone.store_id}")
+  private String STORE_ID;
+
   // 빌링키 요청
   @Override
   @Transactional
@@ -119,7 +122,7 @@ public class SimplePayServiceImpl implements SimplePayService {
       // pg사 별 빌링키 발급 요청
       if (TOSSPAY_PG_CODE.equals(pgCode)) {
         // 토스페이 빌링키 발급 요청
-        authUrl = requestTosspayBillingKey(customerUid, request.name(), request.email(),
+        authUrl = requestTosspayBillingKey(customerUid, request.name(), request.email(), merchantUid,
             successUrl + "?merchant_uid=" + merchantUid + "&customer_uid=" + customerUid,
             failUrl + "?merchant_uid=" + merchantUid);
 
@@ -179,15 +182,16 @@ public class SimplePayServiceImpl implements SimplePayService {
 
   // 토스페이 빌링키 발급 요청
   private String requestTosspayBillingKey(String customerUid, String customerName, String customerEmail,
-                                          String successUrl, String failUrl) throws Exception {
+                                          String merchantUid, String successUrl, String failUrl) throws Exception {
     // 토스페이 빌링키 발급 요청 URL
     String requestUrl = "https://api.iamport.kr/subscribe/customers/" + customerUid;
+
 
     // 요청 헤더와 본문 생성
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
-    // 여기서 토스페이용 V2 토큰을 사용하도록 수정
-    headers.set("Authorization", portoneClient.getAccessToken(true)); // true는 토스페이 요청임을 의미
+    // 여기서 토스페이용 V2 토큰을 사용하도록 수정 FIXME : 일단 V1으로 테스트
+    headers.set("Authorization", portoneClient.getAccessToken(true)); // true는 토스페이 요청임을 의미, FIXME 일단 V1으로 테스트
 
     // PG 코드에서 MID 추출 (tosspay_v2.tosstest에서 tosstest 추출)
     String mid = null;
@@ -198,20 +202,22 @@ public class SimplePayServiceImpl implements SimplePayService {
       }
     }
 
-    // 토스페이 bypass 데이터 구성
+    // 토스페이 V2 bypass 데이터 구성
     Map<String, Object> tosspayBypassData = new HashMap<>();
-    tosspayBypassData.put("customer_key", customerUid);
-    tosspayBypassData.put("success_url", successUrl);
-    tosspayBypassData.put("fail_url", failUrl);
     tosspayBypassData.put("channelKey", TOSS_CHANNEL_KEY);
-    tosspayBypassData.put("mid", mid);
-    tosspayBypassData.put("apiKey", TOSS_API_KEY);
-    tosspayBypassData.put("type", "BILLING");  // 빌링키 발급임을 명시
-    tosspayBypassData.put("useABI", true);  // 자동빌링 사용 여부
-    tosspayBypassData.put("billingType", "BILLING_KEY_ISSUE");
-    tosspayBypassData.put("methodType", "CARD");
-    tosspayBypassData.put("version", "2.0");
-    tosspayBypassData.put("autoExecute", false);
+    tosspayBypassData.put("storeId", STORE_ID);
+    tosspayBypassData.put("billingKeyMethod", "EASY_PAY"); // 토스페이는 EASY_PAY만 지원
+    tosspayBypassData.put("issueId", merchantUid);
+    tosspayBypassData.put("issueName", "정기 결제 빌링키 발급");
+
+    // customer 객체 생성
+    Map<String, Object> customer = new HashMap<>();
+    customer.put("customerId", customerUid); // 필수 파라미터
+    customer.put("name", customerName);
+    customer.put("email", customerEmail);
+    tosspayBypassData.put("customer", customer);
+
+    tosspayBypassData.put("redirectUrl", successUrl);
 
     // 요청 본문 구성
     Map<String, Object> body = new HashMap<>();
@@ -224,10 +230,6 @@ public class SimplePayServiceImpl implements SimplePayService {
     Map<String, Object> bypassMap = new HashMap<>();
     bypassMap.put("tosspay_v2", tosspayBypassData);
     body.put("bypass", bypassMap);
-
-    // 요청 내용 로깅
-    log.debug("토스페이 빌링키 발급 요청 URL: {}", requestUrl);
-    log.debug("토스페이 빌링키 발급 요청 본문: {}", body);
 
     // API 호출
     HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
@@ -437,7 +439,7 @@ public class SimplePayServiceImpl implements SimplePayService {
 
   // 정기 결제 처리
   @Override
-  @Scheduled(cron = "0 * * * * ?") // 매일 새벽 1시에 실행
+  @Scheduled(cron = "0 0 1 * * ?") // 매일 새벽 1시에 실행
   @Transactional
   public void processRecurringPayments() {
     log.info("정기 결제 처리 시작");

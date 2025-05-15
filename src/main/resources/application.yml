@@ -98,6 +98,7 @@ portone:
   imp_key: ${REST_API_KEY}
   imp_secret: ${REST_API_SECRET}
   v2_imp_secret: ${V2_REST_API_SECRET}
+  store_id: ${STORE_ID}
   kakaopay_pg_code: kakaopay.TCSUBSCRIP
   tosspay_pg_code : tosspay_v2.tosstest
   naverpay_pg_code : naverpay # 수정해야 함
