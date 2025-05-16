@@ -354,7 +354,7 @@ public class SimplePayServiceImpl implements SimplePayService {
 
   // 정기 결제 처리
   @Override
-  @Scheduled(cron = "0 */5 23 * * ?") // 매일 새벽 1시에 실행
+  @Scheduled(cron = "0 * * * * ?") // 매일 새벽 1시에 실행
   @Transactional
   public void processRecurringPayments() {
     log.info("정기 결제 처리 시작");
@@ -414,7 +414,8 @@ public class SimplePayServiceImpl implements SimplePayService {
         }
 
         // 지수 백오프 계산
-        long backoffTime = 60000L * attempt;
+        // long backoffTime = 60000L * attempt; // 1분 단위로 계산
+        long backoffTime = (long) Math.pow(2, attempt) * 1000;
 
         log.info("구독 ID {}의 정기 결제 재시도 예정: {}ms 후 시도 {}/{}",
             subscription.getId(), backoffTime, attempt + 1, maxRetries);
