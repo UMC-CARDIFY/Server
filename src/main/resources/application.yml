@@ -13,7 +13,7 @@ spring:
       uri: mongodb+srv://cardify:${DB_PASSWORD}@cardify.pckle.mongodb.net/cardify?retryWrites=true&w=majority&appName=Cardify
   jpa:
     hibernate:
-      ddl-auto: create
+      ddl-auto: none
       jdbc:
         time_zone: Asia/Seoul
     properties:
@@ -100,7 +100,7 @@ portone:
   store_id: ${STORE_ID}
   kakaopay_pg_code: kakaopay.TCSUBSCRIP
   tosspay_pg_code : tosspay_v2.tosstest
-  naverpay_pg_code : naverpay # 수정해야 함
+  naverpay_pg_code : naverpay # FIXME : 수정
 tosspay:
   api:
     key: ${TOSS_API_KEY}

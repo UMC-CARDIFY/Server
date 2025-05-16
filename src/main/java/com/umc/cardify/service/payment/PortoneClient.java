@@ -29,9 +29,6 @@ public class PortoneClient {
   @Value("${portone.imp_secret}")
   private String apiSecret;
 
-  private String cachedV2Token;
-  private LocalDateTime v2TokenExpiresAt;
-
   private static final String PORTONE_API_URL = "https://api.iamport.kr";
 
   // 토큰 캐싱을 위한 필드 추가
@@ -150,7 +147,6 @@ public class PortoneClient {
     }
   }
 
-  // 나머지 메서드들은 동일하게 유지...
   // 결제 정보 조회
   public JsonNode getPaymentData(String impUid) {
     log.debug("결제 정보 조회 시작: impUid={}", impUid);
@@ -187,17 +183,37 @@ public class PortoneClient {
     requestBody.put("customer_uid", customerUid);
     requestBody.put("merchant_uid", merchantUid);
     requestBody.put("name", name);
-    requestBody.put("amount", amount);
 
-    // 추가 파라미터 적용
+    // amount를 객체 형태로 설정
+    Map<String, Object> amountObj = new HashMap<>();
+    amountObj.put("total", amount);
+    requestBody.put("amount", amountObj);
+
+    // 통화 설정 추가
+    requestBody.put("currency", "KRW");
+
+    // 추가 파라미터 적용 (pg 코드 등)
     if (params != null && !params.isEmpty()) {
-      params.forEach(requestBody::put);
+      requestBody.putAll(params);
     }
 
-    HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, getAuthHeaders());
+    HttpHeaders headers = getAuthHeaders();
+    HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
+
+    // 전체 요청 로깅
+    try {
+      log.debug("정기 결제 요청 URL: {}", url);
+      log.debug("정기 결제 요청 헤더: {}", headers);
+      log.debug("정기 결제 요청 본문: {}", objectMapper.writeValueAsString(requestBody));
+    } catch (Exception e) {
+      log.warn("요청 로깅 중 오류: {}", e.getMessage());
+    }
 
     try {
       ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
+      log.debug("정기 결제 응답 상태 코드: {}", response.getStatusCode());
+      log.debug("정기 결제 응답 본문: {}", response.getBody());
+
       JsonNode rootNode = objectMapper.readTree(response.getBody());
 
       if (rootNode.path("code").asInt() == 0) {

@@ -7,6 +7,7 @@ import com.siot.IamportRestClient.exception.IamportResponseException;
 import com.siot.IamportRestClient.request.CancelData;
 import com.siot.IamportRestClient.response.IamportResponse;
 import com.siot.IamportRestClient.response.Payment;
+import com.umc.cardify.config.exception.PaymentFailedException;
 import com.umc.cardify.config.exception.ResourceNotFoundException;
 import com.umc.cardify.domain.*;
 import com.umc.cardify.domain.enums.*;
@@ -21,13 +22,8 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -52,7 +48,6 @@ public class SimplePayServiceImpl implements SimplePayService {
   private final UserRepository userRepository;
   private final ObjectMapper objectMapper;
   private final SubscriptionServiceImpl subscriptionServiceImpl;
-  private final RestTemplate restTemplate;
   private final BillingKeyRequestRepository billingKeyRequestRepository;
 
   @Value("${portone.kakaopay_pg_code}")
@@ -66,12 +61,6 @@ public class SimplePayServiceImpl implements SimplePayService {
 
   @Value("${tosspay.api.channel_key}")
   private String TOSS_CHANNEL_KEY;
-
-  @Value("${tosspay.api.key}")
-  private String TOSS_API_KEY;
-
-  @Value("${portone.store_id}")
-  private String STORE_ID;
 
   // 빌링키 요청
   @Override
@@ -96,7 +85,7 @@ public class SimplePayServiceImpl implements SimplePayService {
     }
 
     // 고유 식별자 생성
-    String merchantUid = "subscribe_" + UUID.randomUUID().toString();
+    String merchantUid = "subscribe_" + UUID.randomUUID();
     String customerUid = "customer_" + request.userId() + "_" + System.currentTimeMillis();
 
     try {
@@ -117,7 +106,6 @@ public class SimplePayServiceImpl implements SimplePayService {
 
       // PG사별 빌링키 요청 처리
       Map<String, Object> requestData;
-      String authUrl = null;
 
       // pg사 별 빌링키 발급 요청
       if (TOSSPAY_PG_CODE.equals(pgCode)) {
@@ -126,34 +114,23 @@ public class SimplePayServiceImpl implements SimplePayService {
             request.name(),
             request.email(),
             merchantUid,
-           successUrl,
-           failUrl
-          //  successUrl + "?merchant_uid=" + merchantUid + "&customer_uid=" + customerUid,
-           // failUrl + "?merchant_uid=" + merchantUid
+            successUrl
        );
 
       } else if (KAKAOPAY_PG_CODE.equals(pgCode)) {
-        // 카카오페이 빌링키 발급 요청 데이터 구성
-        // 프론트엔드에 제공할 정보 구성 (포트원 JavaScript SDK 호출용)
-        requestData = new HashMap<>();
-        requestData.put("pg", pgCode);
-        requestData.put("pay_method", "card");
-        requestData.put("merchant_uid", merchantUid);
-        requestData.put("customer_uid", customerUid);
-        requestData.put("name", "구독 서비스 자동결제 등록");
-        requestData.put("amount", 0); // 빌링키 발급은 0원
-        requestData.put("buyer_email", request.email());
-        requestData.put("buyer_name", request.name());
-        // TODO : 모바일 버전 확인 후 수정
-        //requestData.put("m_redirect_url", baseUrl + "/api/v1/payments/mobile-success"); // 모바일 환경
-        requestData.put("success_url", successUrl);
-        requestData.put("fail_url", failUrl);
+        requestData = requestKakaopayBillingKey(
+            pgCode,
+            customerUid,
+            request.name(),
+            request.email(),
+            merchantUid,
+            successUrl,
+            failUrl
+        );
       } else {
         // TODO : 이후 수정
-        // 다른 PG사 요청 데이터 구성 (네이버페이 등)
         throw new RuntimeException("지원하지 않는 PG사입니다: " + pgCode);
       }
-
       // 빌링키 요청 정보 저장
       BillingKeyRequest billingKeyRequest = BillingKeyRequest.builder()
           .user(user)
@@ -180,14 +157,34 @@ public class SimplePayServiceImpl implements SimplePayService {
     }
   }
 
+  // 카카오페이 빌링키 발급
+  private Map<String, Object> requestKakaopayBillingKey(String pgCode, String customerUid, String customerName, String customerEmail,
+                                                       String merchantUid, String successUrl, String failUrl) {
+    Map<String, Object> requestData = new HashMap<>();
+    requestData.put("pg", pgCode);
+    requestData.put("pay_method", "card");
+    requestData.put("merchant_uid", merchantUid);
+    requestData.put("customer_uid", customerUid);
+    requestData.put("name", "구독 서비스 자동결제 등록");
+    requestData.put("amount", 0); // 빌링키 발급은 0원
+    requestData.put("buyer_email", customerEmail);
+    requestData.put("buyer_name", customerName);
+    // TODO : 모바일 버전 확인 후 수정
+    //requestData.put("m_redirect_url", baseUrl + "/api/v1/payments/mobile-success");
+    requestData.put("success_url", successUrl);
+    requestData.put("fail_url", failUrl);
+
+    return requestData;
+  }
+
   // 토스페이 빌링키 발급 요청
   private Map<String, Object> requestTosspayBillingKey(String customerUid, String customerName, String customerEmail,
-                                                       String merchantUid, String successUrl, String failUrl) {
+                                                       String merchantUid, String successUrl) {
 
     // 토스페이 V1 빌링키 발급 요청 데이터 구성
     Map<String, Object> requestData = new HashMap<>();
     requestData.put("channelKey", TOSS_CHANNEL_KEY);
-    requestData.put("pg", TOSSPAY_PG_CODE); // 예: "tosspay_v2.tosstest"
+    requestData.put("pg", TOSSPAY_PG_CODE);
     requestData.put("pay_method", "tosspay");
     requestData.put("merchant_uid", merchantUid);
     requestData.put("name", "토스페이 정기 결제 빌링키 발급");
@@ -357,7 +354,7 @@ public class SimplePayServiceImpl implements SimplePayService {
 
   // 정기 결제 처리
   @Override
-  @Scheduled(cron = "0 0 1 * * ?") // 매일 새벽 1시에 실행
+  @Scheduled(cron = "0 */5 23 * * ?") // 매일 새벽 1시에 실행
   @Transactional
   public void processRecurringPayments() {
     log.info("정기 결제 처리 시작");
@@ -376,45 +373,94 @@ public class SimplePayServiceImpl implements SimplePayService {
 
     for (Subscription subscription : subscriptionsDue) {
       try {
-        processSubscriptionPayment(subscription);
+        // 지수 백오프 방식으로 결제 처리 시도
+        boolean success = processSubscriptionPaymentWithBackoff(subscription);
+
+        if (!success) {
+          log.error("구독 ID {}의 정기 결제가 모든 시도 후에도 실패했습니다.", subscription.getId());
+          // TODO : 결제 실패 알림 기능 구현
+        }
       } catch (Exception e) {
-        log.error("구독 ID {}의 정기 결제 처리 중 오류: {}", subscription.getId(), e.getMessage(), e);
-        // 실패해도 다음 구독 계속 처리
+        log.error("구독 ID {}의 정기 결제 처리 자체에 심각한 오류: {}", subscription.getId(), e.getMessage(), e);
+        // TODO : 결제 실패 알림 기능 구현
       }
     }
 
     log.info("정기 결제 처리 완료");
   }
 
+  // 지수 백오프 정기 결제 처리
+  private boolean processSubscriptionPaymentWithBackoff(Subscription subscription) {
+    int attempt = 0;
+    final int maxRetries = 10; // 최대 시도 횟수
+
+    while (attempt <= maxRetries) {
+      try {
+        // 정기 결제 처리 시도
+        processSubscriptionPayment(subscription);
+        log.info("구독 ID {}의 정기 결제 성공 (시도 {}/{})",
+            subscription.getId(), attempt + 1, maxRetries);
+        return true; // 성공
+      } catch (Exception e) {
+        attempt++;
+        log.error("구독 ID {}의 정기 결제 처리 중 오류 (시도 {}/{}): {}",
+            subscription.getId(), attempt, maxRetries, e.getMessage(), e);
+
+        // 최대 재시도 횟수에 도달했는지 확인
+        if (attempt >= maxRetries) {
+          log.warn("구독 ID {}의 정기 결제 최대 재시도 횟수({}) 초과",
+              subscription.getId(), maxRetries);
+          break;
+        }
+
+        // 지수 백오프 계산
+        long backoffTime = 60000L * attempt;
+
+        log.info("구독 ID {}의 정기 결제 재시도 예정: {}ms 후 시도 {}/{}",
+            subscription.getId(), backoffTime, attempt + 1, maxRetries);
+
+        try {
+          Thread.sleep(backoffTime);
+        } catch (InterruptedException ie) {
+          Thread.currentThread().interrupt();
+          return false;
+        }
+      }
+    }
+
+    return false; // 모든 재시도 실패
+  }
+
   // 구독 처리
   private void processSubscriptionPayment(Subscription subscription) {
     log.info("구독 ID {}의 결제 처리 시작", subscription.getId());
 
+    // 상품 정보 조회
+    Product product = subscription.getProduct();
+    if (product == null) {
+      throw new ResourceNotFoundException("상품을 찾을 수 없습니다: " + subscription.getId());
+    }
+
+    // 결제 수단 조회 - 구독에 결제 수단이 없으므로 최근 결제 내역의 결제 수단 또는 사용자의 기본 결제 수단 사용
+    PaymentMethod paymentMethod = null;
+
+    // 1. 최근 결제 내역의 결제 수단 조회 시도
+    List<SubscriptionPayment> recentPayments = subscriptionPaymentRepository
+        .findTop1BySubscriptionIdAndStatusOrderByCreatedAtDesc(
+            subscription.getId(), PaymentStatus.PAID);
+
+    if (!recentPayments.isEmpty() && recentPayments.get(0).getPaymentMethod() != null) {
+      paymentMethod = recentPayments.get(0).getPaymentMethod();
+      log.debug("최근 결제 내역의 결제 수단을 사용합니다: {}", paymentMethod.getId());
+    } else {
+      // 2. 사용자의 기본 결제 수단 조회
+      paymentMethod = paymentMethodRepository
+          .findByUser_UserIdAndIsDefaultTrueAndDeletedAtIsNull(subscription.getUser().getUserId())
+          .orElseThrow(() -> new RuntimeException("결제 수단을 찾을 수 없습니다: " + subscription.getUser().getUserId()));
+      log.debug("사용자의 기본 결제 수단을 사용합니다: {}", paymentMethod.getId());
+    }
+
     try {
-      // 상품 정보 조회
-      Product product = subscription.getProduct();
-      if (product == null) {
-        throw new ResourceNotFoundException("상품을 찾을 수 없습니다: " + subscription.getId());
-      }
-
-      // 결제 수단 조회 - 구독에 결제 수단이 없으므로 최근 결제 내역의 결제 수단 또는 사용자의 기본 결제 수단 사용
-      PaymentMethod paymentMethod = null;
-
-      // 1. 최근 결제 내역의 결제 수단 조회 시도
-      List<SubscriptionPayment> recentPayments = subscriptionPaymentRepository
-          .findTop1BySubscriptionIdAndStatusOrderByCreatedAtDesc(
-              subscription.getId(), PaymentStatus.PAID);
-
-      if (!recentPayments.isEmpty() && recentPayments.get(0).getPaymentMethod() != null) {
-        paymentMethod = recentPayments.get(0).getPaymentMethod();
-        log.debug("최근 결제 내역의 결제 수단을 사용합니다: {}", paymentMethod.getId());
-      } else {
-        // 2. 사용자의 기본 결제 수단 조회
-        paymentMethod = paymentMethodRepository
-            .findByUser_UserIdAndIsDefaultTrueAndDeletedAtIsNull(subscription.getUser().getUserId())
-            .orElseThrow(() -> new RuntimeException("결제 수단을 찾을 수 없습니다: " + subscription.getUser().getUserId()));
-        log.debug("사용자의 기본 결제 수단을 사용합니다: {}", paymentMethod.getId());
-      }
 
       // 빌링키 확인
       if (paymentMethod.getBillingKey() == null || paymentMethod.getBillingKey().isEmpty()) {
@@ -432,7 +478,7 @@ public class SimplePayServiceImpl implements SimplePayService {
 
       // 결제 요청 파라미터
       Map<String, String> parameters = new HashMap<>();
-      parameters.put("pg", KAKAOPAY_PG_CODE);
+      parameters.put("pg", getPgCode(paymentMethod.getProvider()));
 
       JsonNode response = portoneClient.requestSubscriptionPayment(
           paymentMethod.getBillingKey(),
@@ -466,7 +512,7 @@ public class SimplePayServiceImpl implements SimplePayService {
         LocalDateTime currentNextPaymentDate = subscription.getNextPaymentDate();
         LocalDateTime nextPaymentDateTime = currentNextPaymentDate.plusMonths(1);
 
-        // 월말 처리
+        // 월말 처리 (예: 1월 31일 -> 2월 28일)
         int currentDay = currentNextPaymentDate.getDayOfMonth();
         Month nextMonth = nextPaymentDateTime.getMonth();
         int daysInNextMonth = nextMonth.length(Year.isLeap(nextPaymentDateTime.getYear()));
@@ -494,7 +540,7 @@ public class SimplePayServiceImpl implements SimplePayService {
             subscription.getId(), nextPaymentDateTime);
       } else {
         subscriptionPayment.setStatus(PaymentStatus.FAILED);
-        // 결제 실패 처리 - 필요시 알림 발송, 재시도 로직 등 추가
+        // TODO : 결제 실패 알림 기능 구현
       }
 
       subscriptionPaymentRepository.save(subscriptionPayment);
@@ -505,53 +551,23 @@ public class SimplePayServiceImpl implements SimplePayService {
       log.error("정기 결제 처리 중 오류 발생: {}", e.getMessage(), e);
 
       // 결제 실패 기록
-      try {
-        // 상품 가격 정보 가져오기
-        Integer amount = 0; // 기본값
-        if (subscription.getProduct() != null && subscription.getProduct().getPrice() != null) {
-          amount = subscription.getProduct().getPrice();
-        }
+      SubscriptionPayment failedPayment = SubscriptionPayment.builder()
+          .subscription(subscription)
+          .paymentMethod(paymentMethod)  // 필수 필드
+          .status(PaymentStatus.FAILED)
+          .amount(subscription.getProduct().getPrice())  // 필수 필드
+          .merchantUid("failed_" + subscription.getId() + "_" + System.currentTimeMillis())
+          .pgProvider(paymentMethod.getProvider() != null ? paymentMethod.getProvider() : "UNKNOWN")  // 필수 필드
+          .pgResponse(e.getMessage() != null ? e.getMessage() : "결제 처리 중 오류 발생")
+          .build();
+      subscriptionPaymentRepository.save(failedPayment);
+      log.info("결제 실패 기록 저장 완료: subscriptionId={}", subscription.getId());
 
-        // 결제 방법 확인 (nullable=false)
-        PaymentMethod paymentMethod = null;
-        try {
-          // 1. 최근 결제 내역의 결제 수단 조회 시도
-          List<SubscriptionPayment> recentPayments = subscriptionPaymentRepository
-              .findTop1BySubscriptionIdAndStatusOrderByCreatedAtDesc(
-                  subscription.getId(), PaymentStatus.PAID);
-
-          if (!recentPayments.isEmpty() && recentPayments.get(0).getPaymentMethod() != null) {
-            paymentMethod = recentPayments.get(0).getPaymentMethod();
-          } else {
-            // 2. 사용자의 기본 결제 수단 조회
-            paymentMethod = paymentMethodRepository
-                .findByUser_UserIdAndIsDefaultTrueAndDeletedAtIsNull(subscription.getUser().getUserId())
-                .orElse(null);
-          }
-        } catch (Exception ex) {
-          log.warn("결제 수단 조회 실패: {}", ex.getMessage());
-        }
-
-        // 결제 수단을 찾지 못한 경우 실패 기록을 저장할 수 없음
-        if (paymentMethod == null) {
-          log.error("결제 실패 기록을 저장할 결제 수단을 찾을 수 없습니다: subscriptionId={}", subscription.getId());
-          return;
-        }
-
-        SubscriptionPayment failedPayment = SubscriptionPayment.builder()
-            .subscription(subscription)
-            .paymentMethod(paymentMethod)  // 필수 필드
-            .status(PaymentStatus.FAILED)
-            .amount(amount)  // 필수 필드
-            .merchantUid("failed_" + subscription.getId() + "_" + System.currentTimeMillis())
-            .pgProvider(paymentMethod.getProvider() != null ? paymentMethod.getProvider() : "UNKNOWN")  // 필수 필드
-            .pgResponse(e.getMessage() != null ? e.getMessage() : "결제 처리 중 오류 발생")
-            .build();
-
-        subscriptionPaymentRepository.save(failedPayment);
-        log.info("결제 실패 기록 저장 완료: subscriptionId={}", subscription.getId());
-      } catch (Exception ex) {
-        log.error("결제 실패 기록 저장 중 오류: {}", ex.getMessage());
+      // 중요: 예외를 다시 던져서 백오프 메서드가 이를 감지할 수 있게 함
+      if (e instanceof PaymentFailedException) {
+        throw (PaymentFailedException) e;
+      } else {
+        throw new PaymentFailedException("결제 처리 중 오류 발생: " + e.getMessage(), e);
       }
     }
   }

@@ -156,7 +156,6 @@ public class SimplePayController {
     }
   }
 
-  // SimplePayController.java에 추가
   @GetMapping("/billing-key/check-status")
   public ResponseEntity<?> checkBillingKeyStatus(@RequestParam String impUid) {
     try {
@@ -176,15 +175,12 @@ public class SimplePayController {
       Map<String, Object> response = new HashMap<>();
       response.put("payment", payment);
 
-      if (billingKeyRequestOpt.isPresent()) {
-        BillingKeyRequest billingKeyRequest = billingKeyRequestOpt.get();
-        response.put("billingKeyRequest", Map.of(
-            "id", billingKeyRequest.getId(),
-            "merchantUid", billingKeyRequest.getMerchantUid(),
-            "customerUid", billingKeyRequest.getCustomerUid(),
-            "status", billingKeyRequest.getStatus().name()
-        ));
-      }
+      billingKeyRequestOpt.ifPresent(billingKeyRequest -> response.put("billingKeyRequest", Map.of(
+          "id", billingKeyRequest.getId(),
+          "merchantUid", billingKeyRequest.getMerchantUid(),
+          "customerUid", billingKeyRequest.getCustomerUid(),
+          "status", billingKeyRequest.getStatus().name()
+      )));
 
       return ResponseEntity.ok(response);
     } catch (Exception e) {

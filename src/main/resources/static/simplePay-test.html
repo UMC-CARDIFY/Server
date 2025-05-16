@@ -166,29 +166,6 @@
     <button id="toss-approveBillingKey">빌링키 승인 요청</button>
     <div id="toss-approveResult" style="margin-top: 10px;"></div>
   </div>
-
-  <div class="card">
-    <h2>3. 정기 결제 실행 (테스트)</h2>
-    <div class="input-group">
-      <label for="toss-paymentMethodId">결제 수단 ID</label>
-      <input type="number" id="toss-paymentMethodId" placeholder="빌링키 승인 후 받은 결제 수단 ID">
-    </div>
-    <div class="input-group">
-      <label for="toss-subscriptionId">구독 ID</label>
-      <input type="number" id="toss-subscriptionId" placeholder="승인 완료된 구독 ID">
-    </div>
-    <div class="input-group">
-      <label for="toss-amount">결제 금액</label>
-      <input type="number" id="toss-amount" value="1000">
-    </div>
-    <div class="input-group">
-      <label for="toss-orderName">결제 설명</label>
-      <input type="text" id="toss-orderName" value="토스페이 정기 결제 테스트">
-    </div>
-
-    <button id="toss-testPayment">정기 결제 실행</button>
-    <div id="toss-paymentResult" style="margin-top: 10px;"></div>
-  </div>
 </div>
 
 <div id="kakao-tab" class="tab-content">
@@ -412,7 +389,7 @@
         });
     });
 
-    // 빌링키 조회 버튼 클릭 이벤트
+    // 빌링키 조회 버튼 클릭 이벤트 수정 (pgProvider 채우기 강화)
     $('#toss-checkBillingKey').click(function() {
         const impUid = $('#toss-checkImpUid').val();
         const backendUrl = $('#toss-backendUrl').val();
@@ -432,20 +409,99 @@
                 console.log('빌링키 조회 성공:', response);
                 $('#toss-checkResult').html(`<pre>${JSON.stringify(response, null, 2)}</pre>`);
 
-                // 결과에 따라 자동으로 빌링키 승인 양식 채우기
+                // 조회된 정보를 빌링키 승인 요청 필드에 자동 입력
                 if (response.payment) {
                     const payment = response.payment;
-                    $('#toss-pgToken').val('auto_filled');
-                    $('#toss-merchantUid').val(payment.merchant_uid || '');
-                    $('#toss-customerUid').val(payment.customer_uid || '');
-                    $('#toss-tid').val(impUid);
 
-                    if (response.billingKeyRequest) {
-                        const billingKeyRequest = response.billingKeyRequest;
-                        $('#toss-customerUid').val(billingKeyRequest.customerUid || '');
+                    // 결제 정보에서 필수 필드들 추출하여 채우기
+                    $('#toss-tid').val(impUid);  // imp_uid 설정
+
+                    // merchant_uid 채우기
+                    if (payment.merchant_uid) {
+                        $('#toss-merchantUid').val(payment.merchant_uid);
                     }
 
-                    alert('빌링키 정보가 자동으로 설정되었습니다. 빌링키 승인을 진행하세요.');
+                    // customer_uid 채우기 (payment에서 가져오기)
+                    if (payment.customer_uid) {
+                        $('#toss-customerUid').val(payment.customer_uid);
+                    }
+
+                    // pgProvider 채우기 (payment에서 가져오기) - 강조된 부분
+                    if (payment.pg_provider) {
+                        $('#toss-pgProvider').val(payment.pg_provider);
+                        console.log('PG Provider 설정됨:', payment.pg_provider);
+                    } else if (payment.pgProvider) { // 대소문자 속성명 차이 대응
+                        $('#toss-pgProvider').val(payment.pgProvider);
+                        console.log('PG Provider 설정됨:', payment.pgProvider);
+                    }
+
+                    // pg_tid 채우기
+                    if (payment.pg_tid) {
+                        $('#toss-pgTid').val(payment.pg_tid);
+                    } else if (payment.pgTid) { // 대소문자 속성명 차이 대응
+                        $('#toss-pgTid').val(payment.pgTid);
+                    }
+
+                    // billingKeyRequest에서 추가 정보 가져오기
+                    if (response.billingKeyRequest) {
+                        const billingKeyRequest = response.billingKeyRequest;
+
+                        // customer_uid가 없으면 billingKeyRequest에서 가져오기
+                        if (!$('#toss-customerUid').val() && billingKeyRequest.customerUid) {
+                            $('#toss-customerUid').val(billingKeyRequest.customerUid);
+                        }
+
+                        // merchant_uid가 없으면 billingKeyRequest에서 가져오기
+                        if (!$('#toss-merchantUid').val() && billingKeyRequest.merchantUid) {
+                            $('#toss-merchantUid').val(billingKeyRequest.merchantUid);
+                        }
+
+                        // pgProvider가 없으면 billingKeyRequest에서 가져오기
+                        if (!$('#toss-pgProvider').val() && billingKeyRequest.pgProvider) {
+                            $('#toss-pgProvider').val(billingKeyRequest.pgProvider);
+                            console.log('PG Provider(BillingKeyRequest에서) 설정됨:', billingKeyRequest.pgProvider);
+                        }
+
+                        // 토큰이 없으면 자동 값 설정
+                        if (!$('#toss-pgToken').val()) {
+                            $('#toss-pgToken').val('auto_filled');
+                        }
+
+                        // 사용자 ID와 상품 ID 설정
+                        if (billingKeyRequest.userId) {
+                            $('#toss-userId2').val(billingKeyRequest.userId);
+                        }
+
+                        if (billingKeyRequest.productId) {
+                            $('#toss-productId2').val(billingKeyRequest.productId);
+                        }
+                    }
+
+                    // 추가 정보 채우기 (있는 경우) - 이 부분은 이미 앞에서 처리했으므로 중복 제거
+
+                    // 필드 채워짐 콘솔 로깅 (디버깅용)
+                    console.log('자동 채워진 필드:');
+                    console.log('tid:', $('#toss-tid').val());
+                    console.log('merchantUid:', $('#toss-merchantUid').val());
+                    console.log('customerUid:', $('#toss-customerUid').val());
+                    console.log('pgProvider:', $('#toss-pgProvider').val());
+                    console.log('pgTid:', $('#toss-pgTid').val());
+
+                    // 사용자에게 알림
+                    alert('빌링키 정보가 자동으로 설정되었습니다. 빌링키 승인 요청을 진행하세요.');
+
+                    // 자동으로 승인 페이지로 이동
+                    $('html, body').animate({
+                        scrollTop: $("#toss-approveBillingKey").offset().top
+                    }, 500);
+
+                    // 채워진 필드 시각적 강조 (pgProvider 추가)
+                    $('#toss-tid, #toss-merchantUid, #toss-customerUid, #toss-pgToken, #toss-userId2, #toss-productId2, #toss-pgProvider, #toss-pgTid')
+                        .filter(function() {
+                            return $(this).val() !== '';
+                        })
+                        .css('background-color', '#f0fff0')
+                        .css('border-left', '3px solid #2ecc71');
                 } else {
                     alert('빌링키 정보를 찾을 수 없습니다.');
                 }
@@ -516,51 +572,6 @@
                 $('#toss-approveResult').html(`<p style="color: red;">오류: ${error}</p>`);
                 if (xhr.responseText) {
                     $('#toss-approveResult').append(`<pre>${xhr.responseText}</pre>`);
-                }
-            }
-        });
-    });
-
-    // 토스페이 정기 결제 테스트
-    $('#toss-testPayment').click(function() {
-        const userId = $('#toss-userId').val();
-        const productId = $('#toss-productId').val();
-        const paymentMethodId = $('#toss-paymentMethodId').val();
-        const amount = $('#toss-amount').val();
-        const orderName = $('#toss-orderName').val();
-        const backendUrl = $('#toss-backendUrl').val();
-
-        if (!paymentMethodId) {
-            alert('결제 수단 ID는 필수입니다.');
-            return;
-        }
-
-        const requestData = {
-            userId: Number(userId),
-            productId: Number(productId),
-            paymentMethodId: Number(paymentMethodId),
-            amount: Number(amount),
-            orderName: orderName
-        };
-
-        $('#toss-paymentResult').html('요청 중...');
-
-        // 백엔드 API 호출
-        $.ajax({
-            url: `${backendUrl}/api/v1/payments/simple-pay/subscription/process`,
-            type: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify(requestData),
-            success: function(response) {
-                console.log('토스페이 정기 결제 성공:', response);
-                $('#toss-paymentResult').html(`<pre>${JSON.stringify(response, null, 2)}</pre>`);
-                alert('정기 결제가 성공적으로 실행되었습니다!');
-            },
-            error: function(xhr, status, error) {
-                console.error('토스페이 정기 결제 실패:', error);
-                $('#toss-paymentResult').html(`<p style="color: red;">오류: ${error}</p>`);
-                if (xhr.responseText) {
-                    $('#toss-paymentResult').append(`<pre>${xhr.responseText}</pre>`);
                 }
             }
         });
