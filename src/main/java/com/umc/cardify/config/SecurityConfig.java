@@ -48,8 +48,9 @@ public class SecurityConfig {
                                 "/api/v1/oauth2/**",
                                 "/token-check.html",
                                 "kakaopay-test.html",
+                                "simplePay-test.html",
                                 "/api/v1/auth/**",
-                            "api/v1/payments/kakaopay/**").permitAll()
+                            "api/v1/payments/simple-pay/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2Login(oauth2 -> oauth2
                         //.loginPage("/oauth2/authorization/kakao")

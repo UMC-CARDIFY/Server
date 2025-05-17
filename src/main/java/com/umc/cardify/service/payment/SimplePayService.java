@@ -5,7 +5,7 @@ import com.umc.cardify.dto.payment.billing.BillingKeyResponse;
 import com.umc.cardify.dto.payment.subscription.SubscriptionRequest;
 import com.umc.cardify.dto.payment.webhook.WebhookRequest;
 
-public interface PaymentService {
+public interface SimplePayService {
 
   // 빌링키 관련
   BillingKeyResponse.RequestBillingKeyRes requestBillingKey(BillingKeyRequestDTO.RequestBillingKeyReq request);

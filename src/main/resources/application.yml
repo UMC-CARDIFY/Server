@@ -68,7 +68,6 @@ jwt:
   secret: ${SECRET_KEY}
   refreshTokenValidity: ${REFRESH_TOKEN}
   accessTokenValidity: ${ACCESS_TOKEN}
-
 cloud:
   aws:
     credentials:
@@ -91,9 +90,21 @@ logging:
     com.umc.cardify: WARN  # 애플리케이션 전체에서 경고 및 오류만 기록
     com.umc.cardify.controller.OAuth2Controller: INFO  # 카카오 로그인 관련 상세 로그는 필요할 수 있으므로 INFO로 유지
     com.umc.cardify.service.KakaoService: INFO  # 카카오 로그인 서비스 관련 상세 로그는 INFO로 유지
+    # 간편 결제 관련 로깅 추가
+    com.umc.cardify.service.payment.SimplePayServiceImpl: DEBUG  # 간편결제 서비스 로깅 (토스페이 포함)
+    com.umc.cardify.controller.SimplePayController: DEBUG  # 간편결제 컨트롤러 로깅
+    org.springframework.web.client.RestTemplate: DEBUG  # RestTemplate 로깅 (API 요청/응답)
 portone:
   imp_key: ${REST_API_KEY}
   imp_secret: ${REST_API_SECRET}
-  pg_code: kakaopay.TCSUBSCRIP
+  store_id: ${STORE_ID}
+  kakaopay_pg_code: kakaopay.TCSUBSCRIP
+  tosspay_pg_code : tosspay_v2.tosstest
+  naverpay_pg_code : naverpay # FIXME : 수정
+tosspay:
+  api:
+    key: ${TOSS_API_KEY}
+    channel_key: ${TOSS_CHANNEL_KEY}
+
 encryption:
   key: ${ENCRYPTION_KEY}
