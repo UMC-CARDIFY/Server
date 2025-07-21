@@ -11,12 +11,7 @@ import java.time.LocalTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -805,6 +800,7 @@ public class CardComponentService {
 		return weekResult;
 	}
 
+
     public CardResponse.AnnualResultDTO getCardByYear(Long userId, int year) {
 		User user = userRepository.findById(userId)
 				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
@@ -818,6 +814,7 @@ public class CardComponentService {
 				endOfYear.atTime(LocalTime.MAX)
 		);
 
+		// 날짜별 학습 수
 		Map<LocalDate, Long> dailyStudyCounts = annualCards.stream()
 				.collect(Collectors.groupingBy(
 						card -> card.getLearnLastTime().toLocalDateTime().toLocalDate(),
@@ -827,28 +824,41 @@ public class CardComponentService {
 		List<CardResponse.DailyContribution> contributions = new ArrayList<>();
 		int maxStreak = 0, currentStreak = 0;
 
-		for (int i = 0; i < 365; i++) {
-			LocalDate date = startOfYear.plusDays(i);
-			long count = dailyStudyCounts.getOrDefault(date, 0L);
-
-			String color;
-			if (count == 0) {
-				color = "transparent";
-				currentStreak = 0;
-			} else if (count >= 1 && count <= 3) {
-				color = "light";
-				currentStreak++;
-			} else if (count >= 3 && count < 8) {
-				color = "medium";
-				currentStreak++;
-			} else {
-				color = "dark";
-				currentStreak++;
+		// 1년치 날짜 리스트 생성
+		LocalDate currentDate = startOfYear;
+		while (!currentDate.isAfter(endOfYear)) {
+			List<LocalDate> weekDates = new ArrayList<>();
+			for (int i = 0; i < 7 && !currentDate.isAfter(endOfYear); i++) {
+				weekDates.add(currentDate);
+				currentDate = currentDate.plusDays(1);
 			}
 
-			maxStreak = Math.max(maxStreak, currentStreak);
+			// 주간 최대 학습량 계산
+			long maxCountInWeek = weekDates.stream()
+					.map(date -> dailyStudyCounts.getOrDefault(date, 0L))
+					.max(Long::compare)
+					.orElse(0L);
 
-			contributions.add(new CardResponse.DailyContribution(date, count, color));
+			for (LocalDate date : weekDates) {
+				long count = dailyStudyCounts.getOrDefault(date, 0L);
+				String color;
+
+				if (count == 0 || maxCountInWeek == 0) {
+					color = "1";
+					currentStreak = 0;
+				} else {
+					double ratio = (double) count / maxCountInWeek;
+					if (ratio >= 0.75) color = "4";
+					else if (ratio >= 0.5) color = "3";
+					else if (ratio >= 0.25) color = "2";
+					else color = "1";
+
+					currentStreak++;
+				}
+
+				maxStreak = Math.max(maxStreak, currentStreak);
+				contributions.add(new CardResponse.DailyContribution(date, count, color));
+			}
 		}
 
 		return new CardResponse.AnnualResultDTO(contributions, maxStreak);
