@@ -246,6 +246,7 @@ public class FolderService {
     }
 
 
+    // 폴더 수정
     @Transactional
     public FolderResponse.editFolderResultDTO editFolder(Long userId, Long folderId, FolderRequest.editFolderDto folderRequest) {
         User user = userRepository.findById(userId)
@@ -258,8 +259,25 @@ public class FolderService {
             throw new BadRequestException(ErrorResponseStatus.DUPLICATE_ERROR);
         }
 
-        folder.setEditDate(Timestamp.valueOf(LocalDateTime.now())); //수정된 시간을 저장
+        boolean isParentFolder = folder.getParentFolder() == null;
+
+        // 자식 폴더일때 색상 변경하면 에러처리
+        if (!isParentFolder && folderRequest.getColor() != null && !folderRequest.getColor().equals(folder.getColor())) {
+            throw new BadRequestException(ErrorResponseStatus.SUB_FOLDER_COLOR_CHANGE_NOT_ALLOWED);
+        }
+
         folder.setName(folderRequest.getName()); // 수정된 이름 저장
+
+        // 부모 폴더인 경우에만 색상 변경 허용 및 하위 폴더에 반영
+        if (isParentFolder && folderRequest.getColor() != null && !folderRequest.getColor().equals(folder.getColor())) {
+            folder.setColor(folderRequest.getColor());
+            List<Folder> subFolders = folderRepository.findAllByParentFolder(folder);
+            for (Folder sub : subFolders) {
+                sub.setColor(folderRequest.getColor());
+            }
+        }
+
+        folder.setEditDate(Timestamp.valueOf(LocalDateTime.now())); //수정된 시간을 저장
         folder.setColor(folderRequest.getColor()); // 수정된 색상 저장
 
         folder = folderRepository.save(folder);

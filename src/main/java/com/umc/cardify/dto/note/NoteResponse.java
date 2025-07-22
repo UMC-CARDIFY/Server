@@ -33,7 +33,7 @@ public class NoteResponse {
         private Long noteId;
         @Schema(description = "노트 이름", example = "Sample Note")
         private String name;
-        @Schema(description = "폴더 이름", example = "Sample Folder")
+        @Schema(description = "폴더 아이디", example = "Sample Folder")
         private Long folderId;
         @Schema(description = "폴더 이름", example = "Sample Folder")
         private String folderName;
