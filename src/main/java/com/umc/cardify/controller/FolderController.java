@@ -52,17 +52,17 @@ public class FolderController {
     @Operation(summary = "노트 정렬과 필터링 기능 API", description = "성공 시 해당 유저의 전체 노트를 정렬해서 반환, 아무것도 입력 안하면 일반 조회 기능 | order = asc, desc, edit-newest, edit-oldest | 쉼표로 구분된 색상 문자열 입력")
     public ResponseEntity<NoteResponse.NoteListDTO> notesBySortFilter(
             @RequestHeader("Authorization") String token,
-            @RequestParam(required = false)  Integer page,
-            @RequestParam(required = false)  Integer size,
+            @RequestParam Long folderId,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
             @RequestParam(required = false) String order,
-            // FIXME :  폴더 아이디 요청
-            @RequestParam Long folderId){
+            @RequestParam(required = false) String filter){
         String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
         AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
         Long userId = userRepository.findByEmailAndProvider(email, provider)
             .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID)).getUserId();
 
-        NoteResponse.NoteListDTO notes = noteComponentService.getNotesBySortFilter(userId, page, size, order, folderId);
+        NoteResponse.NoteListDTO notes = noteComponentService.getNotesBySortFilter(userId, page, size, order, filter, folderId);
         return ResponseEntity.ok(notes);
     }
 

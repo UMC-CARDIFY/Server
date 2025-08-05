@@ -6,6 +6,8 @@ import java.util.stream.Collectors;
 
 import com.umc.cardify.domain.*;
 import com.umc.cardify.domain.enums.SubscriptionStatus;
+import com.umc.cardify.dto.note.CombinedNoteComparator;
+import com.umc.cardify.dto.note.NoteComparator;
 import com.umc.cardify.repository.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -382,61 +384,114 @@ public class NoteComponentService {
 	}
 
 	// 노트 조회, 정렬, 필터링 통합 Service
-	// FIXME :  노트 조회, 정렬, 필터링 하는 데에 color 필요 없는 거 같아서 없앴습니다. 확인 부탁드립니다.
-	public NoteResponse.NoteListDTO getNotesBySortFilter(Long userId, Integer page, Integer size, String order, Long folderId) {
-		User user = userRepository.findById(userId)
-				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+	public NoteResponse.NoteListDTO getNotesBySortFilter(Long userId, Integer page, Integer size, String order, String filter, Long folderId) {
+		try {
+			// 1. 사용자 검증
+			User user = userRepository.findById(userId)
+					.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
-		// 폴더 존재 여부 확인
-		Folder folder = folderRepository.findById(folderId)
-				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_FOLDERID));
+			// 2. 폴더 검증
+			Folder folder = folderRepository.findById(folderId)
+					.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_FOLDERID));
 
-		int getNotePage = (page != null) ? page : 0;
-		int getNoteSize = (size != null) ? size : Integer.MAX_VALUE;
-		Pageable pageable = PageRequest.of(getNotePage, getNoteSize);
-
-		// 잘못된 order 파라미터 처리
-		if (order != null && !order.isEmpty()) {
-			if (!Arrays.asList("asc", "desc", "edit-newest", "edit-oldest").contains(order)) {
-				throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+			// 3. 폴더 소유권 확인
+			if (!folder.getUser().getUserId().equals(userId)) {
+				throw new BadRequestException(ErrorResponseStatus.INVALID_FOLDERID);
 			}
+
+			// 4. 페이징 설정
+			int getNotePage = (page != null) ? page : 0;
+			int getNoteSize = (size != null) ? size : 10;
+
+			// 5. 모든 노트 조회 (기본 북마크 + 수정일 최신순 정렬)
+			Sort defaultSort = Sort.by(Sort.Order.desc("markState"))
+					.and(Sort.by(Sort.Order.desc("editDate")));
+			List<Note> allNotes = noteRepository.findByFolder(folder, defaultSort);
+
+			if (allNotes.isEmpty()) {
+				return noteConverter.createEmptyNoteListDTO(getNotePage, getNoteSize);
+			}
+
+			// 6. 카드 개수 정보 조회 (필터링에 필요)
+			Map<Long, Long> cardCountMap = getCardCountMap(folder);
+
+			// 7. 필터 적용
+			List<Note> filteredNotes = filterNotesByCardCount(allNotes, filter, cardCountMap);
+
+			// 8. 정렬 적용
+			List<Note> sortedNotes = sortNotes(filteredNotes, order, filter, cardCountMap);
+
+			// 9. 페이징 적용
+			List<Note> pagedNotes = pagingNotes(sortedNotes, getNotePage, getNoteSize);
+
+			// 10. DTO 변환
+			List<NoteResponse.NoteInfoDTO> noteInfos = pagedNotes.stream()
+					.map(note -> noteConverter.convertToNoteInfoDTO(note, cardCountMap))
+					.collect(Collectors.toList());
+
+			log.info("DTO 변환 완료: {} 개의 노트", noteInfos.size());
+
+			// 11. 페이징 정보 계산
+			int totalElements = sortedNotes.size();
+			int totalPages = (totalElements + getNoteSize - 1) / getNoteSize;
+
+			return NoteResponse.NoteListDTO.builder()
+					.noteList(noteInfos)
+					.listsize(getNoteSize)
+					.currentPage(getNotePage + 1)
+					.totalPage(totalPages)
+					.totalElements((long) totalElements)
+					.isFirst(getNotePage == 0)
+					.isLast(getNotePage == totalPages - 1)
+					.build();
+
+		} catch (Exception e) {
+			log.error("노트 조회 중 오류 발생", e);
+			throw e;
+		}
+	}
+
+	private Map<Long, Long> getCardCountMap(Folder folder) {
+		try {
+			List<Object[]> cardCounts = noteRepository.findNoteCardCounts(folder);
+			return cardCounts.stream()
+					.collect(Collectors.toMap(
+							arr -> (Long) arr[0],  // noteId
+							arr -> (Long) arr[1]   // card count
+					));
+		} catch (Exception e) {
+			log.warn("카드 개수 조회 실패, 기본값 사용", e);
+			return new HashMap<>();
+		}
+	}
+
+	// 카드 개수별 필터링
+	private List<Note> filterNotesByCardCount(List<Note> notes, String filter, Map<Long, Long> cardCountMap) {
+		if (filter == null || filter.isEmpty()) {
+			return notes;
 		}
 
-		Page<Note> notePage;
-		// order 파라미터가 주어질 때
-		if (order != null && !order.isEmpty()) {
-			notePage = noteRepository.findByFolderAndSort(folder, order, pageable);
-		} else {
-			notePage = noteRepository.findByFolder(folder, pageable);
+		List<String> filterList = Arrays.asList("card-most", "card-less");
+		if (!filterList.contains(filter)) {
+			throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
 		}
 
-		if (notePage.isEmpty()) {
-			throw new DatabaseException(ErrorResponseStatus.NOT_EXIST_NOTE);
-		}
+		// 필터링은 적용하지 않고 그대로 반환 (정렬에서 처리)
+		return notes;
+	}
 
-		List<NoteResponse.NoteInfoDTO> notes = notePage.getContent()
-				.stream()
-				.map(note -> {
-					try {
-						return noteConverter.toNoteInfoDTO(note);
-					} catch (Exception e) {
-						System.err.println("노트 변환 실패 - ID: " + note.getNoteId() + ", 오류: " + e.getMessage());
-						// null을 반환하면 아래 filter에서 제외됨
-						return null;
-					}
-				})
-				.filter(Objects::nonNull)
+	// 노트 정렬 (북마크 상태 + 조건별 정렬)
+	private List<Note> sortNotes(List<Note> notes, String order, String filter, Map<Long, Long> cardCountMap) {
+		return notes.stream()
+				.sorted(new CombinedNoteComparator(order, filter, cardCountMap))
 				.collect(Collectors.toList());
+	}
 
-		return NoteResponse.NoteListDTO.builder()
-				.noteList(notes)
-				.listsize(getNoteSize)
-				.currentPage(getNotePage + 1)
-				.totalPage(notePage.getTotalPages())
-				.totalElements(notePage.getTotalElements())
-				.isFirst(notePage.isFirst())
-				.isLast(notePage.isLast())
-				.build();
+	// 페이징 적용
+	private List<Note> pagingNotes(List<Note> notes, int page, int size) {
+		int start = page * size;
+		int end = Math.min((page + 1) * size, notes.size());
+		return notes.subList(start, end);
 	}
 
 	public NoteResponse.getNoteUUIDDTO createNoteUUID(NoteRequest.MakeLinkDto request, User user){

@@ -17,7 +17,9 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Component
@@ -173,4 +175,33 @@ public class NoteConverter {
                 .cardList(cardDTO)
                 .build();
     }
+
+    public NoteResponse.NoteInfoDTO convertToNoteInfoDTO(Note note, Map<Long, Long> cardCountMap) {
+        return NoteResponse.NoteInfoDTO.builder()
+                .noteId(note.getNoteId())
+                .name(note.getName())
+                .folderId(note.getFolder().getFolderId())
+                .folderName(note.getFolder().getName())
+                .folderColor(note.getFolder().getColor())
+                .markState(note.getMarkState())
+                .flashCardCount(note.getCards() != null ? (long) note.getCards().size() : 0L)
+                .viewAt(note.getViewAt())
+                .markAt(note.getMarkAt() != null ? note.getMarkAt().toString() : null)
+                .editDate(note.getEditDate() != null ? note.getEditDate().toString() : null)
+                .createdAt(note.getCreatedAt() != null ? note.getCreatedAt().toString() : null)
+                .build();
+    }
+
+    public NoteResponse.NoteListDTO createEmptyNoteListDTO(int page, int size) {
+        return NoteResponse.NoteListDTO.builder()
+                .noteList(Collections.emptyList())
+                .listsize(size)
+                .currentPage(page + 1)
+                .totalPage(0)
+                .totalElements(0L)
+                .isFirst(true)
+                .isLast(true)
+                .build();
+    }
+
 }
