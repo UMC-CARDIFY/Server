@@ -50,4 +50,15 @@ public class FolderRequest {
         String name;
     }
 
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "FOLDER_REQ_04 : 하위폴더 이동 요청 DTO")
+    public static class MoveFolderDTO {
+        @NotNull(message = "대상 상위폴더 ID는 필수입니다")
+        @Schema(description = "상위폴더 ID", example = "1")
+        private Long targetParentFolderId;
+    }
+
 }

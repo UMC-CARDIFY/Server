@@ -140,4 +140,41 @@ public class FolderController {
         FolderResponse.markFolderResultDTO response = folderService.markFolderById(userId, folderId);
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/search-parent")
+    @Operation(summary = "하위 폴더 이동 - 상위폴더 검색 API", description = "검색어로 상위폴더를 검색하여 리스트 반환. 검색어가 없으면 전체 상위폴더 조회")
+    public ResponseEntity<FolderResponse.ParentFolderListDTO> searchParentFolders(
+            @RequestHeader("Authorization") String token,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+
+        String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+        AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", ""));
+
+        Long userId = userRepository.findByEmailAndProvider(email, provider)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
+                .getUserId();
+
+        FolderResponse.ParentFolderListDTO result = folderService.searchParentFolders(userId, keyword, page, size);
+        return ResponseEntity.ok(result);
+    }
+
+    @PatchMapping("/{folderId}/move")
+    @Operation(summary = "하위폴더 이동 - 하위 폴더 이동 API", description = "하위폴더를 다른 상위폴더로 이동")
+    public ResponseEntity<FolderResponse.FolderMoveResultDTO> moveSubFolder(
+            @RequestHeader("Authorization") String token,
+            @PathVariable Long folderId,
+            @RequestBody FolderRequest.MoveFolderDTO request) {
+
+        String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+        AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", ""));
+
+        Long userId = userRepository.findByEmailAndProvider(email, provider)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
+                .getUserId();
+
+        FolderResponse.FolderMoveResultDTO result = folderService.moveSubFolder(userId, folderId, request.getTargetParentFolderId());
+        return ResponseEntity.ok(result);
+    }
 }

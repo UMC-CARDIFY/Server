@@ -42,4 +42,23 @@ public interface FolderRepository extends JpaRepository<Folder, Long> {
     List<Folder> findByParentFolderAndUser(Folder parentFolder, User user);
 
     List<Folder> findAllByParentFolder(Folder folder);
+
+    // 상위폴더 검색 (키워드 포함)
+    @Query("SELECT f FROM Folder f WHERE f.user = :user AND f.parentFolder IS NULL " +
+            "AND f.name LIKE %:keyword% ORDER BY f.markState DESC, f.name ASC")
+    Page<Folder> findParentFoldersByKeyword(@Param("user") User user, @Param("keyword") String keyword, Pageable pageable);
+
+    // 전체 상위폴더 조회
+    @Query("SELECT f FROM Folder f WHERE f.user = :user AND f.parentFolder IS NULL " +
+            "ORDER BY f.markState DESC, f.name ASC")
+    Page<Folder> findAllParentFolders(@Param("user") User user, Pageable pageable);
+
+    // 하위폴더 개수 조회
+    @Query("SELECT COUNT(f) FROM Folder f WHERE f.parentFolder = :parentFolder")
+    Long countSubFolders(@Param("parentFolder") Folder parentFolder);
+
+    // 이동 가능한 상위폴더 개수 (현재 상위폴더 제외)
+    @Query("SELECT COUNT(f) FROM Folder f WHERE f.user = :user AND f.parentFolder IS NULL " +
+            "AND f.folderId != :currentParentFolderId")
+    Long countAvailableParentFolders(@Param("user") User user, @Param("currentParentFolderId") Long currentParentFolderId);
 }
