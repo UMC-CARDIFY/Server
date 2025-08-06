@@ -3,6 +3,7 @@ package com.umc.cardify.repository;
 import com.umc.cardify.domain.Note;
 import com.umc.cardify.domain.Folder;
 import com.umc.cardify.domain.User;
+import com.umc.cardify.domain.enums.MarkStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -65,4 +66,7 @@ public interface NoteRepository extends JpaRepository<Note, Long> {
         "CASE WHEN :order = 'edit-newest' THEN n.updatedAt END DESC, " +
         "CASE WHEN :order = 'edit-oldest' THEN n.updatedAt END ASC")
     Page<Note> findByFolderAndSort(@Param("folder") Folder folder, @Param("order") String order, Pageable pageable);
+
+    @Query("SELECT n FROM Note n WHERE n.markState = :markState AND n.folder.user = :user ORDER BY n.markAt DESC")
+    List<Note> findRecentFavoriteNotes(@Param("markState") MarkStatus markState, @Param("user") User user, Pageable pageable);
 }
