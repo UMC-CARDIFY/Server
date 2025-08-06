@@ -186,9 +186,9 @@ public class NoteConverter {
                 .markState(note.getMarkState())
                 .flashCardCount(note.getCards() != null ? (long) note.getCards().size() : 0L)
                 .viewAt(note.getViewAt())
-                .markAt(note.getMarkAt() != null ? note.getMarkAt().toString() : null)
-                .editDate(note.getEditDate() != null ? note.getEditDate().toString() : null)
-                .createdAt(note.getCreatedAt() != null ? note.getCreatedAt().toString() : null)
+                .markAt(note.getMarkAt() != null ? note.getMarkAt().toLocalDate().format(DateTimeFormatter.ofPattern("yy/MM/dd")) : null)
+                .editDate(note.getEditDate() != null ? note.getEditDate().toLocalDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")) : null)
+                .createdAt(note.getCreatedAt() != null ? note.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")) : null)
                 .build();
     }
 
