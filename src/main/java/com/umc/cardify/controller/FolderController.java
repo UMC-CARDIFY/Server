@@ -19,6 +19,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @Tag(name = "FolderController", description = "폴더 관련 API")
 @RestController
 @RequiredArgsConstructor
@@ -139,5 +141,16 @@ public class FolderController {
 
         FolderResponse.markFolderResultDTO response = folderService.markFolderById(userId, folderId);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/recent-marks")
+    @Operation(summary = "최근 즐겨찾기한 폴더 목록 조회 API", description = "최근 즐겨찾기한 순으로 조회 | 최대 4개")
+    public ResponseEntity<List<FolderResponse.RecentFolderDTO>> getRecentFavoriteFolders(
+            @RequestHeader("Authorization") String token) {
+        String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+        AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
+        User user = userRepository.findByEmailAndProvider(email, provider)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+        return ResponseEntity.ok(folderService.getRecentFavoriteFolders(user.getUserId()));
     }
 }

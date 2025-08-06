@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -294,5 +295,24 @@ public class FolderService {
                 .isSuccess(true)
                 .markDate(folder.getMarkDate())
                 .build();
+    }
+
+    public List<FolderResponse.RecentFolderDTO> getRecentFavoriteFolders(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(()-> new BadRequestException(ErrorResponseStatus.REQUEST_ERROR));
+
+        List<Folder> folders = folderRepository
+                .findTop4ByMarkStateAndUserOrderByMarkDateDesc(MarkStatus.ACTIVE, user);
+
+        return folders.stream()
+                .map(folder -> FolderResponse.RecentFolderDTO.builder()
+                        .folderId(folder.getFolderId())
+                        .name(folder.getName())
+                        .color(folder.getColor())
+                        .markState(folder.getMarkState())
+                        .markDate(folder.getMarkDate().toLocalDateTime().format(DateTimeFormatter.ofPattern("yyyy/MM/dd")))
+                        .noteCount(folder.getNoteCount())
+                        .build())
+                .collect(Collectors.toList());
     }
 }
