@@ -6,22 +6,18 @@ import java.util.stream.Collectors;
 
 import com.umc.cardify.domain.*;
 import com.umc.cardify.domain.enums.SubscriptionStatus;
-import com.umc.cardify.dto.note.CombinedNoteComparator;
 import com.umc.cardify.dto.note.NoteComparator;
 import com.umc.cardify.repository.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.cardify.config.exception.BadRequestException;
-import com.umc.cardify.config.exception.DatabaseException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.converter.NoteConverter;
 import com.umc.cardify.domain.ProseMirror.Node;
@@ -49,8 +45,6 @@ public class NoteComponentService {
 	private final CardModuleService cardModuleService;
 
 	private final NoteConverter noteConverter;
-
-	private final ObjectMapper objectMapper;
 
 	public Note addNote(Folder folder, Long userId) {
 		if (!userId.equals(folder.getUser().getUserId()))
@@ -419,7 +413,7 @@ public class NoteComponentService {
 			List<Note> filteredNotes = filterNotesByCardCount(allNotes, filter, cardCountMap);
 
 			// 8. 정렬 적용
-			List<Note> sortedNotes = sortNotes(filteredNotes, order, filter, cardCountMap);
+			List<Note> sortedNotes = sortNotes(filteredNotes, order);
 
 			// 9. 페이징 적용
 			List<Note> pagedNotes = pagingNotes(sortedNotes, getNotePage, getNoteSize);
@@ -471,19 +465,28 @@ public class NoteComponentService {
 			return notes;
 		}
 
-		List<String> filterList = Arrays.asList("card-most", "card-less");
-		if (!filterList.contains(filter)) {
-			throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
-		}
+		switch (filter) {
+			case "card-most":
+				// 카드가 1개 이상인 노트만 반환
+				return notes.stream()
+						.filter(note -> cardCountMap.getOrDefault(note.getNoteId(), 0L) >= 1)
+						.collect(Collectors.toList());
 
-		// 필터링은 적용하지 않고 그대로 반환 (정렬에서 처리)
-		return notes;
+			case "card-less":
+				// 카드가 0개인 노트만 반환
+				return notes.stream()
+						.filter(note -> cardCountMap.getOrDefault(note.getNoteId(), 0L) == 0)
+						.collect(Collectors.toList());
+
+			default:
+				throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+		}
 	}
 
 	// 노트 정렬 (북마크 상태 + 조건별 정렬)
-	private List<Note> sortNotes(List<Note> notes, String order, String filter, Map<Long, Long> cardCountMap) {
+	private List<Note> sortNotes(List<Note> notes, String order) {
 		return notes.stream()
-				.sorted(new CombinedNoteComparator(order, filter, cardCountMap))
+				.sorted(new NoteComparator(order))
 				.collect(Collectors.toList());
 	}
 
