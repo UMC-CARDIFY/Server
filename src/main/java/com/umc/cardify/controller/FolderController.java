@@ -3,6 +3,7 @@ package com.umc.cardify.controller;
 import com.umc.cardify.auth.jwt.JwtTokenProvider;
 import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
+import com.umc.cardify.domain.Folder;
 import com.umc.cardify.domain.User;
 import com.umc.cardify.domain.enums.AuthProvider;
 import com.umc.cardify.dto.folder.FolderRequest;
@@ -140,4 +141,24 @@ public class FolderController {
         FolderResponse.markFolderResultDTO response = folderService.markFolderById(userId, folderId);
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/{folderId}/element")
+    @Operation(summary = "폴더 내부 요소 조회 API", description = "성공 시 해당 유저의 폴더를 정렬 혹은 필터링해서 반환, 아무것도 입력 안하면 일반 조회 기능 | 정렬 order = asc, desc, edit-newest, edit-oldest | 필터링 쉼표로 구분된 색상 문자열 입력")
+    public ResponseEntity<FolderResponse.getElementListDTO> getElementList(
+            @RequestHeader("Authorization") String token,
+            @PathVariable Long folderId) {
+        String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+        AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
+        User user = userRepository.findByEmailAndProvider(email, provider)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+        Folder folder = folderService.getFolder(folderId);
+
+        try{
+            folderService.getElementList(user, folder);
+        } catch (Exception e){
+            System.out.println(e.getMessage());
+        }
+        return ResponseEntity.ok(folderService.getElementList(user, folder));
+    }
+
 }
