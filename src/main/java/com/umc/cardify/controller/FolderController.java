@@ -153,11 +153,6 @@ public class FolderController {
                 .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
         Folder folder = folderService.getFolder(folderId);
 
-        try{
-            folderService.getElementList(user, folder);
-        } catch (Exception e){
-            System.out.println(e.getMessage());
-        }
         return ResponseEntity.ok(folderService.getElementList(user, folder));
     }
 

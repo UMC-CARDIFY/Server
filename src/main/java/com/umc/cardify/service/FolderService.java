@@ -314,7 +314,6 @@ public class FolderService {
                         .createdAt(folder1.getCreatedAt())
                         .build())
                 .collect(Collectors.groupingBy(FolderResponse.FolderInfoDTO::getMarkState));
-        System.out.println("Success Find FolderList");
 
         if(folderList.get(MarkStatus.ACTIVE) != null)
             folderList.get(MarkStatus.ACTIVE).sort(Comparator.comparing(FolderResponse.FolderInfoDTO::getMarkDate).reversed());
@@ -322,7 +321,6 @@ public class FolderService {
         Map<MarkStatus, List<NoteResponse.NoteInfoDTO>> noteList =  noteRepository.findByFolder(folder).stream()
                 .map(noteConverter::toNoteInfoDTO)
                 .collect(Collectors.groupingBy(NoteResponse.NoteInfoDTO::getMarkState));
-        System.out.println("Success Find NoteList");
 
         if(noteList.get(MarkStatus.ACTIVE) != null)
             noteList.get(MarkStatus.ACTIVE).sort(Comparator.comparing(NoteResponse.NoteInfoDTO::getMarkAt).reversed());
