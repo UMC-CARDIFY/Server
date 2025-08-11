@@ -120,7 +120,7 @@ public class FolderService {
             return folders;
         }
 
-        List<String> orderList = Arrays.asList("asc", "desc", "edit-newest", "edit-oldest");
+        List<String> orderList = Arrays.asList("asc", "desc", "edit-newest", "edit-oldest", "create-newest", "create-oldest");
         if (!orderList.contains(order)) {
             throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
         }
