@@ -1,5 +1,6 @@
 package com.umc.cardify.dto.note;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.umc.cardify.domain.ProseMirror.Node;
 import com.umc.cardify.domain.enums.MarkStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -192,5 +193,34 @@ public class NoteResponse {
     public static class getNoteUUIDDTO{
         Long noteId;
         String UUID;
+    }
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "NOTE_RES_11 : 노트 이동 결과 DTO")
+    public static class NoteMoveResultDTO {
+        @Schema(description = "노트 ID", example = "1")
+        private Long noteId;
+
+        @Schema(description = "노트 이름", example = "한국사 요약")
+        private String noteName;
+
+        @Schema(description = "이전 폴더 ID", example = "10")
+        private Long previousFolderId;
+
+        @Schema(description = "이전 폴더 이름", example = "역사")
+        private String previousFolderName;
+
+        @Schema(description = "새 폴더 ID", example = "20")
+        private Long newFolderId;
+
+        @Schema(description = "새 폴더 이름", example = "근현대사")
+        private String newFolderName;
+
+        @Schema(description = "수정 시각", example = "yy/MM/dd")
+        @JsonFormat(pattern= "yy/MM/dd")
+        private Timestamp editDate;
     }
 }

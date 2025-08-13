@@ -44,14 +44,14 @@ public class FolderResponse {
     @AllArgsConstructor
     @Schema(title = "FOLDER_RES_02 : 폴더 목록 응답 DTO")
     public static class FolderListDTO {
-        // FIXME : 부모 폴더 내의 폴더 조회시 부모 폴더 이름 및 색상 추가로 응답해야 함
         @Schema(description = "부모 폴더 이름")
         private String parentFolderName;
         @Schema(description = "부모 폴더 색상")
         private String parentFolderColor;
         @Schema(description = "폴더 즐겨찾기", example = "INACTIVE")
         private MarkStatus parentMarkState;
-
+        @Schema(description = "폴더의 노트개수", example = "3")
+        private Integer getNoteCount;
         @Schema(description = "폴더 목록")
         private List<FolderInfoDTO> foldersList;
         @Schema(description = "리스트 사이즈", example = "10")
@@ -109,6 +109,7 @@ public class FolderResponse {
         @Schema(description = "폴더 색상", example = "ocean")
         String color;
         @Schema(description = "폴더 수정 날짜", example = "2023/12/05")
+        @JsonFormat(pattern= "yy/MM/dd")
         Timestamp editDate;
     }
 
@@ -142,8 +143,6 @@ public class FolderResponse {
         private MarkStatus markState;
         @Schema(description = "상위 폴더의 하위폴더 개수", example = "3")
         private Integer getSubFolderCount;
-        @Schema(description = "상위 폴더의 노트개수", example = "3")
-        private Integer getNoteCount;
         @Schema(description = "상위 폴더 즐겨찾기 수정 날짜", example = "2023/12/05")
         @JsonFormat(pattern= "yy/MM/dd")
         private Timestamp markDate;
@@ -198,6 +197,28 @@ public class FolderResponse {
         @Schema(description = "새로운 소속 상위 폴더 수정 날짜", example = "2023/12/05")
         @JsonFormat(pattern= "yy/MM/dd")
         private Timestamp editDate;
+    }
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "FOLDER_RES_10 : 노트이동 - 상위 폴더 목록 응답 DTO")
+    public static class FolderParentListDTO {
+        @Schema(description = "부모 폴더 ID")
+        private Long parentFolderID;
+        @Schema(description = "부모 폴더 이름")
+        private String parentFolderName;
+        @Schema(description = "부모 폴더 색상")
+        private String parentFolderColor;
+        @Schema(description = "폴더 즐겨찾기", example = "INACTIVE")
+        private MarkStatus parentMarkState;
+        @Schema(description = "폴더의 노트개수", example = "3")
+        private Integer getNoteCount;
+        @Schema(description = "폴더 목록")
+        private List<FolderInfoDTO> foldersList;
+        @Schema(description = "리스트 사이즈", example = "10")
+        private Integer listSize;
     }
 
 }

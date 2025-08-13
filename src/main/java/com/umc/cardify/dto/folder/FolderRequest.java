@@ -54,7 +54,7 @@ public class FolderRequest {
     @Setter
     @NoArgsConstructor
     @AllArgsConstructor
-    @Schema(title = "FOLDER_REQ_04 : 하위폴더 이동 요청 DTO")
+    @Schema(title = "FOLDER_REQ_04 : 하위폴더 이동 요청 DTO (노트 이동에서는 전체 폴더 아이디로 반환)")
     public static class MoveFolderDTO {
         @NotNull(message = "대상 상위폴더 ID는 필수입니다")
         @Schema(description = "상위폴더 ID", example = "1")
