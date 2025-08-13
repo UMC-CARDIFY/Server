@@ -820,11 +820,14 @@ public class CardComponentService {
 		LocalDate startOfLastWeek = startOfWeek.minusWeeks(1);
 		LocalDate endOfLastWeek = endOfWeek.minusWeeks(1);
 
+		// 이번주 학습카드 목록
 		List<Card> thisWeekCards = cardRepository.findCardsByUserAndLearnLastTimeBetween(user,
 			startOfWeek.atStartOfDay(), endOfWeek.atTime(LocalTime.MAX));
+		// 지난주 학습 카드 목록
 		List<Card> lastWeekCards = cardRepository.findCardsByUserAndLearnLastTimeBetween(user,
 			startOfLastWeek.atStartOfDay(), endOfLastWeek.atTime(LocalTime.MAX));
 
+		// 이번주 일마다 학습한 카드
 		Map<Integer, Long> dailyThisWeekStudy = calculateDailyStudyCount(thisWeekCards);
 		Map<Integer, Long> dailyLastWeekStudy = calculateDailyStudyCount(lastWeekCards);
 
@@ -841,15 +844,20 @@ public class CardComponentService {
 			.build();
 	}
 
+	// 하루 학습한 카드 개수
 	private Map<Integer, Long> calculateDailyStudyCount(List<Card> cards) {
 		return cards.stream()
 			.collect(Collectors.groupingBy(card -> card.getLearnLastTime().toLocalDateTime().getDayOfWeek().getValue(),
 				Collectors.collectingAndThen(
-					Collectors.toMap(card -> card.getStudyCardSet(), card -> card.getLearnLastTime(),
-						(time1, time2) -> time1.before(time2) ? time1 : time2), map -> (long)map.size())));
+					Collectors.toMap(
+							card -> card.getStudyCardSet(),
+							card -> card.getLearnLastTime(),
+							(time1, time2) -> time1.before(time2) ? time1 : time2),
+						map -> (long)map.size())));
 	}
 
-	public Map<Integer, Long> initializeWeekStudyResult(Map<Integer, Long> dailyStudyCount) {
+	// 주간 학습한 카드 개수
+	private Map<Integer, Long> initializeWeekStudyResult(Map<Integer, Long> dailyStudyCount) {
 		Map<Integer, Long> weekResult = new HashMap<>();
 
 		for (int i = 1; i <= 7; i++) {
