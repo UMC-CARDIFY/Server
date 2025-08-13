@@ -48,6 +48,7 @@ public class NoteController {
 		Long userId = userRepository.findByEmailAndProvider(email, provider)
 				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID)).getUserId();
 
+		// FIXME: 노트 개수 무료회원은 19개로 변경됨
 		if(!noteComponentService.checkNoteCnt(userId))
 			throw new BadRequestException(ErrorResponseStatus.NOTE_CREATED_NOT_ALLOWED);
 
