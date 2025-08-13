@@ -395,7 +395,7 @@ public class NoteComponentService {
 
 			// 4. 페이징 설정
 			int getNotePage = (page != null) ? page : 0;
-			int getNoteSize = (size != null) ? size : 10;
+			int getNoteSize = (size != null) ? size : Integer.MAX_VALUE;
 
 			// 5. 모든 노트 조회 (기본 북마크 + 수정일 최신순 정렬)
 			Sort defaultSort = Sort.by(Sort.Order.desc("markState"))

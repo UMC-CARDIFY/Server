@@ -188,7 +188,7 @@ public class FolderService {
 
         // 유료 결제 여부에 따른 상위 폴더 개수 제한
         int folderCount = folderRepository.countByUserAndParentFolderIsNull(user);
-        if (!isSubscribed && folderCount >= 9) { // 무료 사용자 제한
+        if (!isSubscribed && folderCount >= 30) { // 무료 사용자 제한
             throw new BadRequestException(ErrorResponseStatus.FOLDER_CREATED_NOT_ALLOWED);
         }
 
