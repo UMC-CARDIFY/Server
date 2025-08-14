@@ -2,6 +2,7 @@ package com.umc.cardify.service;
 
 import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
+import com.umc.cardify.converter.NoteConverter;
 import com.umc.cardify.domain.Folder;
 import com.umc.cardify.domain.Note;
 import com.umc.cardify.domain.User;
@@ -10,6 +11,7 @@ import com.umc.cardify.domain.enums.SubscriptionStatus;
 import com.umc.cardify.dto.folder.FolderComparator;
 import com.umc.cardify.dto.folder.FolderRequest;
 import com.umc.cardify.dto.folder.FolderResponse;
+import com.umc.cardify.dto.note.NoteResponse;
 import com.umc.cardify.repository.FolderRepository;
 import com.umc.cardify.repository.NoteRepository;
 import com.umc.cardify.repository.UserRepository;
@@ -22,7 +24,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -32,6 +36,7 @@ public class FolderService {
     private final FolderRepository folderRepository;
     private final NoteRepository noteRepository;
     private final UserRepository userRepository;
+    private final NoteConverter noteConverter;
 
     public Folder getFolder(long folderId){
         return folderRepository.findById(folderId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
@@ -293,6 +298,45 @@ public class FolderService {
                 .markState(folder.getMarkState())
                 .isSuccess(true)
                 .markDate(folder.getMarkDate())
+                .build();
+    }
+
+    public FolderResponse.getElementListDTO getElementList(User user, Folder folder){
+        Map<MarkStatus, List<FolderResponse.FolderInfoDTO>> folderList = folderRepository.findByParentFolderAndUser(folder, user).stream()
+                .map(folder1 -> FolderResponse.FolderInfoDTO.builder()
+                        .folderId(folder1.getFolderId())
+                        .name(folder1.getName())
+                        .color(folder1.getColor())
+                        .markState(folder1.getMarkState())
+                        .getNoteCount(folder1.getNoteCount())
+                        .markDate(folder1.getMarkDate())
+                        .editDate(folder1.getEditDate())
+                        .createdAt(folder1.getCreatedAt())
+                        .build())
+                .collect(Collectors.groupingBy(FolderResponse.FolderInfoDTO::getMarkState));
+
+        if(folderList.get(MarkStatus.ACTIVE) != null)
+            folderList.get(MarkStatus.ACTIVE).sort(Comparator.comparing(FolderResponse.FolderInfoDTO::getMarkDate).reversed());
+
+        Map<MarkStatus, List<NoteResponse.NoteInfoDTO>> noteList =  noteRepository.findByFolder(folder).stream()
+                .map(noteConverter::toNoteInfoDTO)
+                .collect(Collectors.groupingBy(NoteResponse.NoteInfoDTO::getMarkState));
+
+        if(noteList.get(MarkStatus.ACTIVE) != null)
+            noteList.get(MarkStatus.ACTIVE).sort(Comparator.comparing(NoteResponse.NoteInfoDTO::getMarkAt).reversed());
+
+        return FolderResponse.getElementListDTO.builder()
+                .folderId(folder.getFolderId())
+                .name(folder.getName())
+                .color(folder.getColor())
+                .markElementList(FolderResponse.markElementList.builder()
+                        .folderList(folderList.get(MarkStatus.ACTIVE))
+                        .noteList(noteList.get(MarkStatus.ACTIVE))
+                        .build())
+                .notMarkElementList(FolderResponse.notMarkElementList.builder()
+                        .folderList(folderList.get(MarkStatus.INACTIVE))
+                        .noteList(noteList.get(MarkStatus.INACTIVE))
+                        .build())
                 .build();
     }
 }
