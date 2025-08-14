@@ -135,6 +135,10 @@ public class FolderResponse {
     public static class getElementListDTO{
         @Schema(description = "조회 요청한 폴더 아이디", example = "1")
         private Long folderId;
+        @Schema(description = "폴더 이름", example = "sample")
+        private String name;
+        @Schema(description = "폴더 색상", example = "ocean")
+        private String color;
         @Schema(description = "즐겨찾기한 요소 리스트")
         private markElementList markElementList;
         @Schema(description = "즐겨찾기 하지 않은 요소 리스트")

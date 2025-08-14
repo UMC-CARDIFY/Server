@@ -327,6 +327,8 @@ public class FolderService {
 
         return FolderResponse.getElementListDTO.builder()
                 .folderId(folder.getFolderId())
+                .name(folder.getName())
+                .color(folder.getColor())
                 .markElementList(FolderResponse.markElementList.builder()
                         .folderList(folderList.get(MarkStatus.ACTIVE))
                         .noteList(noteList.get(MarkStatus.ACTIVE))
