@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>토큰 갱신 테스트</title>
+  <style>
+      body {
+          font-family: Arial, sans-serif;
+          max-width: 800px;
+          margin: 0 auto;
+          padding: 20px;
+      }
+      .container {
+          background-color: #f5f5f5;
+          border-radius: 5px;
+          padding: 15px;
+          margin-bottom: 20px;
+      }
+      h2 {
+          margin-top: 0;
+          color: #333;
+      }
+      pre {
+          background-color: #eee;
+          padding: 10px;
+          border-radius: 3px;
+          overflow: auto;
+          font-size: 12px;
+      }
+      button {
+          background-color: #4CAF50;
+          color: white;
+          border: none;
+          padding: 10px 15px;
+          text-align: center;
+          text-decoration: none;
+          display: inline-block;
+          font-size: 16px;
+          margin: 4px 2px;
+          cursor: pointer;
+          border-radius: 4px;
+      }
+      .logout-btn {
+          background-color: #f44336;
+      }
+      .result {
+          margin-top: 10px;
+          padding: 10px;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+      }
+      .success {
+          color: green;
+      }
+      .error {
+          color: red;
+      }
+      .info {
+          color: blue;
+      }
+      .token-history {
+          background-color: #fff;
+          border: 1px solid #ccc;
+          padding: 10px;
+          margin-top: 10px;
+          border-radius: 4px;
+      }
+  </style>
+</head>
+<body>
+<h1>🔐 토큰 갱신 테스트 페이지</h1>
+
+<div class="container">
+  <h2>📋 테스트 시나리오</h2>
+  <ol>
+    <li><strong>첫 번째 로그인:</strong> OAuth 로그인 → 토큰 저장 → "토큰 히스토리에 추가" 클릭</li>
+    <li><strong>두 번째 로그인:</strong> 같은 브라우저에서 다시 OAuth 로그인 → 토큰 저장 → "토큰 히스토리에 추가" 클릭</li>
+    <li><strong>결과 확인:</strong> 토큰 값이 변경되었는지 히스토리에서 비교</li>
+  </ol>
+</div>
+
+<div class="container">
+  <h2>🎯 빠른 OAuth 로그인</h2>
+  <button onclick="location.href='/oauth2/authorization/kakao'">카카오 로그인</button>
+  <button onclick="location.href='/oauth2/authorization/google'">구글 로그인</button>
+  <button class="logout-btn" onclick="logout()">로그아웃</button>
+</div>
+
+<div class="container">
+  <h2>🔑 현재 토큰 상태</h2>
+  <button id="check-current-token">현재 토큰 확인</button>
+  <button id="fetch-new-token">새 토큰 가져오기</button>
+  <button id="add-to-history">토큰 히스토리에 추가</button>
+  <div id="current-token-result" class="result">현재 토큰 상태가 여기에 표시됩니다.</div>
+</div>
+
+<div class="container">
+  <h2>📈 토큰 히스토리 (갱신 확인용)</h2>
+  <button onclick="clearHistory()">히스토리 삭제</button>
+  <div id="token-history" class="token-history">
+    토큰 변경 내역이 여기에 표시됩니다.
+  </div>
+</div>
+
+<div class="container">
+  <h2>🧪 API 테스트</h2>
+  <button id="test-api">사용자 정보 API 호출</button>
+  <div id="api-result" class="result">API 결과가 여기에 표시됩니다.</div>
+</div>
+
+<script>
+    let tokenHistory = JSON.parse(localStorage.getItem('tokenHistory') || '[]');
+
+    // 페이지 로드 시 실행
+    document.addEventListener('DOMContentLoaded', function() {
+        checkCurrentToken();
+        displayTokenHistory();
+
+        // URL 파라미터 체크 (OAuth 리다이렉트 후)
+        const urlParams = new URLSearchParams(window.location.search);
+        if (window.location.pathname.includes('auth') || document.referrer.includes('oauth')) {
+            document.getElementById('current-token-result').innerHTML =
+                '<span class="info">🔄 OAuth 리다이렉트 감지됨. "새 토큰 가져오기"를 클릭하세요.</span>';
+        }
+    });
+
+    // 현재 토큰 확인
+    function checkCurrentToken() {
+        const accessToken = localStorage.getItem('accessToken');
+        const resultElement = document.getElementById('current-token-result');
+
+        if (accessToken) {
+            const tokenPreview = accessToken.substring(0, 15) + '...' + accessToken.substring(accessToken.length - 15);
+
+            // JWT 페이로드 디코딩
+            try {
+                const tokenPayload = accessToken.split('.')[1];
+                const decodedData = JSON.parse(atob(tokenPayload));
+                const issuedAt = new Date(decodedData.iat * 1000);
+                const expiresAt = new Date(decodedData.exp * 1000);
+
+                resultElement.innerHTML = `
+                    <span class="success">✅ 액세스 토큰 있음</span><br>
+                    <strong>토큰 미리보기:</strong> ${tokenPreview}<br>
+                    <strong>발급 시간:</strong> ${issuedAt.toLocaleString()}<br>
+                    <strong>만료 시간:</strong> ${expiresAt.toLocaleString()}<br>
+                    <strong>이메일:</strong> ${decodedData.sub}<br>
+                    <strong>제공자:</strong> ${decodedData.provider}
+                `;
+            } catch (e) {
+                resultElement.innerHTML = `<span class="success">✅ 액세스 토큰 있음</span><br>토큰: ${tokenPreview}`;
+            }
+        } else {
+            resultElement.innerHTML = '<span class="error">❌ localStorage에 액세스 토큰이 없습니다.</span>';
+        }
+    }
+
+    // 새 토큰 가져오기
+    function fetchNewToken() {
+        const resultElement = document.getElementById('current-token-result');
+        resultElement.innerHTML = '<span class="info">🔄 토큰 가져오는 중...</span>';
+
+        fetch('/api/v1/auth/token', {
+            method: 'GET',
+            credentials: 'include'
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.accessToken) {
+                    localStorage.setItem('accessToken', data.accessToken);
+                    resultElement.innerHTML = '<span class="success">✅ 새 토큰을 가져와 localStorage에 저장했습니다!</span>';
+                    checkCurrentToken();
+                } else {
+                    resultElement.innerHTML = '<span class="error">❌ 토큰 가져오기 실패: ' + (data.error || '알 수 없는 오류') + '</span>';
+                }
+            })
+            .catch(error => {
+                resultElement.innerHTML = '<span class="error">❌ 오류 발생: ' + error.message + '</span>';
+            });
+    }
+
+    // 토큰 히스토리에 추가
+    function addToHistory() {
+        const accessToken = localStorage.getItem('accessToken');
+        if (!accessToken) {
+            alert('저장할 토큰이 없습니다.');
+            return;
+        }
+
+        try {
+            const tokenPayload = accessToken.split('.')[1];
+            const decodedData = JSON.parse(atob(tokenPayload));
+
+            const historyItem = {
+                timestamp: new Date().toLocaleString(),
+                tokenPreview: accessToken.substring(0, 15) + '...' + accessToken.substring(accessToken.length - 15),
+                issuedAt: new Date(decodedData.iat * 1000).toLocaleString(),
+                email: decodedData.sub,
+                provider: decodedData.provider
+            };
+
+            tokenHistory.push(historyItem);
+            localStorage.setItem('tokenHistory', JSON.stringify(tokenHistory));
+            displayTokenHistory();
+
+            alert('토큰이 히스토리에 추가되었습니다!');
+        } catch (e) {
+            alert('토큰 분석 중 오류가 발생했습니다.');
+        }
+    }
+
+    // 토큰 히스토리 표시
+    function displayTokenHistory() {
+        const historyElement = document.getElementById('token-history');
+
+        if (tokenHistory.length === 0) {
+            historyElement.innerHTML = '<span class="info">아직 저장된 토큰 히스토리가 없습니다.</span>';
+            return;
+        }
+
+        let historyHtml = '<h4>📊 토큰 변경 내역</h4>';
+        tokenHistory.forEach((item, index) => {
+            historyHtml += `
+                <div style="border-bottom: 1px solid #ddd; padding: 10px 0;">
+                    <strong>${index + 1}번째 토큰 (${item.timestamp})</strong><br>
+                    토큰: ${item.tokenPreview}<br>
+                    발급시간: ${item.issuedAt}<br>
+                    이메일: ${item.email} (${item.provider})
+                </div>
+            `;
+        });
+
+        // 토큰 변경 확인
+        if (tokenHistory.length >= 2) {
+            const isChanged = tokenHistory[tokenHistory.length - 1].tokenPreview !== tokenHistory[tokenHistory.length - 2].tokenPreview;
+            historyHtml += `<div style="margin-top: 10px; padding: 10px; background-color: ${isChanged ? '#d4edda' : '#f8d7da'}; border-radius: 4px;">
+                <strong>${isChanged ? '✅ 토큰이 성공적으로 갱신되었습니다!' : '❌ 토큰이 갱신되지 않았습니다.'}</strong>
+            </div>`;
+        }
+
+        historyElement.innerHTML = historyHtml;
+    }
+
+    // 히스토리 삭제
+    function clearHistory() {
+        tokenHistory = [];
+        localStorage.removeItem('tokenHistory');
+        displayTokenHistory();
+        alert('토큰 히스토리가 삭제되었습니다.');
+    }
+
+    // API 테스트
+    function testApi() {
+        const resultElement = document.getElementById('api-result');
+        const accessToken = localStorage.getItem('accessToken');
+
+        if (!accessToken) {
+            resultElement.innerHTML = '<span class="error">❌ 액세스 토큰이 없습니다.</span>';
+            return;
+        }
+
+        resultElement.innerHTML = '<span class="info">🔄 API 호출 중...</span>';
+
+        fetch('/api/v1/auth/user', {
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + accessToken
+            }
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Status: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                resultElement.innerHTML = '<span class="success">✅ API 호출 성공:</span><br><pre>' +
+                    JSON.stringify(data, null, 2) + '</pre>';
+            })
+            .catch(error => {
+                resultElement.innerHTML = '<span class="error">❌ API 호출 실패: ' + error.message + '</span>';
+            });
+    }
+
+    // 로그아웃
+    function logout() {
+        localStorage.removeItem('accessToken');
+        document.cookie = 'refreshToken=; Max-Age=0; path=/';
+        alert('로그아웃되었습니다.');
+        checkCurrentToken();
+    }
+
+    // 이벤트 리스너
+    document.getElementById('check-current-token').addEventListener('click', checkCurrentToken);
+    document.getElementById('fetch-new-token').addEventListener('click', fetchNewToken);
+    document.getElementById('add-to-history').addEventListener('click', addToHistory);
+    document.getElementById('test-api').addEventListener('click', testApi);
+</script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+server:
+  port: 8080
+
+spring:
+  profiles:
+    active: test
+
+  # 테스트용 인메모리 H2 데이터베이스 사용
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driverClassName: org.h2.Driver
+    username: sa
+    password:
+
+  # MongoDB 비활성화 (테스트에서 불필요)
+  data:
+    mongodb:
+      uri:
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop  # 테스트마다 스키마 재생성
+      jdbc:
+        time_zone: Asia/Seoul
+    properties:
+      hibernate:
+        show_sql: true  # 테스트에서는 SQL 로그 활성화
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+        physical_naming_strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
+        default_batch_fetch_size: 500
+        order_by:
+          default_null_ordering: last
+        use_sql_comments: true
+        type: trace
+    database: h2
+
+  # OAuth2 테스트용 더미 설정
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            client-id: test-kakao-client-id
+            client-secret: test-kakao-client-secret
+            client-name: Kakao
+            authorization-grant-type: authorization_code
+            redirect-uri: "http://localhost:8080/login/oauth2/code/kakao"
+            scope:
+              - profile_nickname
+              - account_email
+              - profile_image
+            client-authentication-method: client_secret_post
+          google:
+            client-id: test-google-client-id
+            client-secret: test-google-client-secret
+            scope:
+              - email
+              - profile
+              - openid
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+# 테스트용 더미 설정들
+app:
+  oauth2:
+    redirect-uri: http://localhost:8080/token-check.html
+
+jwt:
+  secret: test-secret-key-for-testing-minimum-256-bits-long
+  refreshTokenValidity: 604800000  # 7일
+  accessTokenValidity: 3600000     # 1시간
+
+cloud:
+  aws:
+    credentials:
+      accessKey: test-access-key
+      secretKey: test-secret-key
+    s3:
+      bucket: test-bucket
+    region:
+      static: ap-northeast-2
+      auto: false
+    stack:
+      auto: false
+
+# 테스트용 로깅 설정 (더 상세하게)
+logging:
+  level:
+    root: INFO
+    org.springframework.security: INFO
+    org.hibernate.SQL: DEBUG  # 테스트에서 SQL 로그 확인
+    org.hibernate.type.descriptor.sql.BasicBinder: DEBUG
+    org.springframework.web: INFO
+    com.umc.cardify: DEBUG  # 애플리케이션 로그 상세히
+    com.umc.cardify.controller.OAuth2Controller: DEBUG
+    com.umc.cardify.service.KakaoService: DEBUG
+    com.umc.cardify.service.payment.SimplePayServiceImpl: DEBUG
+    com.umc.cardify.controller.SimplePayController: DEBUG
+    com.umc.cardify.service.payment.PortoneClient: DEBUG  # 포트원 클라이언트 상세 로그
+    org.springframework.web.client.RestTemplate: DEBUG
+
+# 포트원 테스트용 더미 설정
+portone:
+  imp_key: test-imp-key
+  imp_secret: test-imp-secret
+  store_id: test-store-id
+  kakaopay_pg_code: kakaopay.TCSUBSCRIP
+  tosspay_pg_code: tosspay_v2.tosstest
+  naverpay_pg_code: naverpay
+
+# 토스페이 테스트용 더미 설정
+tosspay:
+  api:
+    key: test-toss-api-key
+    channel_key: test-toss-channel-key
+
+# 암호화 테스트용 더미 키
+encryption:
+  key: test-encryption-key-32-characters

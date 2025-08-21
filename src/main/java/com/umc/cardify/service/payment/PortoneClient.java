@@ -31,7 +31,7 @@ public class PortoneClient {
 
   private static final String PORTONE_API_URL = "https://api.iamport.kr";
 
-  // 토큰 캐싱을 위한 필드 추가
+  // 토큰 캐싱을 위한 필드
   private String cachedToken;
   private LocalDateTime tokenExpiresAt;
 
