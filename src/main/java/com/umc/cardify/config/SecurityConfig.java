@@ -46,7 +46,7 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/error",
                                 "/api/v1/oauth2/**",
-                                "/token-check.html",
+                                "token-check.html",
                                 "token-renewal.html",
                                 "simplePay-test.html",
                                 "/api/v1/auth/**",
