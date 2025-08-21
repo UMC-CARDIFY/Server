@@ -63,7 +63,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         // 사용자 정보 저장 또는 업데이트
         User user = userService.processSocialLogin(email, name, profileImage, provider);
 
-        // ⭐ 핵심: 항상 새 토큰 발급
+        // 항상 새 토큰 발급
         log.info("로그인 감지 - 새 토큰 발급: {}", email);
 
         // 1. 기존 세션 토큰 제거
