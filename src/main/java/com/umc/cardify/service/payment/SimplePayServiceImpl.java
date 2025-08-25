@@ -414,7 +414,6 @@ public class SimplePayServiceImpl implements SimplePayService {
         }
 
         // 지수 백오프 계산
-        // long backoffTime = 60000L * attempt; // 1분 단위로 계산
         long backoffTime = (long) Math.pow(2, attempt) * 1000;
 
         log.info("구독 ID {}의 정기 결제 재시도 예정: {}ms 후 시도 {}/{}",

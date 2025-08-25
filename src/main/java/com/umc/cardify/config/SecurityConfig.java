@@ -47,8 +47,8 @@ public class SecurityConfig {
                                 "/error",
                                 "/api/v1/oauth2/**",
                                 "/token-check.html",
-                                "kakaopay-test.html",
-                                "simplePay-test.html",
+                                "/token-renewal.html",
+                                "/simplePay-test.html",
                                 "/api/v1/auth/**",
                             "api/v1/payments/simple-pay/**").permitAll()
                         .anyRequest().authenticated())
