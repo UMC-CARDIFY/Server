@@ -354,7 +354,7 @@ public class SimplePayServiceImpl implements SimplePayService {
 
   // 정기 결제 처리
   @Override
-  @Scheduled(cron = "0 * * * * ?") // 매일 새벽 1시에 실행
+  @Scheduled(cron = "0 0 1 * * ?") // 매일 새벽 1시에 실행
   @Transactional
   public void processRecurringPayments() {
     log.info("정기 결제 처리 시작");
