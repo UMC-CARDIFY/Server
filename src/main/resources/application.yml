@@ -106,6 +106,9 @@ tosspay:
   api:
     key: ${TOSS_API_KEY}
     channel_key: ${TOSS_CHANNEL_KEY}
-
 encryption:
   key: ${ENCRYPTION_KEY}
+notification:
+  discord:
+    enabled: true
+    webhook-url: https://discord.com/api/webhooks/YOUR_WEBHOOK_URL_HERE # TODO : 웹훅 설정 후 수정
