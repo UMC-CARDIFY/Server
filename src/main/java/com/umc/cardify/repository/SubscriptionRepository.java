@@ -27,10 +27,14 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
       "WHERE pm.id = :paymentMethodId AND s.status IN :statuses")
   boolean existsByPaymentMethodAndStatusIn(@Param("paymentMethodId") Long paymentMethodId,
                                            @Param("statuses") List<String> statuses);
-
-  Long user(User user);
-
   // 사용자의 구독 개수 (중복 구독 방지용)
   long countByUser_UserIdAndStatus(Long userId, SubscriptionStatus status);
+
+  // 다음 결제일이 지났는데 활성화된 구독
+  List<Subscription> findByStatusAndNextPaymentDateBetween(
+      SubscriptionStatus status,
+      LocalDateTime startDate,
+      LocalDateTime endDate
+  );
 
 }

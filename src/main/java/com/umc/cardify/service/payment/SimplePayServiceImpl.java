@@ -524,19 +524,16 @@ public class SimplePayServiceImpl implements SimplePayService {
 
         subscription.setNextPaymentDate(nextPaymentDateTime);
 
-        // 구독 종료일 확인 및 자동 갱신 처리
-        if (subscription.getEndDate() != null && subscription.getEndDate().isBefore(LocalDateTime.now())) {
-          // 구독 기간 연장
-          String period = subscription.getProduct().getPeriod().name();
-          LocalDateTime newEndDate = ("YEAR".equals(period)) ?
-              subscription.getEndDate().plusYears(1) : subscription.getEndDate().plusMonths(1);
+        // 결제시 구독 종료일 자동 갱신
+        String period = subscription.getProduct().getPeriod().name();
+        LocalDateTime newEndDate = ("YEAR".equals(period)) ?
+            subscription.getEndDate().plusYears(1) : subscription.getEndDate().plusMonths(1);
 
-          subscription.setEndDate(newEndDate);
-          log.info("구독 기간 연장: id={}, 새 종료일={}", subscription.getId(), newEndDate);
-        }
+        subscription.setEndDate(newEndDate);
+        log.info("구독 기간 연장: id={}, 새 종료일={}", subscription.getId(), newEndDate);
 
         subscriptionRepository.save(subscription);
-        log.info("다음 결제일 업데이트: subscriptionId={}, nextPaymentDate={}",
+        log.info(" 다음 결제일 업데이트: subscriptionId={}, nextPaymentDate={}",
             subscription.getId(), nextPaymentDateTime);
       } else {
         subscriptionPayment.setStatus(PaymentStatus.FAILED);
@@ -725,7 +722,7 @@ public class SimplePayServiceImpl implements SimplePayService {
     };
   }
 
-  // 다음 결제일 저장
+  // 다음 결제일 및 구독 기간 저장
   private void updateNextPaymentDateAfterWebhook(Long subscriptionId) {
     try {
       Subscription subscription = subscriptionRepository.findById(subscriptionId).orElse(null);
