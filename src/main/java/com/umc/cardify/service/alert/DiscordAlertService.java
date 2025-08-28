@@ -26,7 +26,6 @@ public class DiscordAlertService implements AlertService {
     try {
       String message = buildDiscordMessage(subscription);
       sendToDiscord(message);
-      log.info("디스코드 알림 전송 성공: subscriptionId={}", subscription.getId());
     } catch (Exception e) {
       log.error("디스코드 알림 전송 실패: subscriptionId={}, error={}",
           subscription.getId(), e.getMessage(), e);

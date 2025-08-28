@@ -17,6 +17,7 @@ import com.umc.cardify.dto.payment.subscription.SubscriptionRequest;
 import com.umc.cardify.dto.payment.subscription.SubscriptionResponse;
 import com.umc.cardify.dto.payment.webhook.WebhookRequest;
 import com.umc.cardify.repository.*;
+import com.umc.cardify.service.alert.NotificationService;
 import com.umc.cardify.service.subscription.SubscriptionServiceImpl;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -49,6 +50,7 @@ public class SimplePayServiceImpl implements SimplePayService {
   private final ObjectMapper objectMapper;
   private final SubscriptionServiceImpl subscriptionServiceImpl;
   private final BillingKeyRequestRepository billingKeyRequestRepository;
+  private final NotificationService notificationService;
 
   @Value("${portone.kakaopay_pg_code}")
   private String KAKAOPAY_PG_CODE;
@@ -378,11 +380,11 @@ public class SimplePayServiceImpl implements SimplePayService {
 
         if (!success) {
           log.error("구독 ID {}의 정기 결제가 모든 시도 후에도 실패했습니다.", subscription.getId());
-          // TODO : 결제 실패 알림 기능 구현
+          notificationService.sendPaymentFailureAlert(subscription);
         }
       } catch (Exception e) {
         log.error("구독 ID {}의 정기 결제 처리 자체에 심각한 오류: {}", subscription.getId(), e.getMessage(), e);
-        // TODO : 결제 실패 알림 기능 구현
+        notificationService.sendPaymentFailureAlert(subscription);
       }
     }
 
@@ -404,7 +406,7 @@ public class SimplePayServiceImpl implements SimplePayService {
       } catch (Exception e) {
         attempt++;
         log.error("구독 ID {}의 정기 결제 처리 중 오류 (시도 {}/{}): {}",
-            subscription.getId(), attempt, maxRetries, e.getMessage(), e);
+            subscription.getId(), attempt, maxRetries, e.getMessage());
 
         // 최대 재시도 횟수에 도달했는지 확인
         if (attempt >= maxRetries) {
@@ -537,7 +539,7 @@ public class SimplePayServiceImpl implements SimplePayService {
             subscription.getId(), nextPaymentDateTime);
       } else {
         subscriptionPayment.setStatus(PaymentStatus.FAILED);
-        // TODO : 결제 실패 알림 기능 구현
+        notificationService.sendPaymentFailureAlert(subscription);
       }
 
       subscriptionPaymentRepository.save(subscriptionPayment);
@@ -545,7 +547,7 @@ public class SimplePayServiceImpl implements SimplePayService {
           subscriptionPayment.getId(), merchantUid, subscriptionPayment.getStatus());
 
     } catch (Exception e) {
-      log.error("정기 결제 처리 중 오류 발생: {}", e.getMessage(), e);
+      log.error("정기 결제 처리 중 오류 발생: {}", e.getMessage());
 
       // 결제 실패 기록
       SubscriptionPayment failedPayment = SubscriptionPayment.builder()
@@ -564,7 +566,7 @@ public class SimplePayServiceImpl implements SimplePayService {
       if (e instanceof PaymentFailedException) {
         throw (PaymentFailedException) e;
       } else {
-        throw new PaymentFailedException("결제 처리 중 오류 발생: " + e.getMessage(), e);
+        throw new PaymentFailedException("결제 처리 중 오류 발생: " + e.getMessage());
       }
     }
   }
