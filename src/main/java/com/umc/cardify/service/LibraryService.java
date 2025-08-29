@@ -102,14 +102,14 @@ public class LibraryService {
                 .build();
         noteRepository.save(note_new);
 
-        Node contents_down = contentsNoteRepository.findById(note_down.getContentsId()).get().getContents();
+        String contents_down = contentsNoteRepository.findById(note_down.getContentsNote().getContentsId()).get().getContents();
         ContentsNote contentsNote = ContentsNote.builder()
                 .contents(contents_down)
-                .noteId(note_new.getNoteId())
+                .note(note_new)
                 .build();
         contentsNoteRepository.save(contentsNote);
 
-        note_new.setContentsId(contentsNote.get_id());
+        note_new.setContentsNote(contentsNote);
         noteRepository.save(note_new);
 
         if(cardList != null)

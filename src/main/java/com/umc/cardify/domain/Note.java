@@ -70,8 +70,8 @@ public class Note extends BaseEntity {
     private Library library;
 
     @Setter
-    @Convert(converter = ObjectIdConverter.class)
-    private ObjectId contentsId;
+    @OneToOne(mappedBy = "note", cascade = CascadeType.ALL)
+    private ContentsNote contentsNote;
 
     @Setter
     @OneToMany(mappedBy = "note", cascade = CascadeType.ALL)

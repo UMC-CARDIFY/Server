@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.umc.cardify.domain.*;
 import com.umc.cardify.domain.enums.SubscriptionStatus;
 import com.umc.cardify.repository.*;
@@ -11,12 +12,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.DatabaseException;
@@ -57,9 +56,9 @@ public class NoteComponentService {
 			Note newNote = NoteConverter.toAddNote(folder);
 			noteRepository.save(newNote);
 			try {
-				ContentsNote contentsNote = ContentsNote.builder().noteId(newNote.getNoteId()).build();
-				contentsNoteRepository.insert(contentsNote);
-				newNote.setContentsId(contentsNote.get_id());
+				ContentsNote contentsNote = ContentsNote.builder().note(newNote).build();
+				contentsNoteRepository.save(contentsNote);
+				newNote.setContentsNote(contentsNote);
 			}catch (Exception e){
 				System.out.println(e);
 			}
@@ -93,7 +92,7 @@ public class NoteComponentService {
 			throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
 		else {
 			noteRepository.delete(note_del);
-			contentsNoteRepository.delete(contentsNoteRepository.findByNoteId(note_del.getNoteId()).get());
+			contentsNoteRepository.delete(contentsNoteRepository.findByNote(note_del).get());
 			return true;
 		}
 	}
@@ -170,17 +169,23 @@ public class NoteComponentService {
 			cardModuleService.deleteAllImageCardsByNoteId(note.getNoteId());
 
 		}
+        note.setName(request.getName());
+        Node node = request.getContents();
 
 		StringBuilder totalText = new StringBuilder();
-		note.setName(request.getName());
 
 		Queue<MultipartFile> imageQueue = new LinkedList<>(images != null ? images : Collections.emptyList());
-		Node node = request.getContents();
 		searchCard(node, totalText, note, imageQueue);
 		note.setTotalText(totalText.toString());
 
-		ContentsNote contentsNote = contentsNoteRepository.findByNoteId(note.getNoteId()).get();
-		contentsNote.setContents(node);
+		ContentsNote contentsNote = contentsNoteRepository.findByNote(note).get();
+        String content;
+        try {
+            content = objectMapper.writeValueAsString(node);
+        } catch (JsonProcessingException e){
+            throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+        }
+		contentsNote.setContents(content);
 		contentsNoteRepository.save(contentsNote);
 
 		noteModuleService.saveNote(note);
@@ -353,7 +358,7 @@ public class NoteComponentService {
 	}
 
 	public NoteResponse.getNoteDTO getNote(Long noteId) {
-		Note note = noteRepository.findById(noteId)
+        Note note = noteRepository.findById(noteId)
 			.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
 		//노트 조회 시간 갱신
 		note.setViewAt(LocalDateTime.now());
@@ -369,7 +374,7 @@ public class NoteComponentService {
 				.build();
 		}).toList();
 
-		return noteConverter.getNoteDTO(note, cardDTO);
+        return noteConverter.getNoteDTO(note, cardDTO);
 	}
 
 	public List<NoteResponse.NoteInfoDTO> getRecentNotes(Long userId, int page, Integer size) {

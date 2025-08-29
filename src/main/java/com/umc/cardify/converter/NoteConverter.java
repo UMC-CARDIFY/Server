@@ -13,7 +13,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -160,7 +159,7 @@ public class NoteConverter {
                 .build();
     }
     public NoteResponse.getNoteDTO getNoteDTO(Note note, List<NoteResponse.getNoteCardDTO> cardDTO){
-        ContentsNote contentsNote = contentsNoteRepository.findByNoteId(note.getNoteId()).orElseThrow(
+        ContentsNote contentsNote = contentsNoteRepository.findByNote(note).orElseThrow(
                 () -> new BadRequestException(ErrorResponseStatus.INVALID_NOTE_TEXT));
 
         return NoteResponse.getNoteDTO.builder()
