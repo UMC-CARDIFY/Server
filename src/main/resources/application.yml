@@ -61,6 +61,20 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
+  mail:
+    host: smtp.gmail.com
+    port: ${MAIL_PORT}
+    username: ${CARDIFY_EMAIL}
+    password: ${CARDIFY_EMAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
 app:
   oauth2:
     redirect-uri: http://localhost:8080/token-check.html # 프론트엔드 서버 주소
@@ -113,3 +127,7 @@ notification:
   discord:
     enabled: true
     webhook-url: ${DISCORD_URL}
+  email:
+    enabled: true
+    admin-emails:
+      ${DEV_EMAIL}

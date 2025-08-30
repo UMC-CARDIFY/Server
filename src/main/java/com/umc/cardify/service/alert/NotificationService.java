@@ -8,7 +8,6 @@ import java.util.List;
 @Service
 public class NotificationService {
 
-  // TODO : 이후에 메일 서비스 추가를 위해
   private final List<AlertService> alertServices;  // 모든 알림 서비스들
 
   public NotificationService(List<AlertService> alertServices) {

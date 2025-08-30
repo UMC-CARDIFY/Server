@@ -80,6 +80,9 @@ dependencies {
     // WebClient에서 사용할 reactor 확장
     implementation 'io.projectreactor.netty:reactor-netty:1.1.12'
 
+    // 메일
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
+
 }
 
 tasks.named('test') {

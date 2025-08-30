@@ -394,7 +394,7 @@ public class SimplePayServiceImpl implements SimplePayService {
   // 지수 백오프 정기 결제 처리
   private boolean processSubscriptionPaymentWithBackoff(Subscription subscription) {
     int attempt = 0;
-    final int maxRetries = 10; // 최대 시도 횟수
+    final int maxRetries = 1; // 최대 시도 횟수
 
     while (attempt <= maxRetries) {
       try {
