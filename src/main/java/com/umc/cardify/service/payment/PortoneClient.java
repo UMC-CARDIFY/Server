@@ -225,7 +225,7 @@ public class PortoneClient {
       }
     } catch (Exception e) {
       log.error("정기 결제 요청 중 오류: {}", e.getMessage());
-      throw new RuntimeException("정기 결제 요청 중 오류 발생", e);
+      throw new RuntimeException("정기 결제 요청 중 오류 발생");
     }
   }
 
