@@ -1,12 +1,7 @@
 package com.umc.cardify.domain;
 
-import com.umc.cardify.domain.ProseMirror.Node;
 import jakarta.persistence.*;
 import lombok.*;
-import org.bson.types.ObjectId;
-import org.hibernate.annotations.DynamicInsert;
-import org.hibernate.annotations.DynamicUpdate;
-import org.springframework.data.mongodb.core.mapping.Document;
 
 @Entity
 @Getter

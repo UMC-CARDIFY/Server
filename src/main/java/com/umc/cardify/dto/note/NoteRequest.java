@@ -18,6 +18,8 @@ public class NoteRequest {
         Long noteId;
         @NotNull
         String name;
+        @Schema(description = "노트 작성 모드(standard, light)(default = standard)")
+        String mode;
         @NotNull
         Node contents;
     }

@@ -1,13 +1,20 @@
 package com.umc.cardify.service;
 
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.umc.cardify.config.exception.BadRequestException;
+import com.umc.cardify.config.exception.DatabaseException;
+import com.umc.cardify.config.exception.ErrorResponseStatus;
+import com.umc.cardify.converter.NoteConverter;
 import com.umc.cardify.domain.*;
+import com.umc.cardify.domain.ProseMirror.Node;
+import com.umc.cardify.domain.enums.MarkStatus;
 import com.umc.cardify.domain.enums.SubscriptionStatus;
+import com.umc.cardify.dto.note.NoteRequest;
+import com.umc.cardify.dto.note.NoteResponse;
 import com.umc.cardify.repository.*;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -16,18 +23,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.umc.cardify.config.exception.BadRequestException;
-import com.umc.cardify.config.exception.DatabaseException;
-import com.umc.cardify.config.exception.ErrorResponseStatus;
-import com.umc.cardify.converter.NoteConverter;
-import com.umc.cardify.domain.ProseMirror.Node;
-import com.umc.cardify.domain.enums.MarkStatus;
-import com.umc.cardify.dto.note.NoteRequest;
-import com.umc.cardify.dto.note.NoteResponse;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -154,6 +152,13 @@ public class NoteComponentService {
 
 	@Transactional
 	public Boolean writeNote(NoteRequest.WriteNoteDto request, Long userId, List<MultipartFile> images) {
+        // 작성 모드 설정
+        String mode = request.getMode();
+        if(mode == null || mode.isEmpty())
+            mode = "standard";
+        if(!mode.equals("standard") && !mode.equals("light"))
+            throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+
 		Note note = noteModuleService.getNoteById(request.getNoteId());
 
 		if (!userId.equals(note.getFolder().getUser().getUserId())) {
@@ -164,21 +169,24 @@ public class NoteComponentService {
 			log.warn("IsEdit is : {}", note.getIsEdit());
 			throw new BadRequestException(ErrorResponseStatus.DB_UPDATE_ERROR);
 		}
-		if (cardModuleService.existsByNote(note)) {
+		if (cardModuleService.existsByNote(note) && mode.equals("standard")) {
 			cardModuleService.deleteAllCardsByNoteId(note.getNoteId());
 			cardModuleService.deleteAllImageCardsByNoteId(note.getNoteId());
-
 		}
         note.setName(request.getName());
         Node node = request.getContents();
 
-		StringBuilder totalText = new StringBuilder();
+        if(mode.equals("standard")) {
+            StringBuilder totalText = new StringBuilder();
 
-		Queue<MultipartFile> imageQueue = new LinkedList<>(images != null ? images : Collections.emptyList());
-		searchCard(node, totalText, note, imageQueue);
-		note.setTotalText(totalText.toString());
+            Queue<MultipartFile> imageQueue = new LinkedList<>(images != null ? images : Collections.emptyList());
+            searchCard(node, totalText, note, imageQueue);
+            note.setTotalText(totalText.toString());
+        }
 
-		ContentsNote contentsNote = contentsNoteRepository.findByNote(note).get();
+		ContentsNote contentsNote = contentsNoteRepository.findByNote(note)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+
         String content;
         try {
             content = objectMapper.writeValueAsString(node);
@@ -189,6 +197,7 @@ public class NoteComponentService {
 		contentsNoteRepository.save(contentsNote);
 
 		noteModuleService.saveNote(note);
+
 		return true;
 	}
 

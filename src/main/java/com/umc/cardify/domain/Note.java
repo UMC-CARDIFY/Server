@@ -1,11 +1,8 @@
 package com.umc.cardify.domain;
 
-import com.umc.cardify.converter.ObjectIdConverter;
 import com.umc.cardify.domain.enums.MarkStatus;
 import jakarta.persistence.*;
 import lombok.*;
-
-import org.bson.types.ObjectId;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.UpdateTimestamp;
