@@ -31,7 +31,7 @@ public class PortoneClient {
 
   private static final String PORTONE_API_URL = "https://api.iamport.kr";
 
-  // 토큰 캐싱을 위한 필드 추가
+  // 토큰 캐싱을 위한 필드
   private String cachedToken;
   private LocalDateTime tokenExpiresAt;
 
@@ -225,7 +225,7 @@ public class PortoneClient {
       }
     } catch (Exception e) {
       log.error("정기 결제 요청 중 오류: {}", e.getMessage());
-      throw new RuntimeException("정기 결제 요청 중 오류 발생", e);
+      throw new RuntimeException("정기 결제 요청 중 오류 발생");
     }
   }
 

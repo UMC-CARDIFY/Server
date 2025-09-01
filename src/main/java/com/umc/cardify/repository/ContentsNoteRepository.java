@@ -2,12 +2,10 @@ package com.umc.cardify.repository;
 
 import com.umc.cardify.domain.ContentsNote;
 import com.umc.cardify.domain.Note;
-import org.bson.types.ObjectId;
-import org.springframework.data.mongodb.repository.MongoRepository;
-import org.springframework.data.mongodb.repository.Query;
+import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
 
-public interface ContentsNoteRepository extends MongoRepository<ContentsNote, ObjectId> {
-    Optional<ContentsNote> findByNoteId(Long noteId);
+public interface ContentsNoteRepository extends JpaRepository<ContentsNote, Long> {
+    Optional<ContentsNote> findByNote(Note note);
 }
