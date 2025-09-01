@@ -2,28 +2,31 @@ package com.umc.cardify.service;
 
 import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
+import com.umc.cardify.converter.NoteConverter;
 import com.umc.cardify.domain.Folder;
 import com.umc.cardify.domain.Note;
 import com.umc.cardify.domain.User;
 import com.umc.cardify.domain.enums.MarkStatus;
+import com.umc.cardify.domain.enums.SubscriptionStatus;
 import com.umc.cardify.dto.folder.FolderComparator;
 import com.umc.cardify.dto.folder.FolderRequest;
 import com.umc.cardify.dto.folder.FolderResponse;
+import com.umc.cardify.dto.note.NoteResponse;
 import com.umc.cardify.repository.FolderRepository;
 import com.umc.cardify.repository.NoteRepository;
 import com.umc.cardify.repository.UserRepository;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -33,6 +36,7 @@ public class FolderService {
     private final FolderRepository folderRepository;
     private final NoteRepository noteRepository;
     private final UserRepository userRepository;
+    private final NoteConverter noteConverter;
 
     public Folder getFolder(long folderId){
         return folderRepository.findById(folderId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
@@ -48,6 +52,9 @@ public class FolderService {
         int folderSize = (size != null) ? size : Integer.MAX_VALUE;
 
         List<Folder> folders;
+        String parentFolderName = "";
+        String parentFolderColor = "";
+        MarkStatus parnetMarkStatus = MarkStatus.ACTIVE;
 
         // 1. 상위 폴더와 하위 폴더를 구분하여 기본 폴더 리스트 가져오기
         if (parentFolderId == null) {
@@ -58,6 +65,9 @@ public class FolderService {
             Folder parentFolder = folderRepository.findById(parentFolderId)
                     .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_EXIST_FOLDER));
             folders = folderRepository.findByParentFolderAndUser(parentFolder, user);
+            parentFolderName = parentFolder.getName();
+            parentFolderColor = parentFolder.getColor();
+            parnetMarkStatus = parentFolder.getMarkState();
         }
 
         // 2. 색상 필터 적용
@@ -75,6 +85,9 @@ public class FolderService {
         int totalPages = (totalElements + folderSize - 1) / folderSize;
 
         return FolderResponse.FolderListDTO.builder()
+                .parentFolderColor(parentFolderColor)
+                .parentFolderName(parentFolderName)
+                .parentMarkState(parnetMarkStatus)
                 .foldersList(foldersInfo)
                 .listSize(pagedFolders.size())
                 .currentPage(folderPage + 1)
@@ -165,12 +178,16 @@ public class FolderService {
         User user = userRepository.findById(userId)
                 .orElseThrow(()-> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
-        // 상위 폴더 개수 제한
+        boolean isSubscribed = user.getSubscriptions().stream()
+                .anyMatch(subscription -> subscription.getStatus() == SubscriptionStatus.ACTIVE);
+
+        // 유료 결제 여부에 따른 상위 폴더 개수 제한
         int folderCount = folderRepository.countByUserAndParentFolderIsNull(user);
-        if (folderCount >= 300) {
+        if (!isSubscribed && folderCount >= 9) { // 무료 사용자 제한
             throw new BadRequestException(ErrorResponseStatus.FOLDER_CREATED_NOT_ALLOWED);
         }
 
+        // 중복 이름 폴더 확인
         if (folderRepository.existsByUserAndName(user, folderRequest.getName())) {
             throw new BadRequestException(ErrorResponseStatus.DUPLICATE_ERROR);
         } else {
@@ -204,6 +221,14 @@ public class FolderService {
         // 상위 폴더가 이미 하위 폴더라면 생성 제한 || 하위 폴더 개수 제한
         int subFolderCount = folderRepository.countByParentFolder(parentFolder);
         if (parentFolder.getParentFolder() != null || subFolderCount >= 100) {
+            throw new BadRequestException(ErrorResponseStatus.SUBFOLDER_CREATION_NOT_ALLOWED);
+        }
+
+        boolean isSubscribed = user.getSubscriptions().stream()
+                .anyMatch(subscription -> subscription.getStatus() == SubscriptionStatus.ACTIVE);
+
+        // 유료 결제 여부에 따른 하위 폴더 개수 제한
+        if (!isSubscribed && subFolderCount >= 9) { // 무료 사용자 제한
             throw new BadRequestException(ErrorResponseStatus.SUBFOLDER_CREATION_NOT_ALLOWED);
         }
 
@@ -273,6 +298,45 @@ public class FolderService {
                 .markState(folder.getMarkState())
                 .isSuccess(true)
                 .markDate(folder.getMarkDate())
+                .build();
+    }
+
+    public FolderResponse.getElementListDTO getElementList(User user, Folder folder){
+        Map<MarkStatus, List<FolderResponse.FolderInfoDTO>> folderList = folderRepository.findByParentFolderAndUser(folder, user).stream()
+                .map(folder1 -> FolderResponse.FolderInfoDTO.builder()
+                        .folderId(folder1.getFolderId())
+                        .name(folder1.getName())
+                        .color(folder1.getColor())
+                        .markState(folder1.getMarkState())
+                        .getNoteCount(folder1.getNoteCount())
+                        .markDate(folder1.getMarkDate())
+                        .editDate(folder1.getEditDate())
+                        .createdAt(folder1.getCreatedAt())
+                        .build())
+                .collect(Collectors.groupingBy(FolderResponse.FolderInfoDTO::getMarkState));
+
+        if(folderList.get(MarkStatus.ACTIVE) != null)
+            folderList.get(MarkStatus.ACTIVE).sort(Comparator.comparing(FolderResponse.FolderInfoDTO::getMarkDate).reversed());
+
+        Map<MarkStatus, List<NoteResponse.NoteInfoDTO>> noteList =  noteRepository.findByFolder(folder).stream()
+                .map(noteConverter::toNoteInfoDTO)
+                .collect(Collectors.groupingBy(NoteResponse.NoteInfoDTO::getMarkState));
+
+        if(noteList.get(MarkStatus.ACTIVE) != null)
+            noteList.get(MarkStatus.ACTIVE).sort(Comparator.comparing(NoteResponse.NoteInfoDTO::getMarkAt).reversed());
+
+        return FolderResponse.getElementListDTO.builder()
+                .folderId(folder.getFolderId())
+                .name(folder.getName())
+                .color(folder.getColor())
+                .markElementList(FolderResponse.markElementList.builder()
+                        .folderList(folderList.get(MarkStatus.ACTIVE))
+                        .noteList(noteList.get(MarkStatus.ACTIVE))
+                        .build())
+                .notMarkElementList(FolderResponse.notMarkElementList.builder()
+                        .folderList(folderList.get(MarkStatus.INACTIVE))
+                        .noteList(noteList.get(MarkStatus.INACTIVE))
+                        .build())
                 .build();
     }
 }

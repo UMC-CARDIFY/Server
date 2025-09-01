@@ -21,19 +21,17 @@ configurations {
 
 repositories {
     mavenCentral()
+    maven { url 'https://jitpack.io' }  // JitPack 저장소 추가
 }
 
 dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'org.springframework.boot:spring-boot-starter-jdbc'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     compileOnly 'org.projectlombok:lombok'
     runtimeOnly 'com.mysql:mysql-connector-j'
     annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-    implementation ('org.springframework.boot:spring-boot-starter-data-mongodb')
 
     //Validation
     implementation 'org.springframework.boot:spring-boot-starter-validation'
@@ -65,6 +63,22 @@ dependencies {
 
     // Apache Commons Validator 의존성 추가
     implementation 'commons-validator:commons-validator:1.7'
+
+    implementation 'net.bytebuddy:byte-buddy:1.14.11'
+
+    // 아임포트 연동을 위한 추가 의존성
+    implementation 'org.springframework.retry:spring-retry'
+    implementation 'org.springframework:spring-aspects'
+    implementation 'com.github.iamport:iamport-rest-client-java:0.2.22'
+
+    // HTTP 통신 관련 유틸리티 (옵션)
+    implementation 'org.apache.httpcomponents:httpclient:4.5.14'
+
+    // WebClient에서 사용할 reactor 확장
+    implementation 'io.projectreactor.netty:reactor-netty:1.1.12'
+
+    // 메일
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
 
 }
 

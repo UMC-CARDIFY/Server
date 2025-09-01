@@ -12,6 +12,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
+@Table(name = "note_library")
 public class Library extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

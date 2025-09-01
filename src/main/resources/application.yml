@@ -8,9 +8,6 @@ spring:
     driverClassName: com.mysql.cj.jdbc.Driver
     username: ${DB_USER}
     password: ${DB_PASSWORD}
-  data:
-    mongodb:
-      uri: mongodb+srv://cardify:${DB_PASSWORD}@cardify.pckle.mongodb.net/cardify?retryWrites=true&w=majority&appName=Cardify
   jpa:
     hibernate:
       ddl-auto: none
@@ -36,7 +33,6 @@ spring:
             client-id: ${KAKAO_CLIENT_ID}
             client-secret: ${KAKAO_CLIENT_SECRET}
             client-name: Kakao
-            provider: kakao
             authorization-grant-type: authorization_code
             redirect-uri: "http://localhost:8080/login/oauth2/code/kakao"
             scope:
@@ -62,14 +58,27 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
+  mail:
+    host: smtp.gmail.com
+    port: ${MAIL_PORT}
+    username: ${CARDIFY_EMAIL}
+    password: ${CARDIFY_EMAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
 app:
   oauth2:
-    redirect-uri: http://localhost:5173/dashboard # 프론트엔드 서버 주소
+    redirect-uri: http://localhost:8080/token-check.html # 프론트엔드 서버 주소
 jwt:
   secret: ${SECRET_KEY}
   refreshTokenValidity: ${REFRESH_TOKEN}
   accessTokenValidity: ${ACCESS_TOKEN}
-
 cloud:
   aws:
     credentials:
@@ -85,10 +94,37 @@ cloud:
 logging:
   level:
     root: WARN
+    com.umc.cardify.auth.oauth.OAuth2SuccessHandler: INFO  # 핸들러 로그
     org.springframework.security: WARN  # Spring Security에서 경고 및 오류만 기록
     org.hibernate.SQL: ERROR  # SQL 관련 에러만 기록 (SQL 쿼리 관련 정보는 배포 환경에서는 보통 필요하지 않음)
     org.hibernate.type.descriptor.sql.BasicBinder: ERROR  # SQL 바인딩 관련 에러만 기록
     org.springframework.web: WARN  # 웹 요청 관련 경고 및 오류만 기록
     com.umc.cardify: WARN  # 애플리케이션 전체에서 경고 및 오류만 기록
     com.umc.cardify.controller.OAuth2Controller: INFO  # 카카오 로그인 관련 상세 로그는 필요할 수 있으므로 INFO로 유지
-    com.umc.cardify.service.KakaoService: INFO  # 카카오 로그인 서비스 관련 상세 로그는 INFO로 유지
+    # 간편 결제 관련 로깅 추가
+    com.umc.cardify.service.alert.DiscordAlertService: WARN
+    com.umc.cardify.service.subscription.SubscriptionServiceImpl: INFO
+    com.umc.cardify.service.payment.SimplePayServiceImpl: DEBUG  # 간편결제 서비스 로깅
+    com.umc.cardify.controller.SimplePayController: DEBUG  # 간편결제 컨트롤러 로깅
+    org.springframework.web.client.RestTemplate: WARN  # RestTemplate 로깅 (API 요청/응답)
+portone:
+  imp_key: ${REST_API_KEY}
+  imp_secret: ${REST_API_SECRET}
+  store_id: ${STORE_ID}
+  kakaopay_pg_code: kakaopay.TCSUBSCRIP
+  tosspay_pg_code : tosspay_v2.tosstest
+  naverpay_pg_code : naverpay # FIXME : 수정
+tosspay:
+  api:
+    key: ${TOSS_API_KEY}
+    channel_key: ${TOSS_CHANNEL_KEY}
+encryption:
+  key: ${ENCRYPTION_KEY}
+notification:
+  discord:
+    enabled: true
+    webhook-url: ${DISCORD_URL}
+  email:
+    enabled: true
+    admin-emails:
+      ${DEV_EMAIL}

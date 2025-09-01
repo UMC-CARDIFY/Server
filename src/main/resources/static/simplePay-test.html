@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>정기결제 테스트</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <!-- 포트원 V1 라이브러리 -->
+  <script src="https://cdn.iamport.kr/v1/iamport.js"></script>
+  <style>
+      body {
+          font-family: 'Noto Sans KR', sans-serif;
+          max-width: 800px;
+          margin: 0 auto;
+          padding: 20px;
+      }
+      .card {
+          border: 1px solid #ddd;
+          border-radius: 8px;
+          padding: 20px;
+          margin-bottom: 20px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      }
+      h1, h2 {
+          color: #333;
+      }
+      button {
+          background-color: #3182f6;
+          color: white;
+          border: none;
+          padding: 10px 20px;
+          border-radius: 4px;
+          cursor: pointer;
+          font-weight: bold;
+          margin-top: 10px;
+      }
+      button:hover {
+          background-color: #1c61d9;
+      }
+      pre {
+          background-color: #f5f5f5;
+          padding: 10px;
+          border-radius: 4px;
+          overflow-x: auto;
+      }
+      .input-group {
+          margin-bottom: 15px;
+      }
+      label {
+          display: block;
+          margin-bottom: 5px;
+          font-weight: bold;
+      }
+      input, select {
+          width: 100%;
+          padding: 8px;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+      }
+      .tabs {
+          display: flex;
+          margin-bottom: 20px;
+          border-bottom: 1px solid #ddd;
+      }
+      .tab {
+          padding: 10px 20px;
+          cursor: pointer;
+          border: 1px solid transparent;
+          border-bottom: none;
+          border-radius: 4px 4px 0 0;
+          margin-right: 5px;
+      }
+      .tab.active {
+          background-color: #f5f5f5;
+          border-color: #ddd;
+      }
+      .tab-content {
+          display: none;
+      }
+      .tab-content.active {
+          display: block;
+      }
+  </style>
+</head>
+<body>
+<h1>SimplePay 정기결제 테스트</h1>
+
+<div class="tabs">
+  <div class="tab active" data-target="toss">토스페이</div>
+  <div class="tab" data-target="kakao">카카오페이</div>
+</div>
+
+<div id="toss-tab" class="tab-content active">
+  <div class="card">
+    <h2>1. 토스페이 빌링키 발급 요청</h2>
+    <div class="input-group">
+      <label for="toss-userId">사용자 ID</label>
+      <input type="number" id="toss-userId" value="1">
+    </div>
+    <div class="input-group">
+      <label for="toss-productId">상품 ID</label>
+      <input type="number" id="toss-productId" value="1">
+    </div>
+    <div class="input-group">
+      <label for="toss-email">이메일</label>
+      <input type="email" id="toss-email" value="user@example.com">
+    </div>
+    <div class="input-group">
+      <label for="toss-name">이름</label>
+      <input type="text" id="toss-name" value="홍길동">
+    </div>
+    <div class="input-group">
+      <label for="toss-backendUrl">백엔드 URL</label>
+      <input type="text" id="toss-backendUrl" value="http://localhost:8080">
+    </div>
+
+    <button id="toss-requestBillingKey">빌링키 발급 요청</button>
+    <div id="toss-requestResult" style="margin-top: 10px;"></div>
+  </div>
+
+  <div class="card">
+    <h2>빌링키 조회 (디버깅용)</h2>
+    <div class="input-group">
+      <label for="toss-checkImpUid">IMP UID</label>
+      <input type="text" id="toss-checkImpUid" placeholder="결제 후 받은 imp_uid">
+    </div>
+    <button id="toss-checkBillingKey">빌링키 조회</button>
+    <div id="toss-checkResult" style="margin-top: 10px;"></div>
+  </div>
+
+  <div class="card">
+    <h2>2. 토스페이 빌링키 승인 요청</h2>
+    <div class="input-group">
+      <label for="toss-pgToken">PG 토큰/결제 키</label>
+      <input type="text" id="toss-pgToken" placeholder="결제창에서 받은 pg_token 또는 paymentKey">
+    </div>
+    <div class="input-group">
+      <label for="toss-merchantUid">Merchant UID</label>
+      <input type="text" id="toss-merchantUid" placeholder="빌링키 요청 시 받은 merchantUid">
+    </div>
+    <div class="input-group">
+      <label for="toss-customerUid">Customer UID</label>
+      <input type="text" id="toss-customerUid" placeholder="빌링키 요청 시 받은 customerUid">
+    </div>
+    <div class="input-group">
+      <label for="toss-tid">TID (거래 ID)</label>
+      <input type="text" id="toss-tid" placeholder="결제 승인 후 받은 imp_uid 또는 tid">
+    </div>
+    <div class="input-group">
+      <label for="toss-pgProvider">PG Provider</label>
+      <input type="text" id="toss-pgProvider" placeholder="PG 제공자 코드">
+    </div>
+    <div class="input-group">
+      <label for="toss-pgTid">PG TID</label>
+      <input type="text" id="toss-pgTid" placeholder="PG사 거래 ID">
+    </div>
+    <div class="input-group">
+      <label for="toss-productId2">Product ID</label>
+      <input type="number" id="toss-productId2" placeholder="구독하고자 하는 상품 productId" value="1">
+    </div>
+    <div class="input-group">
+      <label for="toss-userId2">User ID</label>
+      <input type="number" id="toss-userId2" placeholder="사용자의 id" value="1">
+    </div>
+
+    <button id="toss-approveBillingKey">빌링키 승인 요청</button>
+    <div id="toss-approveResult" style="margin-top: 10px;"></div>
+  </div>
+</div>
+
+<div id="kakao-tab" class="tab-content">
+  <div class="card">
+    <h2>1. 카카오페이 빌링키 발급 요청</h2>
+    <div class="input-group">
+      <label for="kakao-userId">사용자 ID</label>
+      <input type="number" id="kakao-userId" value="1">
+    </div>
+    <div class="input-group">
+      <label for="kakao-productId">상품 ID</label>
+      <input type="number" id="kakao-productId" value="1">
+    </div>
+    <div class="input-group">
+      <label for="kakao-email">이메일</label>
+      <input type="email" id="kakao-email" value="user@example.com">
+    </div>
+    <div class="input-group">
+      <label for="kakao-name">이름</label>
+      <input type="text" id="kakao-name" value="홍길동">
+    </div>
+    <div class="input-group">
+      <label for="kakao-backendUrl">백엔드 URL</label>
+      <input type="text" id="kakao-backendUrl" value="http://localhost:8080">
+    </div>
+
+    <button id="kakao-requestBillingKey">빌링키 발급 요청</button>
+    <div id="kakao-requestResult" style="margin-top: 10px;"></div>
+  </div>
+
+  <div class="card">
+    <h2>2. 카카오페이 빌링키 승인 요청</h2>
+    <div class="input-group">
+      <label for="kakao-pgToken">PG 토큰</label>
+      <input type="text" id="kakao-pgToken" placeholder="결제창에서 받은 pg_token">
+    </div>
+    <div class="input-group">
+      <label for="kakao-merchantUid">Merchant UID</label>
+      <input type="text" id="kakao-merchantUid" placeholder="빌링키 요청 시 받은 merchantUid">
+    </div>
+    <div class="input-group">
+      <label for="kakao-customerUid">Customer UID</label>
+      <input type="text" id="kakao-customerUid" placeholder="빌링키 요청 시 받은 customerUid">
+    </div>
+    <div class="input-group">
+      <label for="kakao-productId2">Product ID</label>
+      <input type="number" id="kakao-productId2" placeholder="구독하고자 하는 상품 productId" value="1">
+    </div>
+    <div class="input-group">
+      <label for="kakao-userId2">User ID</label>
+      <input type="number" id="kakao-userId2" placeholder="사용자의 id" value="1">
+    </div>
+
+    <button id="kakao-approveBillingKey">빌링키 승인 요청</button>
+    <div id="kakao-approveResult" style="margin-top: 10px;"></div>
+  </div>
+</div>
+
+<script>
+    // 포트원 V1 초기화
+    window.IMP.init('imp03025662');  // 포트원 가맹점 식별코드
+
+    // 탭 전환 기능
+    $('.tab').click(function() {
+        $('.tab').removeClass('active');
+        $(this).addClass('active');
+
+        const target = $(this).data('target');
+        $('.tab-content').removeClass('active');
+        $(`#${target}-tab`).addClass('active');
+    });
+
+    // URL 파라미터 가져오기
+    const getUrlParams = () => {
+        const params = {};
+        window.location.search.replace(/[?&]+([^=&]+)=([^&]*)/gi,
+            function(str, key, value) { params[key] = decodeURIComponent(value); }
+        );
+        return params;
+    };
+
+    // 페이지 로드 시 URL 파라미터 확인
+    $(document).ready(function() {
+        const params = getUrlParams();
+        console.log('URL 파라미터:', params); // 전체 파라미터 확인
+
+        // imp_success 파라미터도 확인
+        if (params.imp_success === 'true' || params.imp_success === true) {
+            console.log('결제 성공 파라미터 감지');
+        }
+
+        if (params.pg_token || params.paymentKey) {
+            const token = params.pg_token || params.paymentKey;
+            $('#toss-pgToken').val(token);
+            $('#kakao-pgToken').val(token);
+
+            if (params.merchant_uid || params.orderId) {
+                const merchantUid = params.merchant_uid || params.orderId;
+                $('#toss-merchantUid').val(merchantUid);
+                $('#kakao-merchantUid').val(merchantUid);
+            }
+
+            if (params.customer_uid || params.customerId) {
+                const customerUid = params.customer_uid || params.customerId;
+                $('#toss-customerUid').val(customerUid);
+                $('#kakao-customerUid').val(customerUid);
+            }
+
+            if (params.imp_uid || params.transactionId) {
+                const tid = params.imp_uid || params.transactionId;
+                $('#toss-tid').val(tid);
+                $('#toss-checkImpUid').val(tid); // 빌링키 조회 필드에도 자동 설정
+            }
+
+            alert('결제 인증이 완료되었습니다. 빌링키 승인 요청을 진행하세요.');
+        }
+    });
+
+    // 토스페이 빌링키 발급 요청
+    $('#toss-requestBillingKey').click(function() {
+        const userId = $('#toss-userId').val();
+        const productId = $('#toss-productId').val();
+        const email = $('#toss-email').val();
+        const name = $('#toss-name').val();
+        const backendUrl = $('#toss-backendUrl').val();
+
+        const requestData = {
+            userId: Number(userId),
+            productId: Number(productId),
+            email: email,
+            name: name,
+            callbackUrl: window.location.origin,
+            pgProvider: "TOSSPAY"
+        };
+
+        $('#toss-requestResult').html('요청 중...');
+
+        // 백엔드 API 호출
+        $.ajax({
+            url: `${backendUrl}/api/v1/payments/simple-pay/billing-key/request`,
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(requestData),
+            success: function(response) {
+                console.log('토스페이 빌링키 발급 요청 성공:', response);
+                $('#toss-requestResult').html(
+                    `<pre>${JSON.stringify(response, null, 2)}</pre>` +
+                    `<p>merchantUid: ${response.merchantUid}</p>` +
+                    `<p>customerUid: ${response.customerUid}</p>`
+                );
+
+                // 응답에서 받은 값 저장
+                $('#toss-merchantUid').val(response.merchantUid);
+                $('#toss-customerUid').val(response.customerUid);
+                $('#toss-userId2').val(userId);
+                $('#toss-productId2').val(productId);
+
+                // 포트원 V1 SDK로 결제창 호출
+                if (response.requestData) {
+                    // V1 방식으로 IMP.request_pay 호출
+                    IMP.request_pay(response.requestData, function(rsp) {
+                        // 전체 응답 로깅
+                        console.log('토스페이 빌링키 발급 콜백 응답 전체:', rsp);
+
+                        // 성공 또는 실패 관계없이 전체 응답 표시
+                        $('#toss-requestResult').append(
+                            `<h3>콜백 응답</h3>` +
+                            `<pre>${JSON.stringify(rsp, null, 2)}</pre>`
+                        );
+
+                        if (rsp.success) {
+                            // 결제 성공 시
+                            alert('빌링키 발급 성공: ' + rsp.pg_token);
+
+                            // 응답에서 필요한 필드 추출하여 표시
+                            $('#toss-requestResult').append(
+                                `<p>pg_token: ${rsp.pg_token || 'N/A'}</p>` +
+                                `<p>imp_uid: ${rsp.imp_uid || 'N/A'}</p>` +
+                                `<p>merchant_uid: ${rsp.merchant_uid || 'N/A'}</p>` +
+                                `<p>pg_provider: ${rsp.pg_provider || 'N/A'}</p>` +
+                                `<p>pg_tid: ${rsp.pg_tid || 'N/A'}</p>`
+                            );
+
+                            // 필드 자동 설정
+                            $('#toss-pgToken').val(rsp.pg_token || '');
+                            $('#toss-tid').val(rsp.imp_uid || rsp.tid || '');
+                            $('#toss-pgProvider').val(rsp.pg_provider || '');
+                            $('#toss-pgTid').val(rsp.pg_tid || '');
+                            $('#toss-checkImpUid').val(rsp.imp_uid || '');
+
+                            // 자동으로 승인 페이지로 이동
+                            $('html, body').animate({
+                                scrollTop: $("#toss-approveBillingKey").offset().top
+                            }, 500);
+                        } else {
+                            // 결제 실패 시에도 받은 imp_uid가 있으면 저장
+                            if (rsp.imp_uid) {
+                                $('#toss-tid').val(rsp.imp_uid);
+                                $('#toss-checkImpUid').val(rsp.imp_uid);
+                            }
+
+                            // 실패 정보 표시
+                            $('#toss-requestResult').append(
+                                `<p style="color: red;">오류 메시지: ${rsp.error_msg || '알 수 없는 오류'}</p>` +
+                                `<p>오류 코드: ${rsp.error_code || 'N/A'}</p>`
+                            );
+                            alert('빌링키 발급 실패: ' + (rsp.error_msg || '알 수 없는 오류'));
+                        }
+                    });
+                } else {
+                    alert('빌링키 요청 데이터가 올바르지 않습니다. 응답을 확인해주세요.');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('토스페이 빌링키 발급 요청 실패:', error);
+                $('#toss-requestResult').html(`<p style="color: red;">오류: ${error}</p>`);
+                if (xhr.responseText) {
+                    $('#toss-requestResult').append(`<pre>${xhr.responseText}</pre>`);
+                }
+            }
+        });
+    });
+
+    // 빌링키 조회 버튼 클릭 이벤트 수정 (pgProvider 채우기 강화)
+    $('#toss-checkBillingKey').click(function() {
+        const impUid = $('#toss-checkImpUid').val();
+        const backendUrl = $('#toss-backendUrl').val();
+
+        if (!impUid) {
+            alert('IMP UID를 입력해주세요.');
+            return;
+        }
+
+        $('#toss-checkResult').html('조회 중...');
+
+        // 백엔드 API 호출
+        $.ajax({
+            url: `${backendUrl}/api/v1/payments/simple-pay/billing-key/check-status?impUid=${impUid}`,
+            type: 'GET',
+            success: function(response) {
+                console.log('빌링키 조회 성공:', response);
+                $('#toss-checkResult').html(`<pre>${JSON.stringify(response, null, 2)}</pre>`);
+
+                // 조회된 정보를 빌링키 승인 요청 필드에 자동 입력
+                if (response.payment) {
+                    const payment = response.payment;
+
+                    // 결제 정보에서 필수 필드들 추출하여 채우기
+                    $('#toss-tid').val(impUid);  // imp_uid 설정
+
+                    // merchant_uid 채우기
+                    if (payment.merchant_uid) {
+                        $('#toss-merchantUid').val(payment.merchant_uid);
+                    }
+
+                    // customer_uid 채우기 (payment에서 가져오기)
+                    if (payment.customer_uid) {
+                        $('#toss-customerUid').val(payment.customer_uid);
+                    }
+
+                    // pgProvider 채우기 (payment에서 가져오기) - 강조된 부분
+                    if (payment.pg_provider) {
+                        $('#toss-pgProvider').val(payment.pg_provider);
+                        console.log('PG Provider 설정됨:', payment.pg_provider);
+                    } else if (payment.pgProvider) { // 대소문자 속성명 차이 대응
+                        $('#toss-pgProvider').val(payment.pgProvider);
+                        console.log('PG Provider 설정됨:', payment.pgProvider);
+                    }
+
+                    // pg_tid 채우기
+                    if (payment.pg_tid) {
+                        $('#toss-pgTid').val(payment.pg_tid);
+                    } else if (payment.pgTid) { // 대소문자 속성명 차이 대응
+                        $('#toss-pgTid').val(payment.pgTid);
+                    }
+
+                    // billingKeyRequest에서 추가 정보 가져오기
+                    if (response.billingKeyRequest) {
+                        const billingKeyRequest = response.billingKeyRequest;
+
+                        // customer_uid가 없으면 billingKeyRequest에서 가져오기
+                        if (!$('#toss-customerUid').val() && billingKeyRequest.customerUid) {
+                            $('#toss-customerUid').val(billingKeyRequest.customerUid);
+                        }
+
+                        // merchant_uid가 없으면 billingKeyRequest에서 가져오기
+                        if (!$('#toss-merchantUid').val() && billingKeyRequest.merchantUid) {
+                            $('#toss-merchantUid').val(billingKeyRequest.merchantUid);
+                        }
+
+                        // pgProvider가 없으면 billingKeyRequest에서 가져오기
+                        if (!$('#toss-pgProvider').val() && billingKeyRequest.pgProvider) {
+                            $('#toss-pgProvider').val(billingKeyRequest.pgProvider);
+                            console.log('PG Provider(BillingKeyRequest에서) 설정됨:', billingKeyRequest.pgProvider);
+                        }
+
+                        // 토큰이 없으면 자동 값 설정
+                        if (!$('#toss-pgToken').val()) {
+                            $('#toss-pgToken').val('auto_filled');
+                        }
+
+                        // 사용자 ID와 상품 ID 설정
+                        if (billingKeyRequest.userId) {
+                            $('#toss-userId2').val(billingKeyRequest.userId);
+                        }
+
+                        if (billingKeyRequest.productId) {
+                            $('#toss-productId2').val(billingKeyRequest.productId);
+                        }
+                    }
+
+                    // 추가 정보 채우기 (있는 경우) - 이 부분은 이미 앞에서 처리했으므로 중복 제거
+
+                    // 필드 채워짐 콘솔 로깅 (디버깅용)
+                    console.log('자동 채워진 필드:');
+                    console.log('tid:', $('#toss-tid').val());
+                    console.log('merchantUid:', $('#toss-merchantUid').val());
+                    console.log('customerUid:', $('#toss-customerUid').val());
+                    console.log('pgProvider:', $('#toss-pgProvider').val());
+                    console.log('pgTid:', $('#toss-pgTid').val());
+
+                    // 사용자에게 알림
+                    alert('빌링키 정보가 자동으로 설정되었습니다. 빌링키 승인 요청을 진행하세요.');
+
+                    // 자동으로 승인 페이지로 이동
+                    $('html, body').animate({
+                        scrollTop: $("#toss-approveBillingKey").offset().top
+                    }, 500);
+
+                    // 채워진 필드 시각적 강조 (pgProvider 추가)
+                    $('#toss-tid, #toss-merchantUid, #toss-customerUid, #toss-pgToken, #toss-userId2, #toss-productId2, #toss-pgProvider, #toss-pgTid')
+                        .filter(function() {
+                            return $(this).val() !== '';
+                        })
+                        .css('background-color', '#f0fff0')
+                        .css('border-left', '3px solid #2ecc71');
+                } else {
+                    alert('빌링키 정보를 찾을 수 없습니다.');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('빌링키 조회 실패:', error);
+                $('#toss-checkResult').html(`<p style="color: red;">오류: ${error}</p>`);
+                if (xhr.responseText) {
+                    $('#toss-checkResult').append(`<pre>${xhr.responseText}</pre>`);
+                }
+            }
+        });
+    });
+
+    // 토스페이 빌링키 승인 요청
+    $('#toss-approveBillingKey').click(function() {
+        const pgToken = $('#toss-pgToken').val() || 'none';  // 토큰이 없어도 imp_uid로 처리 가능
+        const merchantUid = $('#toss-merchantUid').val();
+        const customerUid = $('#toss-customerUid').val();
+        const tid = $('#toss-tid').val();
+        const userId = $('#toss-userId2').val();
+        const productId = $('#toss-productId2').val();
+        const backendUrl = $('#toss-backendUrl').val();
+
+        if (!merchantUid || !tid) {
+            alert('Merchant UID와 TID(imp_uid)는 필수입니다.');
+            return;
+        }
+
+        const requestData = {
+            pgToken: pgToken,
+            merchantUid: merchantUid,
+            customerUid: customerUid,
+            tid: tid,
+            userId: Number(userId),
+            productId: Number(productId)
+        };
+
+        $('#toss-approveResult').html('요청 중...');
+
+        // 백엔드 API 호출
+        $.ajax({
+            url: `${backendUrl}/api/v1/payments/simple-pay/billing-key/approve`,
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(requestData),
+            success: function(response) {
+                console.log('토스페이 빌링키 승인 요청 성공:', response);
+                $('#toss-approveResult').html(`<pre>${JSON.stringify(response, null, 2)}</pre>`);
+
+                // 결제 수단 ID와 구독 ID 자동 설정
+                if (response.paymentMethodId) {
+                    $('#toss-paymentMethodId').val(response.paymentMethodId);
+                }
+                if (response.subscriptionId) {
+                    $('#toss-subscriptionId').val(response.subscriptionId);
+                }
+
+                alert('토스페이 빌링키가 성공적으로 발급되었습니다!');
+
+                // 자동으로 정기결제 실행 섹션으로 이동
+                $('html, body').animate({
+                    scrollTop: $("#toss-testPayment").offset().top
+                }, 500);
+            },
+            error: function(xhr, status, error) {
+                console.error('토스페이 빌링키 승인 요청 실패:', error);
+                $('#toss-approveResult').html(`<p style="color: red;">오류: ${error}</p>`);
+                if (xhr.responseText) {
+                    $('#toss-approveResult').append(`<pre>${xhr.responseText}</pre>`);
+                }
+            }
+        });
+    });
+
+    // 카카오페이 빌링키 발급 요청
+    $('#kakao-requestBillingKey').click(function() {
+        const userId = $('#kakao-userId').val();
+        const productId = $('#kakao-productId').val();
+        const email = $('#kakao-email').val();
+        const name = $('#kakao-name').val();
+        const backendUrl = $('#kakao-backendUrl').val();
+
+        const requestData = {
+            userId: Number(userId),
+            productId: Number(productId),
+            email: email,
+            name: name,
+            callbackUrl: window.location.origin + window.location.pathname,
+            pgProvider: "KAKAOPAY"
+        };
+
+        $('#kakao-requestResult').html('요청 중...');
+
+        // 백엔드 API 호출
+        $.ajax({
+            url: `${backendUrl}/api/v1/payments/simple-pay/billing-key/request`,
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(requestData),
+            success: function(response) {
+                console.log('카카오페이 빌링키 발급 요청 성공:', response);
+                $('#kakao-requestResult').html(
+                    `<pre>${JSON.stringify(response, null, 2)}</pre>` +
+                    `<p>merchantUid: ${response.merchantUid}</p>` +
+                    `<p>customerUid: ${response.customerUid}</p>`
+                );
+
+                // 응답에서 받은 값 저장
+                $('#kakao-merchantUid').val(response.merchantUid);
+                $('#kakao-customerUid').val(response.customerUid);
+                $('#kakao-userId2').val(userId);
+                $('#kakao-productId2').val(productId);
+
+                // 포트원 SDK로 결제창 호출 (V1)
+                IMP.request_pay(response.requestData, function(rsp) {
+                    // 전체 응답 로깅
+                    console.log('카카오페이 빌링키 발급 콜백 응답 전체:', rsp);
+
+                    // 결제 응답 정보 표시
+                    $('#kakao-requestResult').append(
+                        `<h3>콜백 응답</h3>` +
+                        `<pre>${JSON.stringify(rsp, null, 2)}</pre>`
+                    );
+
+                    if (rsp.success) {
+                        // 결제 성공 시
+                        alert('빌링키 발급 성공: ' + rsp.pg_token);
+                        $('#kakao-pgToken').val(rsp.pg_token);
+
+                        // 추가 정보 표시
+                        $('#kakao-requestResult').append(
+                            `<p>pg_token: ${rsp.pg_token || 'N/A'}</p>` +
+                            `<p>imp_uid: ${rsp.imp_uid || 'N/A'}</p>` +
+                            `<p>merchant_uid: ${rsp.merchant_uid || 'N/A'}</p>` +
+                            `<p>pg_provider: ${rsp.pg_provider || 'N/A'}</p>`
+                        );
+
+                        // 자동으로 승인 페이지로 이동
+                        $('html, body').animate({
+                            scrollTop: $("#kakao-approveBillingKey").offset().top
+                        }, 500);
+                    } else {
+                        // 결제 실패 시
+                        $('#kakao-requestResult').append(
+                            `<p style="color: red;">오류 메시지: ${rsp.error_msg || '알 수 없는 오류'}</p>` +
+                            `<p>오류 코드: ${rsp.error_code || 'N/A'}</p>`
+                        );
+                        alert('빌링키 발급 실패: ' + (rsp.error_msg || '알 수 없는 오류'));
+                    }
+                });
+            },
+            error: function(xhr, status, error) {
+                console.error('카카오페이 빌링키 발급 요청 실패:', error);
+                $('#kakao-requestResult').html(`<p style="color: red;">오류: ${error}</p>`);
+                if (xhr.responseText) {
+                    $('#kakao-requestResult').append(`<pre>${xhr.responseText}</pre>`);
+                }
+            }
+        });
+    });
+
+    // 카카오페이 빌링키 승인 요청
+    $('#kakao-approveBillingKey').click(function() {
+        const pgToken = $('#kakao-pgToken').val();
+        const merchantUid = $('#kakao-merchantUid').val();
+        const customerUid = $('#kakao-customerUid').val();
+        const userId = $('#kakao-userId2').val();
+        const productId = $('#kakao-productId2').val();
+        const backendUrl = $('#kakao-backendUrl').val();
+
+        if (!pgToken || !merchantUid || !customerUid) {
+            alert('PG 토큰, Merchant UID, Customer UID를 모두 입력해주세요.');
+            return;
+        }
+
+        const requestData = {
+            pgToken: pgToken,
+            merchantUid: merchantUid,
+            customerUid: customerUid,
+            userId: Number(userId),
+            productId: Number(productId)
+        };
+
+        $('#kakao-approveResult').html('요청 중...');
+
+        // 백엔드 API 호출
+        $.ajax({
+            url: `${backendUrl}/api/v1/payments/simple-pay/billing-key/approve`,
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(requestData),
+            success: function(response) {
+                console.log('카카오페이 빌링키 승인 요청 성공:', response);
+                $('#kakao-approveResult').html(`<pre>${JSON.stringify(response, null, 2)}</pre>`);
+                alert('카카오페이 빌링키가 성공적으로 발급되었습니다!');
+            },
+            error: function(xhr, status, error) {
+                console.error('카카오페이 빌링키 승인 요청 실패:', error);
+                $('#kakao-approveResult').html(`<p style="color: red;">오류: ${error}</p>`);
+                if (xhr.responseText) {
+                    $('#kakao-approveResult').append(`<pre>${xhr.responseText}</pre>`);
+                }
+            }
+        });
+    });
+</script>
+</body>
+</html>

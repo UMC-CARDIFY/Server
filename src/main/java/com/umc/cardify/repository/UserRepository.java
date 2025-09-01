@@ -15,7 +15,9 @@ import com.umc.cardify.domain.User;
 public interface UserRepository extends JpaRepository<User, Long> {
 	Optional<User> findByEmail(String email);
 
-	Optional<User> findByUserId(Long userId);
+	User findByUserId(Long userId);
+
+	User findByName(String name);
 
 	// 중복 검사 메서드
 	boolean existsByEmail(String email);

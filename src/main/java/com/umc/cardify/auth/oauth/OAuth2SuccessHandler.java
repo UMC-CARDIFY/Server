@@ -7,13 +7,13 @@ import com.umc.cardify.service.UserService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
-import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import lombok.extern.slf4j.Slf4j;
 import java.io.IOException;
@@ -63,51 +63,47 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         // 사용자 정보 저장 또는 업데이트
         User user = userService.processSocialLogin(email, name, profileImage, provider);
 
-        // JWT 토큰 생성
+        // 항상 새 토큰 발급
+        log.info("로그인 감지 - 새 토큰 발급: {}", email);
+
+        // 1. 기존 세션 토큰 제거
+        HttpSession session = request.getSession();
+        session.removeAttribute("OAUTH2_ACCESS_TOKEN");
+
+        // 2. 기존 리프레시 토큰 무효화 (DB에서)
+        if (user.getRefreshToken() != null) {
+            log.info("기존 리프레시 토큰 무효화: {}", email);
+            user.setRefreshToken(null);
+        }
+
+        // 3. 새 토큰 생성
         String accessToken = jwtTokenProvider.createAccessToken(email, provider);
         String refreshToken = jwtTokenProvider.createRefreshToken();
 
-        // 토큰 정보 로깅
-        log.info("Access Token: {}", accessToken);
-        log.info("Refresh Token: {}", refreshToken);
+        // 토큰 정보 로깅 (토큰 일부만 로깅)
+        log.info("새 Access Token 생성: {}...{}",
+            accessToken.substring(0, 10),
+            accessToken.substring(accessToken.length() - 10));
+        log.info("새 Refresh Token 생성: {}...{}",
+            refreshToken.substring(0, 10),
+            refreshToken.substring(refreshToken.length() - 10));
 
         // 리프레시 토큰 저장
         user.setRefreshToken(refreshToken);
         userService.saveUser(user);
 
-        // 쿠키 생성
-        Cookie accessTokenCookie = new Cookie("accessToken", accessToken);
-        accessTokenCookie.setHttpOnly(true);
-        accessTokenCookie.setSecure(!activeProfile.equals("local")); // 로컬에서는 false
-        accessTokenCookie.setPath("/");
-        accessTokenCookie.setMaxAge(3600); // 1시간
+        // 새로운 accessToken을 세션에 저장
+        session.setAttribute("OAUTH2_ACCESS_TOKEN", accessToken);
 
+        // refreshToken은 HttpOnly 쿠키에 저장
         Cookie refreshTokenCookie = new Cookie("refreshToken", refreshToken);
         refreshTokenCookie.setHttpOnly(true);
-        refreshTokenCookie.setSecure(!activeProfile.equals("local")); // 로컬에서는 false
+        refreshTokenCookie.setSecure(!activeProfile.equals("local"));
         refreshTokenCookie.setPath("/");
         refreshTokenCookie.setMaxAge(604800); // 7일
-
-        // 쿠키 추가
-        response.addCookie(accessTokenCookie);
         response.addCookie(refreshTokenCookie);
 
-        // 토큰 없이 리다이렉트
+        // 클린 URL로 리다이렉트
         getRedirectStrategy().sendRedirect(request, response, redirectUri);
-
-
-          // 프론트엔드로 리다이렉트 (토큰과 함께)
-//        String targetUrl = UriComponentsBuilder.fromUriString(redirectUri)
-//                .queryParam("accessToken", accessToken)
-//                .queryParam("refreshToken", refreshToken)
-//                .build().toUriString();
-//
-//        getRedirectStrategy().sendRedirect(request, response, targetUrl);
-//
-//        // 응답 설정
-//        response.setContentType("application/json;charset=UTF-8");
-//        response.getWriter().write(String.format(
-//                "{\"accessToken\":\"%s\",\"refreshToken\":\"%s\"}",
-//                accessToken, refreshToken));
     }
 }

@@ -1,44 +1,31 @@
 package com.umc.cardify.service;
 
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.mongodb.repository.Query;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.DatabaseException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.converter.NoteConverter;
-import com.umc.cardify.domain.Category;
-import com.umc.cardify.domain.ContentsNote;
-import com.umc.cardify.domain.Folder;
-import com.umc.cardify.domain.Library;
-import com.umc.cardify.domain.LibraryCategory;
-import com.umc.cardify.domain.Note;
+import com.umc.cardify.domain.*;
 import com.umc.cardify.domain.ProseMirror.Node;
-import com.umc.cardify.domain.User;
 import com.umc.cardify.domain.enums.MarkStatus;
+import com.umc.cardify.domain.enums.SubscriptionStatus;
 import com.umc.cardify.dto.note.NoteRequest;
 import com.umc.cardify.dto.note.NoteResponse;
-import com.umc.cardify.repository.CategoryRepository;
-import com.umc.cardify.repository.ContentsNoteRepository;
-import com.umc.cardify.repository.LibraryCategoryRepository;
-import com.umc.cardify.repository.LibraryRepository;
-import com.umc.cardify.repository.NoteRepository;
-import com.umc.cardify.repository.UserRepository;
-
+import com.umc.cardify.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -50,6 +37,8 @@ public class NoteComponentService {
 	private final CategoryRepository categoryRepository;
 	private final LibraryCategoryRepository libraryCategoryRepository;
 	private final ContentsNoteRepository contentsNoteRepository;
+	private final FolderRepository folderRepository;
+	private final SearchHistoryRepository searchHistoryRepository;
 
 	private final NoteModuleService noteModuleService;
 	private final CardModuleService cardModuleService;
@@ -65,9 +54,9 @@ public class NoteComponentService {
 			Note newNote = NoteConverter.toAddNote(folder);
 			noteRepository.save(newNote);
 			try {
-				ContentsNote contentsNote = ContentsNote.builder().noteId(newNote.getNoteId()).build();
-				contentsNoteRepository.insert(contentsNote);
-				newNote.setContentsId(contentsNote.get_id());
+				ContentsNote contentsNote = ContentsNote.builder().note(newNote).build();
+				contentsNoteRepository.save(contentsNote);
+				newNote.setContentsNote(contentsNote);
 			}catch (Exception e){
 				System.out.println(e);
 			}
@@ -77,6 +66,23 @@ public class NoteComponentService {
 		}
 	}
 
+	public Boolean checkNoteCnt(Long userId){
+		User user = userRepository.findById(userId)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+
+		if(user.getSubscriptions().stream()
+				.anyMatch(subscription -> subscription.getStatus() == SubscriptionStatus.ACTIVE))
+			return true;
+
+		int note_cnt = 0;
+		List<Integer> cnt_list = folderRepository.findByUser(user).stream()
+				.map(folder -> folder.getNotes().size())
+				.toList();
+        for (Integer cnt : cnt_list)
+            note_cnt += cnt;
+
+        return note_cnt <= 9;
+	}
 	public Boolean deleteNote(Long noteId, Long userId) {
 		Note note_del = noteRepository.findById(noteId)
 			.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
@@ -84,7 +90,7 @@ public class NoteComponentService {
 			throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
 		else {
 			noteRepository.delete(note_del);
-			contentsNoteRepository.delete(contentsNoteRepository.findByNoteId(note_del.getNoteId()).get());
+			contentsNoteRepository.delete(contentsNoteRepository.findByNote(note_del).get());
 			return true;
 		}
 	}
@@ -146,6 +152,13 @@ public class NoteComponentService {
 
 	@Transactional
 	public Boolean writeNote(NoteRequest.WriteNoteDto request, Long userId, List<MultipartFile> images) {
+        // 작성 모드 설정
+        String mode = request.getMode();
+        if(mode == null || mode.isEmpty())
+            mode = "standard";
+        if(!mode.equals("standard") && !mode.equals("light"))
+            throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+
 		Note note = noteModuleService.getNoteById(request.getNoteId());
 
 		if (!userId.equals(note.getFolder().getUser().getUserId())) {
@@ -156,25 +169,35 @@ public class NoteComponentService {
 			log.warn("IsEdit is : {}", note.getIsEdit());
 			throw new BadRequestException(ErrorResponseStatus.DB_UPDATE_ERROR);
 		}
-		if (cardModuleService.existsByNote(note)) {
+		if (cardModuleService.existsByNote(note) && mode.equals("standard")) {
 			cardModuleService.deleteAllCardsByNoteId(note.getNoteId());
 			cardModuleService.deleteAllImageCardsByNoteId(note.getNoteId());
-
 		}
+        note.setName(request.getName());
+        Node node = request.getContents();
 
-		StringBuilder totalText = new StringBuilder();
-		note.setName(request.getName());
+        if(mode.equals("standard")) {
+            StringBuilder totalText = new StringBuilder();
 
-		Queue<MultipartFile> imageQueue = new LinkedList<>(images != null ? images : Collections.emptyList());
-		Node node = request.getContents();
-		searchCard(node, totalText, note, imageQueue);
-		note.setTotalText(totalText.toString());
+            Queue<MultipartFile> imageQueue = new LinkedList<>(images != null ? images : Collections.emptyList());
+            searchCard(node, totalText, note, imageQueue);
+            note.setTotalText(totalText.toString());
+        }
 
-		ContentsNote contentsNote = contentsNoteRepository.findByNoteId(note.getNoteId()).get();
-		contentsNote.setContents(node);
+		ContentsNote contentsNote = contentsNoteRepository.findByNote(note)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+
+        String content;
+        try {
+            content = objectMapper.writeValueAsString(node);
+        } catch (JsonProcessingException e){
+            throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+        }
+		contentsNote.setContents(content);
 		contentsNoteRepository.save(contentsNote);
 
 		noteModuleService.saveNote(note);
+
 		return true;
 	}
 
@@ -211,6 +234,83 @@ public class NoteComponentService {
 			.collect(Collectors.toList());
 
 		return searchList;
+	}
+
+	public NoteResponse.SearchNoteAllDTO searchNoteAll(User user, String search) {
+		//문단 구분점인 .을 입력시 빈 리스트 반환
+		if (search.trim().equals("."))
+			return null;
+
+		//User가 갖고 있는 Folder 조회
+		List<Folder> folderList = folderRepository.findByUser(user);
+		//Folder내 검색어가 포함된 노트 조회
+		List<NoteResponse.SearchNoteToUserDTO> noteToUserDTO = new ArrayList<>(folderList.stream()
+                .map(folder -> {
+                    List<NoteResponse.SearchNoteResDTO> folderToNote = noteRepository.findByFolder(folder).stream()
+                            .filter(note -> note.getName().contains(search) | note.getTotalText().contains(search))
+                            .map(note -> noteConverter.toSearchNoteResult(note, search))
+                            .toList();
+                    if (!folderToNote.isEmpty())
+                        return noteConverter.toSearchNoteUser(folder, folderToNote);
+                    return null;
+                }).toList());
+		noteToUserDTO.remove(null);
+		//Library내 검색어가 포함된 노트 조회
+		List<NoteResponse.SearchNoteToLibDTO> noteToLibDTO = libraryRepository.findAll().stream()
+				.filter(library -> library.getNote().getName().contains(search) | library.getNote().getTotalText().contains(search))
+				.map(library -> NoteResponse.SearchNoteToLibDTO.builder()
+                        .libraryId(library.getLibraryId())
+						.note(noteConverter.toSearchNoteResult(library.getNote(), search))
+                        .build())
+				.toList();
+
+		return NoteResponse.SearchNoteAllDTO.builder()
+				.searchTxt(search).noteToUserList(noteToUserDTO).noteToLibList(noteToLibDTO)
+				.build();
+	}
+
+	public void addSearchHistory(User user, String search){
+		SearchHistory searchHistory = searchHistoryRepository.findFirstByUserAndSearch(user, search);
+		if(searchHistory != null){
+			//set history
+			searchHistory.setSearchAt(LocalDateTime.now());
+			searchHistoryRepository.save(searchHistory);
+			return ;
+		}
+
+		//last history del
+		List<SearchHistory> searchHistoryList = searchHistoryRepository.findAllByUser(user)
+				.stream().sorted(Comparator.comparing(SearchHistory::getSearchAt).reversed()).toList();
+
+		int list_size = searchHistoryList.size();
+		if(list_size >= 5 ){
+			searchHistoryRepository.delete(searchHistoryList.get(list_size - 1));
+		}
+
+		//add new history
+		SearchHistory history_input = SearchHistory.builder()
+				.user(user)
+				.search(search)
+				.searchAt(LocalDateTime.now())
+				.build();
+		searchHistoryRepository.save(history_input);
+	}
+
+	public List<String> getSearchHistory(User user){
+		return searchHistoryRepository.findAllByUser(user).stream()
+				.sorted(Comparator.comparing(SearchHistory::getSearchAt).reversed())
+				.map(SearchHistory::getSearch)
+				.toList();
+	}
+
+	public Boolean delSearchHistory(User user, String search){
+		SearchHistory searchHistory = searchHistoryRepository.findFirstByUserAndSearch(user, search);
+		if(searchHistory == null)
+			throw new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR);
+
+		searchHistoryRepository.delete(searchHistory);
+
+		return true;
 	}
 
 	public Boolean shareLib(Long userId, NoteRequest.ShareLibDto request) {
@@ -267,7 +367,7 @@ public class NoteComponentService {
 	}
 
 	public NoteResponse.getNoteDTO getNote(Long noteId) {
-		Note note = noteRepository.findById(noteId)
+        Note note = noteRepository.findById(noteId)
 			.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
 		//노트 조회 시간 갱신
 		note.setViewAt(LocalDateTime.now());
@@ -283,7 +383,7 @@ public class NoteComponentService {
 				.build();
 		}).toList();
 
-		return noteConverter.getNoteDTO(note, cardDTO);
+        return noteConverter.getNoteDTO(note, cardDTO);
 	}
 
 	public List<NoteResponse.NoteInfoDTO> getRecentNotes(Long userId, int page, Integer size) {
@@ -296,10 +396,14 @@ public class NoteComponentService {
 	}
 
 	// 노트 조회, 정렬, 필터링 통합 Service
-	public NoteResponse.NoteListDTO getNotesBySortFilter(Long userId, Integer page, Integer size, String order,
-		String color) {
+	// FIXME :  노트 조회, 정렬, 필터링 하는 데에 color 필요 없는 거 같아서 없앴습니다. 확인 부탁드립니다.
+	public NoteResponse.NoteListDTO getNotesBySortFilter(Long userId, Integer page, Integer size, String order, Long folderId) {
 		User user = userRepository.findById(userId)
-			.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+
+		// 폴더 존재 여부 확인
+		Folder folder = folderRepository.findById(folderId)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_FOLDERID));
 
 		int getNotePage = (page != null) ? page : 0;
 		int getNoteSize = (size != null) ? size : Integer.MAX_VALUE;
@@ -313,29 +417,11 @@ public class NoteComponentService {
 		}
 
 		Page<Note> notePage;
-		// color 파라미터 주어질 때와 아닐때, order가 같이 주어질 때
-		if (color != null && !color.isEmpty()) {
-			List<String> colorList = Arrays.asList(color.split(","));
-
-			// cardify 규격 색상, 잘못 입력하면 error처리
-			List<String> allowedColors = Arrays.asList("blue", "ocean", "lavender", "mint", "sage", "gray", "orange",
-				"coral", "rose", "plum");
-
-			for (String c : colorList) {
-				if (!allowedColors.contains(c)) {
-					throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
-				}
-			}
-
-			if (order != null && !order.isEmpty()) {
-				notePage = noteRepository.findByUserColorAndSort(user, colorList, order, pageable);
-			} else {
-				notePage = noteRepository.findByNoteIdAndUser(user, colorList, pageable);
-			}
-		} else if (order != null && !order.isEmpty()) {
-			notePage = noteRepository.findByUserAndSort(user, order, pageable);
+		// order 파라미터가 주어질 때
+		if (order != null && !order.isEmpty()) {
+			notePage = noteRepository.findByFolderAndSort(folder, order, pageable);
 		} else {
-			notePage = noteRepository.findByUser(user, pageable);
+			notePage = noteRepository.findByFolder(folder, pageable);
 		}
 
 		if (notePage.isEmpty()) {
@@ -343,18 +429,66 @@ public class NoteComponentService {
 		}
 
 		List<NoteResponse.NoteInfoDTO> notes = notePage.getContent()
-			.stream()
-			.map(noteConverter::toNoteInfoDTO)
-			.collect(Collectors.toList());
+				.stream()
+				.map(note -> {
+					try {
+						return noteConverter.toNoteInfoDTO(note);
+					} catch (Exception e) {
+						System.err.println("노트 변환 실패 - ID: " + note.getNoteId() + ", 오류: " + e.getMessage());
+						// null을 반환하면 아래 filter에서 제외됨
+						return null;
+					}
+				})
+				.filter(Objects::nonNull)
+				.collect(Collectors.toList());
 
 		return NoteResponse.NoteListDTO.builder()
-			.noteList(notes)
-			.listsize(getNoteSize)
-			.currentPage(getNotePage + 1)
-			.totalPage(notePage.getTotalPages())
-			.totalElements(notePage.getTotalElements())
-			.isFirst(notePage.isFirst())
-			.isLast(notePage.isLast())
-			.build();
+				.noteList(notes)
+				.listsize(getNoteSize)
+				.currentPage(getNotePage + 1)
+				.totalPage(notePage.getTotalPages())
+				.totalElements(notePage.getTotalElements())
+				.isFirst(notePage.isFirst())
+				.isLast(notePage.isLast())
+				.build();
+	}
+
+	public NoteResponse.getNoteUUIDDTO createNoteUUID(NoteRequest.MakeLinkDto request, User user){
+		Note note = noteModuleService.getNoteById(request.getNoteId());
+		if (!user.equals(note.getFolder().getUser()))
+			throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
+
+		if(note.getUuid() != null){
+			return NoteResponse.getNoteUUIDDTO.builder()
+					.noteId(note.getNoteId())
+					.UUID(note.getUuid())
+					.build();
+		}
+
+		note.setUuid(UUID.randomUUID().toString());
+		Note result = noteRepository.save(note);
+
+		return NoteResponse.getNoteUUIDDTO.builder()
+				.noteId(result.getNoteId())
+				.UUID(result.getUuid())
+				.build();
+	}
+
+	public Long getNoteIdToUUID(String UUID){
+		Note note = noteRepository.findByUuid(UUID).orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+
+		return note.getNoteId();
+	}
+
+	public Boolean delNoteUUID(User user, Long noteId){
+		Note note = noteRepository.findById(noteId)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+		if (!user.equals(note.getFolder().getUser()))
+			throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
+
+		note.setUuid(null);
+		noteRepository.save(note);
+
+		return true;
 	}
 }

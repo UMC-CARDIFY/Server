@@ -41,8 +41,12 @@ public class NoteResponse {
         private String folderColor;
         @Schema(description = "노트 즐겨찾기", example = "ACTIVE")
         private MarkStatus markState;
+        @Schema(description = "플래시카드 개수", example = "3")
+        private Long flashCardCount;
         @Schema(description = "노트 열람일", example = "2023-07-18")
         private LocalDateTime viewAt;
+        @Schema(description = "노트 즐겨찾기 날짜", example = "yy/MM/dd")
+        private String markAt;
         @Schema(description = "노트 수정일", example = "2023-07-18")
         private String editDate;
         @Schema(description = "노트 생성 날짜", example = "2023-07-10")
@@ -109,7 +113,7 @@ public class NoteResponse {
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
-    @Schema(title = "NOTE_RES_08_01 : 노트 검색 응답 DTO")
+    @Schema(title = "NOTE_RES_08_0 : 노트 검색 응답 DTO")
     public static class SearchNoteResDTO{
         Long noteId;
         String noteName;
@@ -119,10 +123,41 @@ public class NoteResponse {
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
-    @Schema(title = "NOTE_RES_08 : 노트 검색 응답 DTO")
+    @Schema(title = "NOTE_RES_08 : 폴더 노트 검색 응답 DTO")
     public static class SearchNoteDTO{
         String searchTxt;
         List<SearchNoteResDTO> noteList;
+    }
+    @Builder
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "NOTE_RES_08 : 전체 노트 검색 응답 DTO")
+    public static class SearchNoteAllDTO{
+        String searchTxt;
+        List<SearchNoteToUserDTO> noteToUserList;
+        List<SearchNoteToLibDTO> noteToLibList;
+    }
+    @Builder
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "NOTE_RES_08_1 : 전체 노트 검색 응답 DTO(유저)")
+    public static class SearchNoteToUserDTO{
+        Long folderId;
+        String folderName;
+        Long parentsFolderId;
+        String parentsFolderName;
+        List<SearchNoteResDTO> noteList;
+    }
+    @Builder
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "NOTE_RES_08_2 : 전체 노트 검색 응답 DTO(자료실)")
+    public static class SearchNoteToLibDTO{
+        Long libraryId;
+        SearchNoteResDTO note;
     }
     @Builder
     @Getter
@@ -148,5 +183,14 @@ public class NoteResponse {
         Boolean isEdit;
         Boolean isUpload;
         List<getNoteCardDTO> cardList;
+    }
+    @Builder
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "NOTE_RES_10 : 노트 링크 생성 응답 DTO")
+    public static class getNoteUUIDDTO{
+        Long noteId;
+        String UUID;
     }
 }

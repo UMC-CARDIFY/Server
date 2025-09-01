@@ -1,6 +1,8 @@
 package com.umc.cardify.dto.folder;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.umc.cardify.domain.enums.MarkStatus;
+import com.umc.cardify.dto.note.NoteResponse;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
@@ -26,11 +28,14 @@ public class FolderResponse {
         private MarkStatus markState;
         @Schema(description = "폴더의 노트개수", example = "3")
         private Integer getNoteCount;
-        @Schema(description = "폴더 즐겨찾기 수정 날짜", example = "2023-12-05 12:34:56")
+        @Schema(description = "폴더 즐겨찾기 수정 날짜", example = "2023/12/05")
+        @JsonFormat(pattern= "yy/MM/dd")
         private Timestamp markDate;
-        @Schema(description = "폴더 수정 날짜", example = "2023-12-05 12:34:56")
+        @Schema(description = "폴더 수정 날짜", example = "2023/12/05")
+        @JsonFormat(pattern= "yy/MM/dd")
         private Timestamp editDate;
-        @Schema(description = "폴더 생성 날짜", example = "2023-12-05 12:34:56")
+        @Schema(description = "폴더 생성 날짜", example = "2023/12/05")
+        @JsonFormat(pattern= "yy/MM/dd", timezone = "Asia/Seoul")
         private LocalDateTime createdAt;
     }
 
@@ -40,6 +45,14 @@ public class FolderResponse {
     @AllArgsConstructor
     @Schema(title = "FOLDER_RES_02 : 폴더 목록 응답 DTO")
     public static class FolderListDTO {
+        // FIXME : 부모 폴더 내의 폴더 조회시 부모 폴더 이름 및 색상 추가로 응답해야 함
+        @Schema(description = "부모 폴더 이름")
+        private String parentFolderName;
+        @Schema(description = "부모 폴더 색상")
+        private String parentFolderColor;
+        @Schema(description = "폴더 즐겨찾기", example = "INACTIVE")
+        private MarkStatus parentMarkState;
+
         @Schema(description = "폴더 목록")
         private List<FolderInfoDTO> foldersList;
         @Schema(description = "리스트 사이즈", example = "10")
@@ -80,7 +93,7 @@ public class FolderResponse {
         private String name;
         @Schema(description = "폴더 색상", example = "blue")
         private String color;
-        @Schema(description = "폴더 생성 날짜", example = "2023-12-05 12:34:56")
+        @Schema(description = "폴더 생성 날짜", example = "2023/12/05")
         private LocalDateTime createdAt;
     }
 
@@ -96,7 +109,7 @@ public class FolderResponse {
         String name;
         @Schema(description = "폴더 색상", example = "ocean")
         String color;
-        @Schema(description = "폴더 수정 날짜", example = "2023-12-05 12:34:56")
+        @Schema(description = "폴더 수정 날짜", example = "2023/12/05")
         Timestamp editDate;
     }
 
@@ -114,4 +127,39 @@ public class FolderResponse {
         private Timestamp markDate;
     }
 
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "FOLDER_RES_07 : 내부 요소 조회 응답 DTO")
+    public static class getElementListDTO{
+        @Schema(description = "조회 요청한 폴더 아이디", example = "1")
+        private Long folderId;
+        @Schema(description = "폴더 이름", example = "sample")
+        private String name;
+        @Schema(description = "폴더 색상", example = "ocean")
+        private String color;
+        @Schema(description = "즐겨찾기한 요소 리스트")
+        private markElementList markElementList;
+        @Schema(description = "즐겨찾기 하지 않은 요소 리스트")
+        private notMarkElementList notMarkElementList;
+    }
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "FOLDER_RES_07_01 : 내부 요소(즐겨찾기 O) 조회 응답 DTO")
+    public static class markElementList{
+        List<FolderInfoDTO> folderList;
+        List<NoteResponse.NoteInfoDTO> noteList;
+    }
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "FOLDER_RES_07 : 내부 요소(즐겨찾기 X) 조회 응답 DTO")
+    public static class notMarkElementList{
+        List<FolderInfoDTO> folderList;
+        List<NoteResponse.NoteInfoDTO> noteList;
+    }
 }

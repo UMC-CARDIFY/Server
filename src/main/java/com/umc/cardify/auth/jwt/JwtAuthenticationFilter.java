@@ -30,10 +30,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // 토큰이 유효한 경우 인증 처리
         if (StringUtils.hasText(token) && tokenProvider.validateToken(token)) {
-            // 토큰에서 사용자 이메일 추출
-            String email = tokenProvider.getEmailFromToken(token);
-            // 이메일로 사용자 정보 조회
-            UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+
+            // 사용자 정보 조회
+            UserDetails userDetails = userDetailsService.loadUserByUsername(token);
 
             // Authentication 객체 생성
             UsernamePasswordAuthenticationToken authentication =

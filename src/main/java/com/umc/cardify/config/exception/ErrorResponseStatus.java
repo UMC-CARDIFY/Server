@@ -15,6 +15,8 @@ public enum ErrorResponseStatus {
 	COLOR_REQUEST_ERROR(2006, "색상 값 입력 형식은 blue,mint,red 입니다."),
 	SUBFOLDER_CREATION_NOT_ALLOWED(2007, "하위 폴더를 생성할 수 없습니다."),
 	FOLDER_CREATED_NOT_ALLOWED(2008, "폴더를 생성할 수 없습니다."),
+	NOTE_CREATED_NOT_ALLOWED(2009, "노트를 생성할 수 없습니다."),
+	INVALID_FOLDERID(2010, "폴더를  찾을 수 없습니다."),
 
 	// 3000 : Response 오류
 	RESPONSE_ERROR(3000, "값을 불러오는데 실패하였습니다."),
@@ -34,6 +36,7 @@ public enum ErrorResponseStatus {
 	NOT_EXIST_NOTE(4011, "노트가 존재하지 않습니다."),
 	JSON_PROCESSING_ERROR(4012, "JSON 처리 중 오류가 발생했습니다."),
 	NOT_FOUND_IMAGE(4013, "업로드할 이미지가 존재하지 않습니다."),
+	DUPLICATE_PAYMENT_METHOD(4014, "이미 등록된 결제 수단입니다."),
 
 	// 5000 : Server connection 오류
 	SERVER_ERROR(5000, "서버와의 연결에 실패하였습니다."),

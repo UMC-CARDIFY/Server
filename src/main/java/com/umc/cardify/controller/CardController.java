@@ -42,32 +42,36 @@ import lombok.RequiredArgsConstructor;
 public class CardController {
 
 	private final CardComponentService cardComponentService;
-	private final JwtTokenProvider jwtTokenProvider;  // JwtUtil → JwtTokenProvider
-	private final UserRepository userRepository;
 
 	@PostMapping(value = "/add/Image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	@Operation(summary = "이미지 카드 생성", description = "이미지 및 가림판들의 크기와 위치 전송")
-	public ResponseEntity<String> addImageCard(@RequestPart("image") MultipartFile image,
-		@RequestPart("imageCard") CardRequest.addImageCard request) {
+	public ResponseEntity<String> addImageCard(
+			@RequestHeader("Authorization") String token,
+			@RequestPart("image") MultipartFile image,
+			@RequestPart("imageCard") CardRequest.addImageCard request) {
 
-		String imgUrl = cardComponentService.addImageCard(image, request);
+		String imgUrl = cardComponentService.addImageCard(token, image, request);
 
 		return ResponseEntity.ok(imgUrl);
 	}
 
 	@GetMapping(value = "/view/{imgCardId}/Image")
 	@Operation(summary = "이미지 카드 조회", description = "이미지 및 가림판들의 크기와 위치 조회")
-	public ResponseEntity<CardResponse.getImageCard> viewImageCard(@PathVariable Long imgCardId) {
+	public ResponseEntity<CardResponse.getImageCard> viewImageCard(
+			@RequestHeader("Authorization") String token,
+			@PathVariable Long imgCardId) {
 
-		return ResponseEntity.ok(cardComponentService.viewImageCard(imgCardId));
+		return ResponseEntity.ok(cardComponentService.viewImageCard(token, imgCardId));
 	}
 
 	@PutMapping(value = "/edit/{imgCardId}/Image")
 	@Operation(summary = "이미지 카드 편집", description = "이미지 및 가림판 들의 크기와 위치 조회")
-	public ResponseEntity<String> editImageCard(@RequestPart("imageCard") CardRequest.addImageCard request,
-		@PathVariable Long imgCardId) {
+	public ResponseEntity<String> editImageCard(
+			@RequestHeader("Authorization") String token,
+			@RequestPart("imageCard") CardRequest.addImageCard request,
+			@PathVariable Long imgCardId) {
 
-		String imgUrl = cardComponentService.editImageCard(request, imgCardId);
+		String imgUrl = cardComponentService.editImageCard(token, request, imgCardId);
 
 		return ResponseEntity.ok(imgUrl);
 	}
@@ -77,85 +81,91 @@ public class CardController {
 	public ResponseEntity<List<CardResponse.getStudyCardSetLists>> viewStudyCardSetListsBySortFilter(
 		@RequestHeader("Authorization") String token, @RequestParam(required = false) String order,
 		@RequestParam(required = false) String color, @RequestParam(required = false) Integer studyStatus) {
-		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-		Long userId = userRepository.findByEmail(email)
-				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
-				.getUserId();
 
-		List<CardResponse.getStudyCardSetLists> cardListsPage = cardComponentService.getStudyCardSetLists(userId, order, color, studyStatus);
+		List<CardResponse.getStudyCardSetLists> cardListsPage = cardComponentService.getStudyCardSetLists(token, order, color, studyStatus);
 
 		return ResponseEntity.ok(cardListsPage);
 	}
 
 	@GetMapping(value = "/{studyCardSetId}")
 	@Operation(summary = "학습 카드 - 카드 학습", description = "해당 노트(StudyCardSet)의 학습 카드 전부를 Pageable 리스트로 전달")
-	public ResponseEntity<Page<Object>> studyCard(@PathVariable Long studyCardSetId,
-		@RequestParam(defaultValue = "0") int page) {
-		Page<Object> getCardLists = cardComponentService.getCardLists(studyCardSetId, page);
+	public ResponseEntity<Page<Object>> studyCard(
+			@RequestHeader("Authorization") String token,
+			@PathVariable Long studyCardSetId,
+			@RequestParam(defaultValue = "0") int page) {
+		Page<Object> getCardLists = cardComponentService.getCardLists(token, studyCardSetId, page);
 
 		return ResponseEntity.ok(getCardLists);
 	}
 
 	@PostMapping("/difficulty")
 	@Operation(summary = "학습 카드 - 난이도 선택", description = "해당 학습 카드 학습 후 난이도를 전달")
-	public ResponseEntity<?> recordDifficulty(@RequestBody CardRequest.difficulty request) {
-		cardComponentService.updateCardDifficulty(request);
+	public ResponseEntity<?> recordDifficulty(
+			@RequestHeader("Authorization") String token,
+			@RequestBody CardRequest.difficulty request) {
+		cardComponentService.updateCardDifficulty(token, request);
 
 		return ResponseEntity.ok().build();
 	}
 
 	@GetMapping("{studyCardSetId}/study-graph")
 	@Operation(summary = "학습 통계 그래프 조회")
-	public ResponseEntity<CardResponse.cardStudyGraph> viewStudyCardGraph(@PathVariable Long studyCardSetId) {
-		CardResponse.cardStudyGraph cardStudyGraph = cardComponentService.viewStudyCardGraph(studyCardSetId);
+	public ResponseEntity<CardResponse.cardStudyGraph> viewStudyCardGraph(
+			@RequestHeader("Authorization") String token,
+			@PathVariable Long studyCardSetId) {
+		CardResponse.cardStudyGraph cardStudyGraph = cardComponentService.viewStudyCardGraph(token, studyCardSetId);
 
 		return ResponseEntity.ok(cardStudyGraph);
 	}
 
 	@GetMapping("{studyCardSetId}/study-completed")
 	@Operation(summary = "분석 학습 완료")
-	public ResponseEntity<?> completeStudy(@PathVariable Long studyCardSetId) {
-		cardComponentService.completeStudy(studyCardSetId);
+	public ResponseEntity<?> completeStudy(
+			@RequestHeader("Authorization") String token,
+			@PathVariable Long studyCardSetId) {
+		cardComponentService.completeStudy(token, studyCardSetId);
 
 		return ResponseEntity.ok().build();
 	}
 
 	@GetMapping("{studyCardSetId}/study-log")
 	@Operation(summary = "분석 학습 기록 조회")
-	public ResponseEntity<?> viewStudyLog(@PathVariable Long studyCardSetId, @RequestParam(defaultValue = "0") int page,
-		@RequestParam(defaultValue = "4") int size) {
-		Page<CardResponse.getStudyLog> studyLogs = cardComponentService.viewStudyLog(studyCardSetId, page, size);
+	public ResponseEntity<?> viewStudyLog(
+			@RequestHeader("Authorization") String token, @PathVariable Long studyCardSetId,
+			@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "4") int size) {
+		Page<CardResponse.getStudyLog> studyLogs = cardComponentService.viewStudyLog(token, studyCardSetId, page, size);
 		return ResponseEntity.ok(studyLogs);
 	}
 
 	@PostMapping("/study-suggestion")
 	@Operation(summary = "분석 학습 제안")
-	public ResponseEntity<List<CardResponse.getStudySuggestion>> suggestionAnalyzeStudy(@RequestHeader("Authorization") String token,
+	public ResponseEntity<List<CardResponse.getStudySuggestion>> suggestionAnalyzeStudy(
+			@RequestHeader("Authorization") String token,
 		@RequestBody CardRequest.getSuggestion request) {
-		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-		Long userId = userRepository.findByEmail(email)
-				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
-				.getUserId();
 
 		Timestamp date = Timestamp.valueOf(LocalDateTime.parse(request.getDate(), DateTimeFormatter.ISO_DATE_TIME));
 
-		List<CardResponse.getStudySuggestion> suggestions = cardComponentService.suggestionAnalyzeStudy(userId, date);
+		List<CardResponse.getStudySuggestion> suggestions = cardComponentService.suggestionAnalyzeStudy(token, date);
 
 		return ResponseEntity.ok(suggestions);
 	}
 
 	@DeleteMapping("{studyCardSetId}")
 	@Operation(summary = "학습 카드셋 삭제")
-	public ResponseEntity<?> deleteStudyCardSet(@PathVariable Long studyCardSetId) {
-		cardComponentService.deleteStudyCardSet(studyCardSetId);
+	public ResponseEntity<?> deleteStudyCardSet(
+			@RequestHeader("Authorization") String token,
+			@PathVariable Long studyCardSetId) {
+		cardComponentService.deleteStudyCardSet(token, studyCardSetId);
 
 		return ResponseEntity.ok().build();
 	}
 
 	@GetMapping("{studyCardSetId}/re-study")
 	@Operation(summary = "재학습")
-	public ResponseEntity<?> reStudy(@PathVariable Long studyCardSetId) {
-		cardComponentService.reStudy(studyCardSetId);
+	public ResponseEntity<?> reStudy(
+			@RequestHeader("Authorization") String token,
+			@PathVariable Long studyCardSetId) {
+		cardComponentService.reStudy(token, studyCardSetId);
 
 		return ResponseEntity.ok().build();
 	}
@@ -163,12 +173,8 @@ public class CardController {
 	@GetMapping("/weekly-count")
 	@Operation(summary = "주간 학습 결과 API", description = "사용자 조회 성공 시, 해당 주의 총 학습 카드 개수와 날짜별 학습 카드 개수 반환")
 	public ResponseEntity<CardResponse.weeklyResultDTO> getCardByWeek(@RequestHeader("Authorization") String token) {
-		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-		Long userId = userRepository.findByEmail(email)
-				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
-				.getUserId();
 
-		CardResponse.weeklyResultDTO weekCard = cardComponentService.getCardByWeek(userId);
+		CardResponse.weeklyResultDTO weekCard = cardComponentService.getCardByWeek(token);
 		return ResponseEntity.ok(weekCard);
 	}
 
@@ -190,13 +196,19 @@ public class CardController {
 	@GetMapping("/study-suggestion/{years}/{month}")
 	@Operation(summary = "이번 달 학습 예정 일자")
 	public ResponseEntity<?> getExpectedStudyDate(@RequestHeader("Authorization") String token, @PathVariable int years, @PathVariable int month){
-		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-		Long userId = userRepository.findByEmail(email)
-				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
-				.getUserId();
 
-		CardResponse.getExpectedStudyDateDTO studyDateDTO = cardComponentService.getExpectedStudyDate(userId, years, month);
+		CardResponse.getExpectedStudyDateDTO studyDateDTO = cardComponentService.getExpectedStudyDate(token, years, month);
 
 		return ResponseEntity.ok(studyDateDTO);
+	}
+
+	@GetMapping("/quick-learning")
+	@Operation(summary = "빠른 학습 탭 - 플래시 카드 세트 조회",
+			description = "사용자에게 학습 시간 도달한 카드가 있는 StudyCardSet을 최대 3개 반환")
+	public ResponseEntity<List<CardResponse.getExpectedCardSetListDTO>> getQuickLearningStudySets(
+			@RequestHeader("Authorization") String token) {
+
+		List<CardResponse.getExpectedCardSetListDTO> sets = cardComponentService.getStudyCardSetsForQuickLearning(token);
+		return ResponseEntity.ok(sets);
 	}
 }

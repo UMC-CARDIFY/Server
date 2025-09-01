@@ -38,17 +38,19 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/",
-                                "/oauth2/authorization/**",
-                                "/login",
-                                "/login/oauth2/code/kakao",
-                                "/login/oauth2/code/google",
+                                "/oauth2/**",  // 모든 OAuth2 관련 경로 허용
+                                "/login/**",   // 모든 로그인 관련 경로 허용
                                 "/api/v1/users/signup",
                                 "/api/v1/users/login",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/error",
-                                "api/v1/folders/**",
-                                "/api/v1/oauth2/**").permitAll()
+                                "/api/v1/oauth2/**",
+                                "/token-check.html",
+                                "/token-renewal.html",
+                                "/simplePay-test.html",
+                                "/api/v1/auth/**",
+                            "api/v1/payments/simple-pay/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2Login(oauth2 -> oauth2
                         //.loginPage("/oauth2/authorization/kakao")
