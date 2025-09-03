@@ -878,7 +878,10 @@ public class CardComponentService {
 	}
 
 
-    public CardResponse.AnnualResultDTO getCardByYear(Long userId, int year) {
+    public CardResponse.AnnualResultDTO getCardByYear(String token, int year) {
+
+		Long userId = findUserId(token);
+
 		User user = userRepository.findById(userId)
 				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 

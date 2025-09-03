@@ -183,12 +183,8 @@ public class CardController {
 	public ResponseEntity<CardResponse.AnnualResultDTO> getContributionsByAnnual(
 			@RequestHeader("Authorization") String token,
 			@PathVariable Integer annual) {
-		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-		Long userId = userRepository.findByEmail(email)
-				.orElseThrow(()-> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
-				.getUserId();
 
-		CardResponse.AnnualResultDTO annualResult = cardComponentService.getCardByYear(userId, annual);
+		CardResponse.AnnualResultDTO annualResult = cardComponentService.getCardByYear(token, annual);
 		return ResponseEntity.ok(annualResult);
 	}
 
