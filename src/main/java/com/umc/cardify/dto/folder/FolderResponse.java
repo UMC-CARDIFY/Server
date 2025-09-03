@@ -162,4 +162,24 @@ public class FolderResponse {
         List<FolderInfoDTO> folderList;
         List<NoteResponse.NoteInfoDTO> noteList;
     }
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "FOLDER_RES_07 : 최근 즐겨찾기한 폴더 DTO")
+    public static class RecentFolderDTO {
+        @Schema(description = "현재 폴더 ID", example = "1")
+        private Long folderId;
+        @Schema(description = "현재 폴더 이름", example = "test")
+        private String name;
+        @Schema(description = "현재 폴더 색상", example = "ocean")
+        private String color;
+        @Schema(description = "즐겨찾기 상태", example = "ACTIVE")
+        private MarkStatus markState;
+        @Schema(description = "폴더 즐겨찾기 수정 날짜", example = "2023/12/05")
+        private String markDate;
+        @Schema(description = "폴더의 노트개수", example = "3")
+        private Integer noteCount;
+    }
+
 }

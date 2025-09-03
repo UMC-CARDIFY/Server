@@ -226,4 +226,15 @@ public class NoteController {
 
 		return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(noteComponentService.delNoteUUID(user, noteId)));
 	}
+
+	@GetMapping("/recent-marks")
+	@Operation(summary = "최근 즐겨찾기한 노트 목록 조회 API", description = "최근 즐겨찾기한 순으로 조회 | 최대 3개")
+	public ResponseEntity<List<NoteResponse.RecentNoteDTO>> getRecentFavoriteNotes(
+			@RequestHeader("Authorization") String token) {
+		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+		AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
+		User user = userRepository.findByEmailAndProvider(email, provider)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+		return ResponseEntity.ok(noteComponentService.getRecentFavoriteNotes(user.getUserId()));
+	}
 }

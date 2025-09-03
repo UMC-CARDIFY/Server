@@ -1,5 +1,22 @@
 package com.umc.cardify.service;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import com.umc.cardify.domain.*;
+import com.umc.cardify.domain.enums.SubscriptionStatus;
+import com.umc.cardify.repository.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.repository.Query;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.cardify.config.exception.BadRequestException;
@@ -491,4 +508,47 @@ public class NoteComponentService {
 
 		return true;
 	}
+
+	public List<NoteResponse.RecentNoteDTO> getRecentFavoriteNotes(Long userId) {
+		User user = userRepository.findById(userId)
+				.orElseThrow(()-> new BadRequestException(ErrorResponseStatus.REQUEST_ERROR));
+
+		List<Note> notes = noteRepository.findRecentFavoriteNotes(MarkStatus.ACTIVE, user, PageRequest.of(0, 3));
+
+		return notes.stream()
+				.map(note -> NoteResponse.RecentNoteDTO.builder()
+						.noteId(note.getNoteId())
+						.name(note.getName())
+						.folderId(note.getFolder().getFolderId())
+						.folderColor(note.getFolder().getColor())
+						.markState(note.getMarkState())
+						.markAt(note.getMarkAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
+						.noteContentPreview(getNotePreview(note))
+						.flashCardCount(note.getCards().size())
+						.build())
+				.collect(Collectors.toList());
+	}
+
+	private String extractPlainTextFromNode(Node node) {
+		StringBuilder sb = new StringBuilder();
+		if (node.getContent() != null) {
+			for (Node child : node.getContent()) {
+				sb.append(extractPlainTextFromNode(child));
+			}
+		}
+		if (node.getText() != null) {
+			sb.append(node.getText()).append(" ");
+		}
+		return sb.toString().trim();
+	}
+
+	private String getNotePreview(Note note) {
+		return contentsNoteRepository.findByNoteId(note.getNoteId())
+				.map(contentsNote -> {
+					String plainText = extractPlainTextFromNode(contentsNote.getContents());
+					return plainText.length() > 300 ? plainText.substring(0, 300) + "..." : plainText;
+				})
+				.orElse("");
+	}
+
 }
