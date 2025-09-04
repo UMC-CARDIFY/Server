@@ -12,7 +12,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,26 +22,12 @@ import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.DatabaseException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.converter.NoteConverter;
-import com.umc.cardify.domain.*;
 import com.umc.cardify.domain.ProseMirror.Node;
 import com.umc.cardify.domain.enums.MarkStatus;
-import com.umc.cardify.domain.enums.SubscriptionStatus;
 import com.umc.cardify.dto.note.NoteRequest;
 import com.umc.cardify.dto.note.NoteResponse;
-import com.umc.cardify.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -543,12 +528,19 @@ public class NoteComponentService {
 	}
 
 	private String getNotePreview(Note note) {
-		return contentsNoteRepository.findByNoteId(note.getNoteId())
-				.map(contentsNote -> {
-					String plainText = extractPlainTextFromNode(contentsNote.getContents());
-					return plainText.length() > 300 ? plainText.substring(0, 300) + "..." : plainText;
-				})
-				.orElse("");
+		String json = note.getContentsNote().getContents();
+		String plainText = convertJsonToPlainText(json);
+		return plainText.length() > 300 ? plainText.substring(0, 300) + "..." : plainText;
+	}
+
+	private String convertJsonToPlainText(String json) {
+		try {
+			ObjectMapper mapper = new ObjectMapper();
+			Node root = mapper.readValue(json, Node.class);
+			return extractPlainTextFromNode(root);
+		} catch (Exception e) {
+			return "";
+		}
 	}
 
 }
