@@ -43,6 +43,9 @@ public class Card extends BaseEntity {
 	@JoinColumn(name = "study_card_set_id")
 	private StudyCardSet studyCardSet;
 
+    @Column(columnDefinition = "TEXT")
+    private String contents;
+
 	@Column(columnDefinition = "TEXT")
 	private String contentsFront;
 

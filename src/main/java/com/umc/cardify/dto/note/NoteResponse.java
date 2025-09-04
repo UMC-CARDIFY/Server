@@ -167,6 +167,7 @@ public class NoteResponse {
     public static class getNoteCardDTO{
         Long cardId;
         String cardName;
+        String contents;
         String contentsFront;
         String contentsBack;
     }
