@@ -12,7 +12,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -542,13 +541,9 @@ public class NoteComponentService {
 		return sb.toString().trim();
 	}
 
-	private String getNotePreview(Note note) {
-		return contentsNoteRepository.findByNoteId(note.getNoteId())
-				.map(contentsNote -> {
-					String plainText = extractPlainTextFromNode(contentsNote.getContents());
-					return plainText.length() > 300 ? plainText.substring(0, 300) + "..." : plainText;
-				})
-				.orElse("");
-	}
+    private String getNotePreview(Note note) {
+        String plainText = note.getTotalText();
+        return plainText.length() > 300 ? plainText.substring(0, 300) + "..." : plainText;
+    }
 
 }
