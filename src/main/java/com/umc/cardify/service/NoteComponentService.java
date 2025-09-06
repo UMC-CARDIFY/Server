@@ -5,9 +5,11 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.umc.cardify.domain.*;
 import com.umc.cardify.domain.enums.SubscriptionStatus;
 import com.umc.cardify.repository.*;
+import com.umc.cardify.util.NotePreviewUtil;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -29,6 +31,8 @@ import com.umc.cardify.dto.note.NoteResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.util.StopWatch;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -46,8 +50,9 @@ public class NoteComponentService {
 	private final CardModuleService cardModuleService;
 
 	private final NoteConverter noteConverter;
-
 	private final ObjectMapper objectMapper;
+
+	private static final int PREVIEW_LIMIT = 300;
 
 	public Note addNote(Folder folder, Long userId) {
 		if (!userId.equals(folder.getUser().getUserId()))
@@ -500,7 +505,7 @@ public class NoteComponentService {
 
 		List<Note> notes = noteRepository.findRecentFavoriteNotes(MarkStatus.ACTIVE, user, PageRequest.of(0, 3));
 
-		return notes.stream()
+		List<NoteResponse.RecentNoteDTO> result = notes.stream()
 				.map(note -> NoteResponse.RecentNoteDTO.builder()
 						.noteId(note.getNoteId())
 						.name(note.getName())
@@ -511,36 +516,32 @@ public class NoteComponentService {
 						.noteContentPreview(getNotePreview(note))
 						.flashCardCount(note.getCards().size())
 						.build())
-				.collect(Collectors.toList());
-	}
+				.toList();
 
-	private String extractPlainTextFromNode(Node node) {
-		StringBuilder sb = new StringBuilder();
-		if (node.getContent() != null) {
-			for (Node child : node.getContent()) {
-				sb.append(extractPlainTextFromNode(child));
-			}
-		}
-		if (node.getText() != null) {
-			sb.append(node.getText()).append(" ");
-		}
-		return sb.toString().trim();
+		return result;
 	}
 
 	private String getNotePreview(Note note) {
-		String json = note.getContentsNote().getContents();
-		String plainText = convertJsonToPlainText(json);
-		return plainText.length() > 300 ? plainText.substring(0, 300) + "..." : plainText;
+		String plain = "";
+		if (note.getContentsNote() != null && note.getContentsNote().getContents() != null) {
+			plain = NotePreviewUtil.extractPreview(note.getContentsNote().getContents(), PREVIEW_LIMIT);
+		}
+		if (plain == null || plain.isBlank()) {
+			String t = note.getTotalText() == null ? "" : note.getTotalText();
+			String normalized = t.replaceAll("\\s+", " ").trim();
+			return ellipsize(normalized, PREVIEW_LIMIT);
+		}
+		return plain;
 	}
 
-	private String convertJsonToPlainText(String json) {
-		try {
-			ObjectMapper mapper = new ObjectMapper();
-			Node root = mapper.readValue(json, Node.class);
-			return extractPlainTextFromNode(root);
-		} catch (Exception e) {
-			return "";
-		}
+	private String ellipsize(String s, int maxCodePoints) {
+		if (s == null) return "";
+		s = s.strip();
+		if (s.isEmpty()) return s;
+		int lengthCp = s.codePointCount(0, s.length());
+		if (lengthCp <= maxCodePoints) return s;
+		int endIdx = s.offsetByCodePoints(0, maxCodePoints);
+		return s.substring(0, endIdx).stripTrailing() + "...";
 	}
 
 }
