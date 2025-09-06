@@ -8,6 +8,7 @@ import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.domain.User;
 import com.umc.cardify.domain.enums.AuthProvider;
 import com.umc.cardify.repository.UserRepository;
+import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
