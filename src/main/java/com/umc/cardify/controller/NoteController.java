@@ -229,7 +229,7 @@ public class NoteController {
 	}
 
 	@GetMapping("/recent-marks")
-	@Operation(summary = "최근 즐겨찾기한 노트 목록 조회 API", description = "최근 즐겨찾기한 순으로 조회 | 최대 3개")
+	@Operation(summary = "최근 즐겨찾기한 노트 목록 조회 API", description = "최근 즐겨찾기한 순으로 조회하며, 새로 생성했거나 빈 노트는 null반환  | 최대 3개")
 	public ResponseEntity<List<NoteResponse.RecentNoteDTO>> getRecentFavoriteNotes(
 			@RequestHeader("Authorization") String token) {
 		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));

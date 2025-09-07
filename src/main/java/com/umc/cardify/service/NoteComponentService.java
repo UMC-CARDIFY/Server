@@ -518,7 +518,10 @@ public class NoteComponentService {
 	}
 
 	private String getNotePreview(Note note) {
-		String t = note.getTotalText() == null ? "" : note.getTotalText();
+		String t = (note.getTotalText() == null || ".".equals(note.getTotalText())) ? "" : note.getTotalText();
+
+		if (t.isBlank()) { return null; }
+
 		String normalized = t.replaceAll("\\s+", " ").trim();
 		return ellipsize(normalized, PREVIEW_LIMIT);
 	}
