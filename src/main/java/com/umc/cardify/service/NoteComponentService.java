@@ -5,11 +5,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.umc.cardify.domain.*;
 import com.umc.cardify.domain.enums.SubscriptionStatus;
 import com.umc.cardify.repository.*;
-import com.umc.cardify.util.NotePreviewUtil;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -30,8 +28,6 @@ import com.umc.cardify.dto.note.NoteRequest;
 import com.umc.cardify.dto.note.NoteResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
-import org.springframework.util.StopWatch;
 
 @Slf4j
 @Service
@@ -522,16 +518,9 @@ public class NoteComponentService {
 	}
 
 	private String getNotePreview(Note note) {
-		String plain = "";
-		if (note.getContentsNote() != null && note.getContentsNote().getContents() != null) {
-			plain = NotePreviewUtil.extractPreview(note.getContentsNote().getContents(), PREVIEW_LIMIT);
-		}
-		if (plain == null || plain.isBlank()) {
-			String t = note.getTotalText() == null ? "" : note.getTotalText();
-			String normalized = t.replaceAll("\\s+", " ").trim();
-			return ellipsize(normalized, PREVIEW_LIMIT);
-		}
-		return plain;
+		String t = note.getTotalText() == null ? "" : note.getTotalText();
+		String normalized = t.replaceAll("\\s+", " ").trim();
+		return ellipsize(normalized, PREVIEW_LIMIT);
 	}
 
 	private String ellipsize(String s, int maxCodePoints) {
