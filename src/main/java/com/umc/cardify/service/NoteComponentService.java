@@ -381,6 +381,7 @@ public class NoteComponentService {
 			return NoteResponse.getNoteCardDTO.builder()
 				.cardId(card.getCardId())
 				.cardName(note.getName())
+                .contents(card.getContents())
 				.contentsFront(card.getContentsFront())
 				.contentsBack(card.getContentsBack())
 				.build();
