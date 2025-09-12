@@ -22,26 +22,12 @@ import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.DatabaseException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.converter.NoteConverter;
-import com.umc.cardify.domain.*;
 import com.umc.cardify.domain.ProseMirror.Node;
 import com.umc.cardify.domain.enums.MarkStatus;
-import com.umc.cardify.domain.enums.SubscriptionStatus;
 import com.umc.cardify.dto.note.NoteRequest;
 import com.umc.cardify.dto.note.NoteResponse;
-import com.umc.cardify.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -60,8 +46,9 @@ public class NoteComponentService {
 	private final CardModuleService cardModuleService;
 
 	private final NoteConverter noteConverter;
-
 	private final ObjectMapper objectMapper;
+
+	private static final int PREVIEW_LIMIT = 300;
 
 	public Note addNote(Folder folder, Long userId) {
 		if (!userId.equals(folder.getUser().getUserId()))
@@ -515,7 +502,7 @@ public class NoteComponentService {
 
 		List<Note> notes = noteRepository.findRecentFavoriteNotes(MarkStatus.ACTIVE, user, PageRequest.of(0, 3));
 
-		return notes.stream()
+		List<NoteResponse.RecentNoteDTO> result = notes.stream()
 				.map(note -> NoteResponse.RecentNoteDTO.builder()
 						.noteId(note.getNoteId())
 						.name(note.getName())
@@ -526,25 +513,28 @@ public class NoteComponentService {
 						.noteContentPreview(getNotePreview(note))
 						.flashCardCount(note.getCards().size())
 						.build())
-				.collect(Collectors.toList());
+				.toList();
+
+		return result;
 	}
 
-	private String extractPlainTextFromNode(Node node) {
-		StringBuilder sb = new StringBuilder();
-		if (node.getContent() != null) {
-			for (Node child : node.getContent()) {
-				sb.append(extractPlainTextFromNode(child));
-			}
-		}
-		if (node.getText() != null) {
-			sb.append(node.getText()).append(" ");
-		}
-		return sb.toString().trim();
+	private String getNotePreview(Note note) {
+		String t = (note.getTotalText() == null || ".".equals(note.getTotalText())) ? "" : note.getTotalText();
+
+		if (t.isBlank()) { return null; }
+
+		String normalized = t.replaceAll("\\s+", " ").trim();
+		return ellipsize(normalized, PREVIEW_LIMIT);
 	}
 
-    private String getNotePreview(Note note) {
-        String plainText = note.getTotalText();
-        return plainText.length() > 300 ? plainText.substring(0, 300) + "..." : plainText;
-    }
+	private String ellipsize(String s, int maxCodePoints) {
+		if (s == null) return "";
+		s = s.strip();
+		if (s.isEmpty()) return s;
+		int lengthCp = s.codePointCount(0, s.length());
+		if (lengthCp <= maxCodePoints) return s;
+		int endIdx = s.offsetByCodePoints(0, maxCodePoints);
+		return s.substring(0, endIdx).stripTrailing() + "...";
+	}
 
 }
