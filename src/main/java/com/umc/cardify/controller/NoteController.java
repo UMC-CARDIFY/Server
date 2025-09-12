@@ -8,6 +8,7 @@ import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.domain.User;
 import com.umc.cardify.domain.enums.AuthProvider;
 import com.umc.cardify.repository.UserRepository;
+import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -225,5 +226,16 @@ public class NoteController {
 				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
 		return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(noteComponentService.delNoteUUID(user, noteId)));
+	}
+
+	@GetMapping("/recent-marks")
+	@Operation(summary = "최근 즐겨찾기한 노트 목록 조회 API", description = "최근 즐겨찾기한 순으로 조회하며, 새로 생성했거나 빈 노트는 null반환  | 최대 3개")
+	public ResponseEntity<List<NoteResponse.RecentNoteDTO>> getRecentFavoriteNotes(
+			@RequestHeader("Authorization") String token) {
+		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+		AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
+		User user = userRepository.findByEmailAndProvider(email, provider)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+		return ResponseEntity.ok(noteComponentService.getRecentFavoriteNotes(user.getUserId()));
 	}
 }

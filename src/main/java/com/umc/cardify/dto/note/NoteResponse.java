@@ -167,6 +167,7 @@ public class NoteResponse {
     public static class getNoteCardDTO{
         Long cardId;
         String cardName;
+        String contents;
         String contentsFront;
         String contentsBack;
     }
@@ -192,5 +193,31 @@ public class NoteResponse {
     public static class getNoteUUIDDTO{
         Long noteId;
         String UUID;
+    }
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "NOTE_RES_11 : 최근 즐겨찾기한 노트 DTO")
+    public static class RecentNoteDTO {
+        @Schema(description = "노트 아이디", example = "1")
+        private Long noteId;
+        @Schema(description = "노트 이름", example = "Sample Note")
+        private String name;
+        @Schema(description = "폴더 아이디", example = "Sample Folder")
+        private Long folderId;
+        @Schema(description = "폴더 이름", example = "Sample Folder")
+        private String folderName;
+        @Schema(description = "폴더 색상", example = "blue")
+        private String folderColor;
+        @Schema(description = "플래시카드 개수", example = "3")
+        private Integer flashCardCount;
+        @Schema(description = "노트 즐겨찾기", example = "ACTIVE")
+        private MarkStatus markState;
+        @Schema(description = "노트 즐겨찾기 날짜", example = "yy/MM/dd")
+        private String markAt;
+        @Schema(description = "노트 내용", example = "1) 정보처리기사 2025년 1회 기출...")
+        private Object noteContentPreview;
     }
 }

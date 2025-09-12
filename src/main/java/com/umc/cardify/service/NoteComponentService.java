@@ -1,20 +1,13 @@
 package com.umc.cardify.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.umc.cardify.config.exception.BadRequestException;
-import com.umc.cardify.config.exception.DatabaseException;
-import com.umc.cardify.config.exception.ErrorResponseStatus;
-import com.umc.cardify.converter.NoteConverter;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.stream.Collectors;
+
 import com.umc.cardify.domain.*;
-import com.umc.cardify.domain.ProseMirror.Node;
-import com.umc.cardify.domain.enums.MarkStatus;
 import com.umc.cardify.domain.enums.SubscriptionStatus;
-import com.umc.cardify.dto.note.NoteRequest;
-import com.umc.cardify.dto.note.NoteResponse;
 import com.umc.cardify.repository.*;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -23,9 +16,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.umc.cardify.config.exception.BadRequestException;
+import com.umc.cardify.config.exception.DatabaseException;
+import com.umc.cardify.config.exception.ErrorResponseStatus;
+import com.umc.cardify.converter.NoteConverter;
+import com.umc.cardify.domain.ProseMirror.Node;
+import com.umc.cardify.domain.enums.MarkStatus;
+import com.umc.cardify.dto.note.NoteRequest;
+import com.umc.cardify.dto.note.NoteResponse;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
@@ -44,8 +46,9 @@ public class NoteComponentService {
 	private final CardModuleService cardModuleService;
 
 	private final NoteConverter noteConverter;
-
 	private final ObjectMapper objectMapper;
+
+	private static final int PREVIEW_LIMIT = 300;
 
 	public Note addNote(Folder folder, Long userId) {
 		if (!userId.equals(folder.getUser().getUserId()))
@@ -378,6 +381,7 @@ public class NoteComponentService {
 			return NoteResponse.getNoteCardDTO.builder()
 				.cardId(card.getCardId())
 				.cardName(note.getName())
+                .contents(card.getContents())
 				.contentsFront(card.getContentsFront())
 				.contentsBack(card.getContentsBack())
 				.build();
@@ -491,4 +495,46 @@ public class NoteComponentService {
 
 		return true;
 	}
+
+	public List<NoteResponse.RecentNoteDTO> getRecentFavoriteNotes(Long userId) {
+		User user = userRepository.findById(userId)
+				.orElseThrow(()-> new BadRequestException(ErrorResponseStatus.REQUEST_ERROR));
+
+		List<Note> notes = noteRepository.findRecentFavoriteNotes(MarkStatus.ACTIVE, user, PageRequest.of(0, 3));
+
+		List<NoteResponse.RecentNoteDTO> result = notes.stream()
+				.map(note -> NoteResponse.RecentNoteDTO.builder()
+						.noteId(note.getNoteId())
+						.name(note.getName())
+						.folderId(note.getFolder().getFolderId())
+						.folderColor(note.getFolder().getColor())
+						.markState(note.getMarkState())
+						.markAt(note.getMarkAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
+						.noteContentPreview(getNotePreview(note))
+						.flashCardCount(note.getCards().size())
+						.build())
+				.toList();
+
+		return result;
+	}
+
+	private String getNotePreview(Note note) {
+		String t = (note.getTotalText() == null || ".".equals(note.getTotalText())) ? "" : note.getTotalText();
+
+		if (t.isBlank()) { return null; }
+
+		String normalized = t.replaceAll("\\s+", " ").trim();
+		return ellipsize(normalized, PREVIEW_LIMIT);
+	}
+
+	private String ellipsize(String s, int maxCodePoints) {
+		if (s == null) return "";
+		s = s.strip();
+		if (s.isEmpty()) return s;
+		int lengthCp = s.codePointCount(0, s.length());
+		if (lengthCp <= maxCodePoints) return s;
+		int endIdx = s.offsetByCodePoints(0, maxCodePoints);
+		return s.substring(0, endIdx).stripTrailing() + "...";
+	}
+
 }

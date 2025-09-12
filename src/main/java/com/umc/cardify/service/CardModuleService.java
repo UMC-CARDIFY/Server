@@ -6,6 +6,9 @@ import java.sql.Timestamp;
 import java.util.List;
 import java.util.Queue;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.umc.cardify.config.exception.ErrorResponseStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -41,6 +44,8 @@ public class CardModuleService {
 	private final OverlayRepository overlayRepository;
 	private final NoteRepository noteRepository;
 	private final S3Service s3Service;
+    private final ObjectMapper objectMapper;
+
 	boolean existsByNote(Note note){
 
 		return studyCardSetRepository.existsByNote(note);
@@ -131,7 +136,14 @@ public class CardModuleService {
 		String nodeText = buildNodeText(questionFront, answer, questionBack);
 		input.append(nodeText);
 
-		Card card = createCardBasedOnType(node.getType(), note, questionFront, questionBack, answer);
+        String content;
+        try {
+            content = objectMapper.writeValueAsString(node);
+        } catch (JsonProcessingException e){
+            throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+        }
+
+            Card card = createCardBasedOnType(node.getType(), note, content, questionFront, questionBack, answer);
 		if (card != null) {
 			cardRepository.save(card);
 			addCardToStudyCardSet(card, note);
@@ -150,23 +162,27 @@ public class CardModuleService {
 		return value != null ? value : defaultValue;
 	}
 
-	private Card createCardBasedOnType(String type, Note note, String questionFront, String questionBack,
+	private Card createCardBasedOnType(String type, Note note, String contents, String questionFront, String questionBack,
 		String answer) {
 		switch (type) {
-			case "blank_card":
-				return createCard(note, questionFront, questionBack, answer, CardType.BLANK);
+            case "blank_card":
+            case "blankcard":
+				return createCard(note, contents, questionFront, questionBack, answer, CardType.BLANK);
 			case "multi_card":
-				return createCard(note, questionFront, null, answer, CardType.MULTI);
+            case "multicard":
+				return createCard(note, contents, questionFront, null, answer, CardType.MULTI);
 			case "word_card":
-				return createCard(note, questionFront, null, answer, CardType.WORD);
+            case "wordcard":
+				return createCard(note, contents, questionFront, null, answer, CardType.WORD);
 			default:
 				return null;
 		}
 	}
 
-	public Card createCard(Note note, String questionFront, String questionBack, String answer, CardType cardType) {
+	public Card createCard(Note note, String contents, String questionFront, String questionBack, String answer, CardType cardType) {
 		return Card.builder()
 			.note(note)
+            .contents(contents)
 			.contentsFront(questionFront)
 			.contentsBack(questionBack)
 			.answer(answer)
