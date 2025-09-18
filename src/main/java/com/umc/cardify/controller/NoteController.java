@@ -238,4 +238,17 @@ public class NoteController {
 				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 		return ResponseEntity.ok(noteComponentService.getRecentFavoriteNotes(user.getUserId()));
 	}
+
+    @GetMapping("/{noteId}/card")
+    @Operation(summary = "노트 내 카드 조회 API", description = "노트 아이디 입력, 성공시 카드 리스트 반환")
+    public ResponseEntity<List<NoteResponse.getNoteCardDTO>> getRecentFavoriteNotes(
+            @RequestHeader("Authorization") String token,
+            @PathVariable Long noteId) {
+        String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+        AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
+        User user = userRepository.findByEmailAndProvider(email, provider)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+
+        return ResponseEntity.ok(noteComponentService.getNoteCards(user, noteId));
+    }
 }

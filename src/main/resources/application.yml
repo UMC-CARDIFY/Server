@@ -93,13 +93,13 @@ cloud:
       auto: false
 logging:
   level:
-    root: WARN
+    root: INFO
     com.umc.cardify.auth.oauth.OAuth2SuccessHandler: INFO  # 핸들러 로그
     org.springframework.security: WARN  # Spring Security에서 경고 및 오류만 기록
     org.hibernate.SQL: ERROR  # SQL 관련 에러만 기록 (SQL 쿼리 관련 정보는 배포 환경에서는 보통 필요하지 않음)
     org.hibernate.type.descriptor.sql.BasicBinder: ERROR  # SQL 바인딩 관련 에러만 기록
     org.springframework.web: WARN  # 웹 요청 관련 경고 및 오류만 기록
-    com.umc.cardify: WARN  # 애플리케이션 전체에서 경고 및 오류만 기록
+    com.umc.cardify: INFO  # 애플리케이션 전체에서 경고 및 오류만 기록
     com.umc.cardify.controller.OAuth2Controller: INFO  # 카카오 로그인 관련 상세 로그는 필요할 수 있으므로 INFO로 유지
     # 간편 결제 관련 로깅 추가
     com.umc.cardify.service.alert.DiscordAlertService: WARN

@@ -537,4 +537,18 @@ public class NoteComponentService {
 		return s.substring(0, endIdx).stripTrailing() + "...";
 	}
 
+    public List<NoteResponse.getNoteCardDTO> getNoteCards(User user, Long noteId) {
+        Note note = noteRepository.findById(noteId)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+        if (!user.equals(note.getFolder().getUser()))
+            throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
+
+        return note.getCards().stream().map(card -> NoteResponse.getNoteCardDTO.builder()
+                .cardId(card.getCardId())
+                .cardName(note.getName())
+                .contents(card.getContents())
+                .contentsFront(card.getContentsFront())
+                .contentsBack(card.getContentsBack())
+                .build()).toList();
+    }
 }
