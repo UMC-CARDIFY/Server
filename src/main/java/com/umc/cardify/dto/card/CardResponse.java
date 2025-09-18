@@ -222,7 +222,7 @@ public class CardResponse {
 	public static class DailyContribution {
 		@Schema(description = "날짜", example = "2025-01-01")
 		private LocalDate date;
-		@Schema(description = "중복없는 하루 학습 횟수", example = "3")
+		@Schema(description = "중복있는 하루 학습 횟수", example = "3")
 		private long count;
 		@Schema(description = "색상", example = "transparent | light | medium | dark")
 		private String color;

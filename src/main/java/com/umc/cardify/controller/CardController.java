@@ -179,7 +179,7 @@ public class CardController {
 	}
 
 	@GetMapping("/contributions/{annual}")
-	@Operation(summary = "연간 분석 학습 통계 API", description = "사용자 조회 성공 시, 현재 연도를 받아서 사용자의 날짜 학습 데이터와 연속 학습 일수 반환")
+	@Operation(summary = "연간 분석 학습 통계 API", description = "현재 연동 입력 후, 사용자의 전체 학습 개수와 1~4단계의 color 반환")
 	public ResponseEntity<CardResponse.AnnualResultDTO> getContributionsByAnnual(
 			@RequestHeader("Authorization") String token,
 			@PathVariable Integer annual) {
