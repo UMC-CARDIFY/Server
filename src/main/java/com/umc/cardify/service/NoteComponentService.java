@@ -5,6 +5,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.umc.cardify.domain.*;
 import com.umc.cardify.domain.enums.SubscriptionStatus;
 import com.umc.cardify.dto.note.NoteComparator;
