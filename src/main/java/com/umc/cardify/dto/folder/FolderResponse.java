@@ -2,6 +2,7 @@ package com.umc.cardify.dto.folder;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.umc.cardify.domain.enums.MarkStatus;
+import com.umc.cardify.dto.note.NoteResponse;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
@@ -219,6 +220,61 @@ public class FolderResponse {
         private List<FolderInfoDTO> foldersList;
         @Schema(description = "리스트 사이즈", example = "10")
         private Integer listSize;
+    }
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "FOLDER_RES_07 : 내부 요소 조회 응답 DTO")
+    public static class getElementListDTO{
+        @Schema(description = "조회 요청한 폴더 아이디", example = "1")
+        private Long folderId;
+        @Schema(description = "폴더 이름", example = "sample")
+        private String name;
+        @Schema(description = "폴더 색상", example = "ocean")
+        private String color;
+        @Schema(description = "즐겨찾기한 요소 리스트")
+        private markElementList markElementList;
+        @Schema(description = "즐겨찾기 하지 않은 요소 리스트")
+        private notMarkElementList notMarkElementList;
+    }
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "FOLDER_RES_07_01 : 내부 요소(즐겨찾기 O) 조회 응답 DTO")
+    public static class markElementList{
+        List<FolderInfoDTO> folderList;
+        List<NoteResponse.NoteInfoDTO> noteList;
+    }
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "FOLDER_RES_07 : 내부 요소(즐겨찾기 X) 조회 응답 DTO")
+    public static class notMarkElementList{
+        List<FolderInfoDTO> folderList;
+        List<NoteResponse.NoteInfoDTO> noteList;
+    }
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "FOLDER_RES_07 : 최근 즐겨찾기한 폴더 DTO")
+    public static class RecentFolderDTO {
+        @Schema(description = "현재 폴더 ID", example = "1")
+        private Long folderId;
+        @Schema(description = "현재 폴더 이름", example = "test")
+        private String name;
+        @Schema(description = "현재 폴더 색상", example = "ocean")
+        private String color;
+        @Schema(description = "즐겨찾기 상태", example = "ACTIVE")
+        private MarkStatus markState;
+        @Schema(description = "폴더 즐겨찾기 수정 날짜", example = "2023/12/05")
+        private String markDate;
+        @Schema(description = "폴더의 노트개수", example = "3")
+        private Integer noteCount;
     }
 
 }

@@ -2,6 +2,7 @@ package com.umc.cardify.repository;
 
 import com.umc.cardify.domain.Folder;
 import com.umc.cardify.domain.User;
+import com.umc.cardify.domain.enums.MarkStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -76,5 +77,8 @@ public interface FolderRepository extends JpaRepository<Folder, Long> {
             "AND p.parentFolder IS NULL " +
             "ORDER BY CASE WHEN p.markState = 'ACTIVE' THEN 0 ELSE 1 END, p.name ASC")
     Page<Folder> findAllFolders(User user, Pageable pageable);
+
+
+    List<Folder> findTop4ByMarkStateAndUserOrderByMarkDateDesc(MarkStatus markState, User user);
 
 }

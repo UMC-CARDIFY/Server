@@ -1,6 +1,7 @@
 package com.umc.cardify.service;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -24,7 +25,6 @@ import com.umc.cardify.domain.ProseMirror.Node;
 import com.umc.cardify.domain.enums.MarkStatus;
 import com.umc.cardify.dto.note.NoteRequest;
 import com.umc.cardify.dto.note.NoteResponse;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -45,6 +45,10 @@ public class NoteComponentService {
 	private final CardModuleService cardModuleService;
 
 	private final NoteConverter noteConverter;
+	private final ObjectMapper objectMapper;
+
+	private static final int PREVIEW_LIMIT = 300;
+
 
 	public Note addNote(Folder folder, Long userId) {
 		if (!userId.equals(folder.getUser().getUserId()))
@@ -53,9 +57,9 @@ public class NoteComponentService {
 			Note newNote = NoteConverter.toAddNote(folder);
 			noteRepository.save(newNote);
 			try {
-				ContentsNote contentsNote = ContentsNote.builder().noteId(newNote.getNoteId()).build();
-				contentsNoteRepository.insert(contentsNote);
-				newNote.setContentsId(contentsNote.get_id());
+				ContentsNote contentsNote = ContentsNote.builder().note(newNote).build();
+				contentsNoteRepository.save(contentsNote);
+				newNote.setContentsNote(contentsNote);
 			}catch (Exception e){
 				System.out.println(e);
 			}
@@ -89,7 +93,7 @@ public class NoteComponentService {
 			throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
 		else {
 			noteRepository.delete(note_del);
-			contentsNoteRepository.delete(contentsNoteRepository.findByNoteId(note_del.getNoteId()).get());
+			contentsNoteRepository.delete(contentsNoteRepository.findByNote(note_del).get());
 			return true;
 		}
 	}
@@ -151,6 +155,13 @@ public class NoteComponentService {
 
 	@Transactional
 	public Boolean writeNote(NoteRequest.WriteNoteDto request, Long userId, List<MultipartFile> images) {
+        // 작성 모드 설정
+        String mode = request.getMode();
+        if(mode == null || mode.isEmpty())
+            mode = "standard";
+        if(!mode.equals("standard") && !mode.equals("light"))
+            throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+
 		Note note = noteModuleService.getNoteById(request.getNoteId());
 
 		if (!userId.equals(note.getFolder().getUser().getUserId())) {
@@ -161,25 +172,35 @@ public class NoteComponentService {
 			log.warn("IsEdit is : {}", note.getIsEdit());
 			throw new BadRequestException(ErrorResponseStatus.DB_UPDATE_ERROR);
 		}
-		if (cardModuleService.existsByNote(note)) {
+		if (cardModuleService.existsByNote(note) && mode.equals("standard")) {
 			cardModuleService.deleteAllCardsByNoteId(note.getNoteId());
 			cardModuleService.deleteAllImageCardsByNoteId(note.getNoteId());
-
 		}
+        note.setName(request.getName());
+        Node node = request.getContents();
 
-		StringBuilder totalText = new StringBuilder();
-		note.setName(request.getName());
+        if(mode.equals("standard")) {
+            StringBuilder totalText = new StringBuilder();
 
-		Queue<MultipartFile> imageQueue = new LinkedList<>(images != null ? images : Collections.emptyList());
-		Node node = request.getContents();
-		searchCard(node, totalText, note, imageQueue);
-		note.setTotalText(totalText.toString());
+            Queue<MultipartFile> imageQueue = new LinkedList<>(images != null ? images : Collections.emptyList());
+            searchCard(node, totalText, note, imageQueue);
+            note.setTotalText(totalText.toString());
+        }
 
-		ContentsNote contentsNote = contentsNoteRepository.findByNoteId(note.getNoteId()).get();
-		contentsNote.setContents(node);
+		ContentsNote contentsNote = contentsNoteRepository.findByNote(note)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+
+        String content;
+        try {
+            content = objectMapper.writeValueAsString(node);
+        } catch (JsonProcessingException e){
+            throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+        }
+		contentsNote.setContents(content);
 		contentsNoteRepository.save(contentsNote);
 
 		noteModuleService.saveNote(note);
+
 		return true;
 	}
 
@@ -349,7 +370,7 @@ public class NoteComponentService {
 	}
 
 	public NoteResponse.getNoteDTO getNote(Long noteId) {
-		Note note = noteRepository.findById(noteId)
+        Note note = noteRepository.findById(noteId)
 			.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
 		//노트 조회 시간 갱신
 		note.setViewAt(LocalDateTime.now());
@@ -360,12 +381,13 @@ public class NoteComponentService {
 			return NoteResponse.getNoteCardDTO.builder()
 				.cardId(card.getCardId())
 				.cardName(note.getName())
+                .contents(card.getContents())
 				.contentsFront(card.getContentsFront())
 				.contentsBack(card.getContentsBack())
 				.build();
 		}).toList();
 
-		return noteConverter.getNoteDTO(note, cardDTO);
+        return noteConverter.getNoteDTO(note, cardDTO);
 	}
 
 	public List<NoteResponse.NoteInfoDTO> getRecentNotes(Long userId, int page, Integer size) {
@@ -384,9 +406,9 @@ public class NoteComponentService {
 			User user = userRepository.findById(userId)
 					.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
-			// 2. 폴더 검증
-			Folder folder = folderRepository.findById(folderId)
-					.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_FOLDERID));
+		// 폴더 존재 여부 확인
+		Folder folder = folderRepository.findById(folderId)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_FOLDERID));
 
 			// 3. 폴더 소유권 확인
 			if (!folder.getUser().getUserId().equals(userId)) {
@@ -535,4 +557,46 @@ public class NoteComponentService {
 
 		return true;
 	}
+
+	public List<NoteResponse.RecentNoteDTO> getRecentFavoriteNotes(Long userId) {
+		User user = userRepository.findById(userId)
+				.orElseThrow(()-> new BadRequestException(ErrorResponseStatus.REQUEST_ERROR));
+
+		List<Note> notes = noteRepository.findRecentFavoriteNotes(MarkStatus.ACTIVE, user, PageRequest.of(0, 3));
+
+		List<NoteResponse.RecentNoteDTO> result = notes.stream()
+				.map(note -> NoteResponse.RecentNoteDTO.builder()
+						.noteId(note.getNoteId())
+						.name(note.getName())
+						.folderId(note.getFolder().getFolderId())
+						.folderColor(note.getFolder().getColor())
+						.markState(note.getMarkState())
+						.markAt(note.getMarkAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
+						.noteContentPreview(getNotePreview(note))
+						.flashCardCount(note.getCards().size())
+						.build())
+				.toList();
+
+		return result;
+	}
+
+	private String getNotePreview(Note note) {
+		String t = (note.getTotalText() == null || ".".equals(note.getTotalText())) ? "" : note.getTotalText();
+
+		if (t.isBlank()) { return null; }
+
+		String normalized = t.replaceAll("\\s+", " ").trim();
+		return ellipsize(normalized, PREVIEW_LIMIT);
+	}
+
+	private String ellipsize(String s, int maxCodePoints) {
+		if (s == null) return "";
+		s = s.strip();
+		if (s.isEmpty()) return s;
+		int lengthCp = s.codePointCount(0, s.length());
+		if (lengthCp <= maxCodePoints) return s;
+		int endIdx = s.offsetByCodePoints(0, maxCodePoints);
+		return s.substring(0, endIdx).stripTrailing() + "...";
+	}
+
 }

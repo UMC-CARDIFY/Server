@@ -12,8 +12,10 @@ import com.umc.cardify.repository.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Month;
 import java.time.Year;
@@ -62,7 +64,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
       throw new IllegalArgumentException("해당 사용자의 결제 수단이 아닙니다");
     }
 
-    // 구독 생성
+    // 다음 결제일 지정
     LocalDateTime nextPaymentDateTime =
         calculateNextPaymentDate(LocalDateTime.now(), product.getPeriod());
 
@@ -82,7 +84,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         .startDate(LocalDateTime.now())
         .nextPaymentDate(nextPaymentDateTime)
         .autoRenew(true)
-        .endDate(LocalDateTime.now().plusMonths(1))
+        .endDate(nextPaymentDateTime.plusDays(1)) // 결제 실패를 대비하여 결제일보다 하루 더
         .build();
 
     Subscription savedSubscription = subscriptionRepository.save(subscription);
@@ -118,6 +120,42 @@ public class SubscriptionServiceImpl implements SubscriptionService {
   public SubscriptionResponse.SubscriptionInfoRes getSubscription(Long subscriptionId, String token) {
     Long userId = findUserId(token);
     return getSubscriptionInternal(subscriptionId);
+  }
+
+  // 결제 실패한 사용자의 구독 상태 변경
+  @Scheduled(cron = "0 0 0 * * ?") // 자정에
+  public void processExpiredSubscriptions() {
+    LocalDate yesterday = LocalDate.now().minusDays(1);
+    LocalDateTime startOfYesterday = yesterday.atStartOfDay();
+    LocalDateTime endOfYesterday = yesterday.atTime(23, 59, 59);
+
+    // 어제가 결제일이었는데 아직 ACTIVE 상태인 구독들
+    List<Subscription> expiredSubscriptions = subscriptionRepository
+        .findByStatusAndNextPaymentDateBetween(
+            SubscriptionStatus.ACTIVE,
+            startOfYesterday,
+            endOfYesterday
+        );
+
+    // EXPIRED로 상태 변경
+    log.info("구독 만료 처리 시작: 대상 구독 수={}", expiredSubscriptions.size());
+    for (Subscription subscription : expiredSubscriptions) {
+      subscription.setStatus(SubscriptionStatus.EXPIRED);
+
+      log.info("구독 만료 처리: subscriptionId={}, userId={}, productId={}",
+          subscription.getId(),
+          subscription.getUser().getUserId(),
+          subscription.getProduct().getId()
+      );
+
+      // TODO: 사용자에게 구독 만료 알림 발송하면 좋을듯
+    }
+
+    // DB에 저장
+    if (!expiredSubscriptions.isEmpty()) {
+      subscriptionRepository.saveAll(expiredSubscriptions);
+      log.info("구독 만료 처리 완료: 처리된 구독 수={}", expiredSubscriptions.size());
+    }
   }
 
   // 내부용 메소드 (토큰 없이 호출 가능)
@@ -156,6 +194,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         .build();
   }
 
+  // 사용자의 구독 정보 조회
   @Override
   public SubscriptionResponse.SubscriptionListRes getSubscriptionsByUserId(String token) {
     Long userId = findUserId(token);
@@ -231,6 +270,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         .build();
   }
 
+  // TODO: converter 고민
   private SubscriptionResponse.PaymentHistoryRes convertToPaymentHistoryRes(SubscriptionPayment entity) {
     LocalDateTime paidAt = null;
     if (entity.getPaidAt() != null) {
