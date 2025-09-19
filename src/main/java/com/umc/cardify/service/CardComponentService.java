@@ -11,17 +11,14 @@ import java.time.LocalTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.umc.cardify.auth.jwt.JwtTokenProvider;
+import com.umc.cardify.domain.*;
 import com.umc.cardify.domain.enums.AuthProvider;
+import com.umc.cardify.repository.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -32,24 +29,11 @@ import org.springframework.web.multipart.MultipartFile;
 import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.DatabaseException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
-import com.umc.cardify.domain.Card;
-import com.umc.cardify.domain.ImageCard;
-import com.umc.cardify.domain.Note;
-import com.umc.cardify.domain.Overlay;
-import com.umc.cardify.domain.StudyCardSet;
-import com.umc.cardify.domain.StudyLog;
-import com.umc.cardify.domain.User;
 import com.umc.cardify.domain.enums.CardType;
 import com.umc.cardify.domain.enums.Difficulty;
 import com.umc.cardify.domain.enums.StudyStatus;
 import com.umc.cardify.dto.card.CardRequest;
 import com.umc.cardify.dto.card.CardResponse;
-import com.umc.cardify.repository.CardRepository;
-import com.umc.cardify.repository.ImageCardRepository;
-import com.umc.cardify.repository.OverlayRepository;
-import com.umc.cardify.repository.StudyCardSetRepository;
-import com.umc.cardify.repository.StudyLogRepository;
-import com.umc.cardify.repository.UserRepository;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -67,6 +51,7 @@ public class CardComponentService {
 	private final OverlayRepository overlayRepository;
 	private final StudyCardSetRepository studyCardSetRepository;
 	private final StudyLogRepository studyLogRepository;
+	private final StudyHistoryRepository studyHistoryRepository;
 	private final UserRepository userRepository;
 	private final CardRepository cardRepository;
 
@@ -737,6 +722,16 @@ public class CardComponentService {
 
 		studyLogRepository.save(studyLog);
 
+		// 연간학습 통계 기록을 남기기 위한 기록 append-only 데이터
+		StudyHistory studyHistory = StudyHistory.builder()
+				.studyDate(LocalDateTime.now())
+				.studiedCardCount(remainingCardsCount)
+				.studyCardSet(studyCardSet)
+				.user(studyCardSet.getUser())
+				.build();
+
+		studyHistoryRepository.save(studyHistory);
+
 		Timestamp earliestNextStudyTime = null;
 		boolean allCardsPassed = true;
 
@@ -888,6 +883,71 @@ public class CardComponentService {
 						.nextStudyDate(set.getNextStudyDate())
 						.build())
 				.collect(Collectors.toList());
+	}
+
+
+	public CardResponse.AnnualResultDTO getCardByYear(String token, int year) {
+		Long userId = findUserId(token);
+
+		LocalDate startOfYear = LocalDate.of(year, 1, 1);
+		LocalDate endOfYear = LocalDate.of(year, 12, 31);
+
+		LocalDateTime start = startOfYear.atStartOfDay();
+		LocalDateTime end = endOfYear.atTime(LocalTime.MAX);
+
+		long t0 = System.nanoTime();
+		List<Object[]> rows = studyHistoryRepository.findDailyCountWithWeekMaxNative(userId, start, end);
+		long t1 = System.nanoTime();
+
+		// Map<날짜, [count, weekMax]>
+		Map<LocalDate, long[]> daily = new HashMap<>();
+		for (Object[] row : rows) {
+			java.sql.Date sqlDate = (java.sql.Date) row[0];
+			Number countNum = (Number) row[1];
+			Number weekMaxNum = (Number) row[2];
+			LocalDate date = sqlDate.toLocalDate();
+			long count = countNum == null ? 0 : countNum.longValue();
+			long weekMax = weekMaxNum == null ? 0 : weekMaxNum.longValue();
+
+			daily.put(date, new long[]{count, weekMax});
+		}
+
+		// 1년치 데이터 순회
+		List<CardResponse.DailyContribution> contributions = new ArrayList<>();
+		int maxStreak = 0, currentStreak = 0;
+
+		LocalDate currentDate = startOfYear;
+		while (!currentDate.isAfter(endOfYear)) {
+			long count = 0, weekMax = 0;
+			if (daily.containsKey(currentDate)) {
+				count = daily.get(currentDate)[0];
+				weekMax = daily.get(currentDate)[1];
+			}
+
+			// 비율 측정 : 일주일 단위 내에서 비교하여 비율 측정
+			String color;
+			if (count == 0 || weekMax == 0) {
+				color = "1";
+				currentStreak = 0;
+			} else {
+				double ratio = (double) count / (double) weekMax;
+				if (ratio >= 0.75) color = "4";
+				else if (ratio >= 0.5) color = "3";
+				else if (ratio >= 0.25) color = "2";
+				else color = "1";
+				currentStreak++;
+			}
+
+			maxStreak = Math.max(maxStreak, currentStreak);
+			contributions.add(new CardResponse.DailyContribution(currentDate, count, color));
+
+			currentDate = currentDate.plusDays(1);
+		}
+
+		long t2 = System.nanoTime();
+
+		return new CardResponse.AnnualResultDTO(contributions, maxStreak);
+
 	}
 }
 

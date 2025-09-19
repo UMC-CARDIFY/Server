@@ -178,6 +178,17 @@ public class CardController {
 		return ResponseEntity.ok(weekCard);
 	}
 
+	@GetMapping("/contributions/{annual}")
+	@Operation(summary = "연간 분석 학습 통계 API", description = "현재 연동 입력 후, 사용자의 전체 학습 개수와 1~4단계의 color 반환")
+	public ResponseEntity<CardResponse.AnnualResultDTO> getContributionsByAnnual(
+			@RequestHeader("Authorization") String token,
+			@PathVariable Integer annual) {
+
+		CardResponse.AnnualResultDTO annualResult = cardComponentService.getCardByYear(token, annual);
+		return ResponseEntity.ok(annualResult);
+	}
+
+
 	@GetMapping("/study-suggestion/{years}/{month}")
 	@Operation(summary = "이번 달 학습 예정 일자")
 	public ResponseEntity<?> getExpectedStudyDate(@RequestHeader("Authorization") String token, @PathVariable int years, @PathVariable int month){
