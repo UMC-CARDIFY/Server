@@ -7,6 +7,8 @@ import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
 import com.umc.cardify.domain.User;
 import com.umc.cardify.domain.enums.AuthProvider;
+import com.umc.cardify.dto.folder.FolderRequest;
+import com.umc.cardify.dto.folder.FolderResponse;
 import com.umc.cardify.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
@@ -47,6 +49,7 @@ public class NoteController {
 		Long userId = userRepository.findByEmailAndProvider(email, provider)
 				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID)).getUserId();
 
+		// FIXME: 노트 개수 무료회원은 19개로 변경됨
 		if(!noteComponentService.checkNoteCnt(userId))
 			throw new BadRequestException(ErrorResponseStatus.NOTE_CREATED_NOT_ALLOWED);
 
@@ -237,6 +240,42 @@ public class NoteController {
 		User user = userRepository.findByEmailAndProvider(email, provider)
 				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 		return ResponseEntity.ok(noteComponentService.getRecentFavoriteNotes(user.getUserId()));
+	}
+
+	@GetMapping("/search-parent")
+	@Operation(summary = "노트 이동 - 폴더 검색 API", description = "검색어로 폴더를 검색하여 리스트 반환. 검색어가 없으면 전체 폴더 조회(북마크 폴더가 상단고정)")
+	public ResponseEntity<List<FolderResponse.FolderParentListDTO>> searchFolders(
+			@RequestHeader("Authorization") String token,
+			@RequestParam(required = false) String keyword,
+			@RequestParam(required = false) Integer page,
+			@RequestParam(required = false) Integer size) {
+
+		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+		AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", ""));
+
+		Long userId = userRepository.findByEmailAndProvider(email, provider)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
+				.getUserId();
+
+		return ResponseEntity.ok(folderService.searchFolders(userId, keyword, page, size));
+	}
+
+	@PatchMapping("/{noteId}/move")
+	@Operation(summary = "노트 이동 - 폴더 이동 API", description = "노트를 다른 폴더로 이동")
+	public ResponseEntity<NoteResponse.NoteMoveResultDTO> moveNote(
+			@RequestHeader("Authorization") String token,
+			@PathVariable Long noteId,
+			@RequestBody FolderRequest.MoveFolderDTO request) {
+
+		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+		AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", ""));
+
+		Long userId = userRepository.findByEmailAndProvider(email, provider)
+				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
+				.getUserId();
+
+		NoteResponse.NoteMoveResultDTO result = folderService.moveNote(userId, noteId, request.getTargetParentFolderId());
+		return ResponseEntity.ok(result);
 	}
 
     @GetMapping("/{noteId}/card")
