@@ -45,14 +45,14 @@ public class FolderResponse {
     @AllArgsConstructor
     @Schema(title = "FOLDER_RES_02 : 폴더 목록 응답 DTO")
     public static class FolderListDTO {
-        // FIXME : 부모 폴더 내의 폴더 조회시 부모 폴더 이름 및 색상 추가로 응답해야 함
         @Schema(description = "부모 폴더 이름")
         private String parentFolderName;
         @Schema(description = "부모 폴더 색상")
         private String parentFolderColor;
         @Schema(description = "폴더 즐겨찾기", example = "INACTIVE")
         private MarkStatus parentMarkState;
-
+        @Schema(description = "폴더의 노트개수", example = "3")
+        private Integer getNoteCount;
         @Schema(description = "폴더 목록")
         private List<FolderInfoDTO> foldersList;
         @Schema(description = "리스트 사이즈", example = "10")
@@ -110,6 +110,7 @@ public class FolderResponse {
         @Schema(description = "폴더 색상", example = "ocean")
         String color;
         @Schema(description = "폴더 수정 날짜", example = "2023/12/05")
+        @JsonFormat(pattern= "yy/MM/dd")
         Timestamp editDate;
     }
 
@@ -125,6 +126,100 @@ public class FolderResponse {
         private MarkStatus markState;
         @Schema(description = "폴더 즐겨찾기 수정 날짜", example = "2023-12-05 12:34:56")
         private Timestamp markDate;
+    }
+
+    @Builder
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "FOLDER_RES_07 : 하위폴더 이동 - 상위 폴더 정보 DTO")
+    public static class ParentFolderInfoDTO {
+        @Schema(description = "상위 폴더 아이디", example = "1")
+        private Long folderId;
+        @Schema(description = "상위 폴더 이름", example = "Sample1")
+        private String folderName;
+        @Schema(description = "상위 폴더 색상", example = "blue")
+        private String folderColor;
+        @Schema(description = "상위 폴더 즐겨찾기", example = "INACTIVE")
+        private MarkStatus markState;
+        @Schema(description = "상위 폴더의 하위폴더 개수", example = "3")
+        private Integer getSubFolderCount;
+        @Schema(description = "상위 폴더 즐겨찾기 수정 날짜", example = "2023/12/05")
+        @JsonFormat(pattern= "yy/MM/dd")
+        private Timestamp markDate;
+        @Schema(description = "상위 폴더 수정 날짜", example = "2023/12/05")
+        @JsonFormat(pattern= "yy/MM/dd")
+        private Timestamp editDate;
+        @Schema(description = "상위 폴더 생성 날짜", example = "2023/12/05")
+        @JsonFormat(pattern= "yy/MM/dd", timezone = "Asia/Seoul")
+        private LocalDateTime createdAt;
+    }
+
+    @Builder
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "FOLDER_RES_08 : 하위폴더 이동 - 상위 폴더 목록 DTO")
+    public static class ParentFolderListDTO {
+        @Schema(description = "상위 폴더 목록", example = "[]")
+        private List<ParentFolderInfoDTO> parentFolders;
+        @Schema(description = "리스트 사이즈", example = "10")
+        private Integer listSize;
+        @Schema(description = "현재 페이지 번호", example = "1")
+        private Integer currentPage;
+        @Schema(description = "총 페이지 수", example = "5")
+        private Integer totalPages;
+        @Schema(description = "총 폴더 수", example = "5")
+        private Long totalElements;
+        @Schema(description = "첫 페이지인지 확인", example = "true")
+        private Boolean isFirst;
+        @Schema(description = "마지막 페이지인지 확인", example = "false")
+        private Boolean isLast;
+    }
+
+    @Builder
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "FOLDER_RES_09 : 하위폴더 이동 - 이동결과 DTO")
+    public static class FolderMoveResultDTO  {
+        @Schema(description = "이동할 하위 폴더 ID", example = "1")
+        private Long folderId;
+        @Schema(description = "이동할 하위 폴더 이름", example = "test")
+        private String folderName;
+        @Schema(description = "이전 소속 상위 폴더 ID", example = "2")
+        private Long previousParentFolderId;
+        @Schema(description = "이전 소속 상위 폴더 이름", example = "sample")
+        private String previousParentFolderName;
+        @Schema(description = "새로운 소속 상위 폴더 ID", example = "1")
+        private Long newParentFolderId;
+        @Schema(description = "새로운 소속 상위 폴더 이름", example = "test")
+        private String newParentFolderName;
+        @Schema(description = "새로운 소속 상위 폴더 수정 날짜", example = "2023/12/05")
+        @JsonFormat(pattern= "yy/MM/dd")
+        private Timestamp editDate;
+    }
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(title = "FOLDER_RES_10 : 노트이동 - 상위 폴더 목록 응답 DTO")
+    public static class FolderParentListDTO {
+        @Schema(description = "부모 폴더 ID")
+        private Long parentFolderID;
+        @Schema(description = "부모 폴더 이름")
+        private String parentFolderName;
+        @Schema(description = "부모 폴더 색상")
+        private String parentFolderColor;
+        @Schema(description = "폴더 즐겨찾기", example = "INACTIVE")
+        private MarkStatus parentMarkState;
+        @Schema(description = "폴더의 노트개수", example = "3")
+        private Integer getNoteCount;
+        @Schema(description = "폴더 목록")
+        private List<FolderInfoDTO> foldersList;
+        @Schema(description = "리스트 사이즈", example = "10")
+        private Integer listSize;
     }
 
     @Getter

@@ -26,10 +26,16 @@ public class FolderComparator implements Comparator<Folder> {
             return f1.getMarkDate().compareTo(f2.getMarkDate());
         }
 
-        // 날짜 기준 정렬
+        // 수정일 날짜 기준 정렬
         if (order.equals("edit-oldest") || order.equals("edit-newest")) {
             int dateCompare = f1.getEditDate().compareTo(f2.getEditDate());
             return order.equals("edit-oldest") ? dateCompare : -dateCompare;
+        }
+
+        // 생성일 날짜 기준 정렬
+        if (order.equals("create-oldest") || order.equals("create-newest")) {
+            int dateCompare = f1.getCreatedAt().compareTo(f2.getCreatedAt());
+            return order.equals("create-oldest") ? dateCompare : -dateCompare;
         }
 
         // 이름 기준 정렬

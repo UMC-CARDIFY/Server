@@ -6,6 +6,7 @@ import com.umc.cardify.domain.User;
 import com.umc.cardify.domain.enums.MarkStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,8 +16,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface NoteRepository extends JpaRepository<Note, Long> {
-    @Query("SELECT n FROM Note n LEFT JOIN FETCH n.cards WHERE n.folder = :folder")
-    Page<Note> findByFolder(Folder folder, Pageable pageable);
     List<Note> findByFolder(Folder folder);
 
     @Query("SELECT n FROM Note n WHERE n.folder.user = :user ORDER BY " +
@@ -69,4 +68,15 @@ public interface NoteRepository extends JpaRepository<Note, Long> {
 
     @Query("SELECT n FROM Note n WHERE n.markState = :markState AND n.folder.user = :user ORDER BY n.markAt DESC")
     List<Note> findRecentFavoriteNotes(@Param("markState") MarkStatus markState, @Param("user") User user, Pageable pageable);
+    Page<Note> findByFolder(Folder folder, Pageable pageable);
+
+    // 정렬 조건으로 모든 노트 조회
+    List<Note> findByFolder(Folder folder, Sort sort);
+
+    // 기존 카드 개수 조회 메서드
+    @Query("SELECT n.noteId, COUNT(c.cardId) " +
+            "FROM Note n LEFT JOIN n.cards c " +
+            "WHERE n.folder = :folder " +
+            "GROUP BY n.noteId")
+    List<Object[]> findNoteCardCounts(@Param("folder") Folder folder);
 }
