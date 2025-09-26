@@ -29,5 +29,6 @@ public interface CardRepository extends JpaRepository<Card, Long> {
 
 	@Query("SELECT c FROM Card c WHERE c.studyCardSet.user.userId = :userId AND c.learnNextTime BETWEEN :start AND :end")
 	List<Card> findAllByUserIdAndLearnNextTimeBetween(@Param("userId") Long userId, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
 }
 
