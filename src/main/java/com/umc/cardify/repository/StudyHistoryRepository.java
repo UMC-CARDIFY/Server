@@ -1,13 +1,13 @@
 package com.umc.cardify.repository;
 
-import com.umc.cardify.domain.StudyHistory;
-import com.umc.cardify.domain.StudyLog;
+import com.umc.cardify.domain.*;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface StudyHistoryRepository extends JpaRepository<StudyHistory, Long> {
     /**
@@ -30,4 +30,7 @@ public interface StudyHistoryRepository extends JpaRepository<StudyHistory, Long
                     "ORDER BY t.log_date ASC",
             nativeQuery = true)
     List<Object[]> findDailyCountWithWeekMaxNative(@Param("userId") Long userId, @Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
+
+    Optional<StudyHistory> findByUserAndCard(User user, Card card);
+    Optional<StudyHistory> findByUserAndImageCard(User user, ImageCard imageCard);
 }

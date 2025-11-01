@@ -4,11 +4,8 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 
-import com.umc.cardify.auth.jwt.JwtTokenProvider;
-import com.umc.cardify.config.exception.BadRequestException;
-import com.umc.cardify.config.exception.ErrorResponseStatus;
-import com.umc.cardify.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -87,6 +84,7 @@ public class CardController {
 		return ResponseEntity.ok(cardListsPage);
 	}
 
+	// NOTE : https://www.figma.com/design/BxpTfbBq0G5MxIfy3Nl7X9?node-id=4-2#1450135366 '학습 카드' 기능이 이해 안되면 해당 댓글 참고
 	@GetMapping(value = "/{studyCardSetId}")
 	@Operation(summary = "학습 카드 - 카드 학습", description = "해당 노트(StudyCardSet)의 학습 카드 전부를 Pageable 리스트로 전달")
 	public ResponseEntity<Page<Object>> studyCard(
@@ -108,25 +106,37 @@ public class CardController {
 		return ResponseEntity.ok().build();
 	}
 
+	@GetMapping("/{cardId}/next-time")
+	@Operation(summary = "학습 카드 - 난이도 선택 - 다음 학습 시간 예측 반환", description = "난이도 선택 전에, 각 난이도에 따른 다음 학습시간 예측 반환 | CardType은 일반카드는 0")
+	public ResponseEntity<Map<String, LocalDateTime>> getExpectedNextStudyTimes(
+			@PathVariable Long cardId,
+			@RequestParam int cardType) {
+
+		Map<String, LocalDateTime> result = cardComponentService.getExpectedNextStudyTimes(cardId, cardType);
+		return ResponseEntity.ok(result);
+	}
+
+	// NOTE : 학습 난이도 선택에 분석학습이 합쳐짐 -- 나중에 개발 기간 끝나고 삭제
+//	@GetMapping("{studyCardSetId}/study-completed")
+//	@Operation(summary = "분석 학습 완료")
+//	public ResponseEntity<?> completeStudy(
+//			@RequestHeader("Authorization") String token,
+//			@PathVariable Long studyCardSetId) {
+//		cardComponentService.completeStudy(token, studyCardSetId);
+//
+//		return ResponseEntity.ok().build();
+//	}
+
 	@GetMapping("{studyCardSetId}/study-graph")
 	@Operation(summary = "학습 통계 그래프 조회")
 	public ResponseEntity<CardResponse.cardStudyGraph> viewStudyCardGraph(
 			@RequestHeader("Authorization") String token,
 			@PathVariable Long studyCardSetId) {
-		CardResponse.cardStudyGraph cardStudyGraph = cardComponentService.viewStudyCardGraph(token, studyCardSetId);
 
+		CardResponse.cardStudyGraph cardStudyGraph = cardComponentService.viewStudyCardGraph(token, studyCardSetId);
 		return ResponseEntity.ok(cardStudyGraph);
 	}
 
-	@GetMapping("{studyCardSetId}/study-completed")
-	@Operation(summary = "분석 학습 완료")
-	public ResponseEntity<?> completeStudy(
-			@RequestHeader("Authorization") String token,
-			@PathVariable Long studyCardSetId) {
-		cardComponentService.completeStudy(token, studyCardSetId);
-
-		return ResponseEntity.ok().build();
-	}
 
 	@GetMapping("{studyCardSetId}/study-log")
 	@Operation(summary = "분석 학습 기록 조회")
@@ -137,6 +147,7 @@ public class CardController {
 		return ResponseEntity.ok(studyLogs);
 	}
 
+	// NOTE : 2025.7월 기준 기능입니다. - '학습 추천' 탭에서 "지금 학습하면 좋은 카드 리스트" 반환
 	@PostMapping("/study-suggestion")
 	@Operation(summary = "분석 학습 제안")
 	public ResponseEntity<List<CardResponse.getStudySuggestion>> suggestionAnalyzeStudy(
@@ -144,9 +155,7 @@ public class CardController {
 		@RequestBody CardRequest.getSuggestion request) {
 
 		Timestamp date = Timestamp.valueOf(LocalDateTime.parse(request.getDate(), DateTimeFormatter.ISO_DATE_TIME));
-
 		List<CardResponse.getStudySuggestion> suggestions = cardComponentService.suggestionAnalyzeStudy(token, date);
-
 		return ResponseEntity.ok(suggestions);
 	}
 
@@ -160,12 +169,14 @@ public class CardController {
 		return ResponseEntity.ok().build();
 	}
 
-	@GetMapping("{studyCardSetId}/re-study")
+	// NOTE : 2025.10.21 수정 (parameter studyCardId -> cardId로 변경)
+	@GetMapping("{cardId}/re-study")
 	@Operation(summary = "재학습")
 	public ResponseEntity<?> reStudy(
 			@RequestHeader("Authorization") String token,
-			@PathVariable Long studyCardSetId) {
-		cardComponentService.reStudy(token, studyCardSetId);
+			@PathVariable Long cardId,
+			@RequestParam int cardType) {
+		cardComponentService.reStudy(token, cardId, cardType);
 
 		return ResponseEntity.ok().build();
 	}

@@ -11,5 +11,7 @@ public interface StudyLogRepository extends JpaRepository<StudyLog, Long> {
 
 	Page<StudyLog> findByStudyCardSet(StudyCardSet studyCardSet, Pageable pageable);
 
-	void deleteAllByStudyCardSet(StudyCardSet studyCardSet);
+	void deleteByUser_UserIdAndCard_CardId(Long userId, Long cardId);
+
+	void deleteByUser_UserIdAndImageCard_Id(Long userId, Long cardId);
 }

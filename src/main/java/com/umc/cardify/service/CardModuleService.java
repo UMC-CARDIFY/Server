@@ -46,6 +46,21 @@ public class CardModuleService {
 	private final S3Service s3Service;
     private final ObjectMapper objectMapper;
 
+	// note : 카드 타입 조회
+	public int getCardType(Long cardId) {
+		int cardType = cardRepository.findCardTypeByCardId(cardId);
+		return cardType;
+	}
+
+	// note : 카드 난이도 조회
+	public int getCardDifficulty(Long cardId, int cardType) {
+		if (cardType == 0) {
+			return cardRepository.findCardDifficultyByCardId(cardId);
+		} else {
+			return imageCardRepository.findImageCardDifficultyByCardId(cardId);
+		}
+	}
+
 	boolean existsByNote(Note note){
 
 		return studyCardSetRepository.existsByNote(note);
@@ -268,5 +283,15 @@ public class CardModuleService {
 		imageCardRepository.save(imageCard);
 	}
 
+	// note : 카드 난이도에 따른 학습 시간 반환 메소드에 사용됨
+	public int getCardCountLearn(Long cardId, int cardType) {
+		if (cardType == 0) {
+			Card card = getCardById(cardId);
+			return card.getCountLearn() == null ? 0 : card.getCountLearn().intValue();
+		} else {
+			ImageCard imageCard = getImageCardById(cardId);
+			return imageCard.getCountLearn() == null ? 0 : imageCard.getCountLearn().intValue();
+		}
+	}
 }
 

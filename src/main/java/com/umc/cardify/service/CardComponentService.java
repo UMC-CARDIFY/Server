@@ -93,34 +93,28 @@ public class CardComponentService {
 	}
 
 	@Transactional
-	public void reStudy(String token, Long studyCardSetId) {
+	public void reStudy(String token, Long cardId, int cardType) {
 		Long userId = findUserId(token);
 
-		StudyCardSet studyCardSet = cardModuleService.getStudyCardSetById(studyCardSetId);
-		studyCardSet.setStudyStatus(StudyStatus.BEFORE_STUDY);
-		studyCardSet.setNextStudyDate(null);
-		studyCardSet.setRecentStudyDate(null);
-		studyCardSetRepository.save(studyCardSet);
-
-		studyLogRepository.deleteAllByStudyCardSet(studyCardSet);
-
-		List<Card> cards = cardModuleService.getCardsByStudyCardSet(studyCardSet);
-		List<ImageCard> imageCards = cardModuleService.getImageCardsByStudyCardSet(studyCardSet);
-
-		for (Card card : cards) {
+		if (cardType == 0) {
+			Card card = cardModuleService.getCardById(cardId);
 			card.setCountLearn(0L);
 			card.setDifficulty(0);
 			card.setLearnLastTime(null);
 			card.setLearnNextTime(null);
 			cardModuleService.saveCard(card);
-		}
 
-		for (ImageCard imageCard : imageCards) {
+			// 해당 카드의 학습 로그 삭제
+			studyLogRepository.deleteByUser_UserIdAndCard_CardId(userId, cardId);
+		} else {
+			ImageCard imageCard = cardModuleService.getImageCardById(cardId);
 			imageCard.setCountLearn(0L);
 			imageCard.setDifficulty(0);
 			imageCard.setLearnLastTime(null);
 			imageCard.setLearnNextTime(null);
 			cardModuleService.saveImageCard(imageCard);
+
+			studyLogRepository.deleteByUser_UserIdAndImageCard_Id(userId, cardId);
 		}
 	}
 
@@ -154,7 +148,7 @@ public class CardComponentService {
 				.color(card.getStudyCardSet().getFolder().getColor())
 				.date(learnDate) // 학습 날짜 설정
 				.build();
-		}), imageCards.stream().map(imageCard -> {
+		}),imageCards.stream().map(imageCard -> {
 			String remainTime = calculateRemainingTime(imageCard.getLearnNextTime());
 			// KST 시간대로 날짜를 변환
 			String learnDate = imageCard.getLearnNextTime().toInstant().atZone(ZoneId.of("Asia/Seoul")).toLocalDate().toString();
@@ -171,7 +165,6 @@ public class CardComponentService {
 		})).collect(Collectors.toList());
 	}
 
-
 	private String calculateRemainingTime(Timestamp learnNextTime) {
 		// Timestamp를 LocalDateTime으로 변환하고 9시간을 더함
 		LocalDateTime learnTime = learnNextTime.toLocalDateTime().plusHours(9);
@@ -186,6 +179,7 @@ public class CardComponentService {
 
 		return String.format("%02d 시간 %02d 분", hours, minutes);
 	}
+
 	@Transactional
 	public String addImageCard(String token, MultipartFile image, CardRequest.addImageCard request) {
 		Long userId = findUserId(token);
@@ -347,36 +341,58 @@ public class CardComponentService {
 			.collect(Collectors.toList());
 	}
 
+	/**
+	 * 각 카드의 '다음 학습 시간'까지 적게 남은 순서로 전달해야한다.
+	 * update date 2025.10.25
+	 *
+	 * @name getCardLists
+	 * @param token
+	 * @param studyCardSetId
+	 * @param pageNumber
+	 * @return Page<Object>
+	 */
 	@Transactional
 	public Page<Object> getCardLists(String token, Long studyCardSetId, int pageNumber) {
 		Long userId = findUserId(token);
 		StudyCardSet studyCardSet = cardModuleService.getStudyCardSetById(studyCardSetId);
 
+		// 1) 일반 카드, 이미지 카드 모두 조회
 		List<Card> cards = cardModuleService.getCardsByStudyCardSet(studyCardSet);
 		List<ImageCard> imageCards = cardModuleService.getImageCardsByStudyCardSet(studyCardSet);
 
 		List<Object> allCards = new ArrayList<>();
 
-		// 난이도가 PASS(4)가 아닌 카드들 또는 countLearn이 0인 카드들만 필터링하여 추가
+		// 2) 난이도가 NONE(0)가 아닌 카드들 또는 countLearn이 0인 카드들만 필터링하여 추가
 		allCards.addAll(
 			cards.stream()
-				.filter(card -> card.getDifficulty() != Difficulty.PASS || card.getCountLearn() == 0)
+				.filter(card -> card.getDifficulty() != Difficulty.NONE || card.getCountLearn() == 0)
 				.collect(Collectors.toList())
 		);
 
 		allCards.addAll(
 			imageCards.stream()
-				.filter(imageCard -> imageCard.getDifficulty() != Difficulty.PASS || imageCard.getCountLearn() == 0)
+				.filter(imageCard -> imageCard.getDifficulty() != Difficulty.NONE || imageCard.getCountLearn() == 0)
 				.collect(Collectors.toList())
 		);
 
 		log.debug("모든 카드가 결합되고 필터링되었습니다: {}", allCards);
 
-		// 생성된 날짜를 기준으로 카드들을 정렬
+		// 3) 다음 학습 시간 기준으로 오름차순 정렬(남은 시간 적음 -> 많음)
 		allCards.sort((a, b) -> {
-			LocalDateTime createdA = (a instanceof Card) ? ((Card)a).getCreatedAt() : ((ImageCard)a).getCreatedAt();
-			LocalDateTime createdB = (b instanceof Card) ? ((Card)b).getCreatedAt() : ((ImageCard)b).getCreatedAt();
-			return createdA.compareTo(createdB);
+			LocalDateTime nextA = (a instanceof Card)
+					? Optional.ofNullable(((Card)a).getLearnNextTime())
+					.map(Timestamp::toLocalDateTime).orElse(LocalDateTime.MAX)
+					: Optional.ofNullable(((ImageCard)a).getLearnNextTime())
+					.map(Timestamp::toLocalDateTime).orElse(LocalDateTime.MAX);
+
+			LocalDateTime nextB = (b instanceof Card)
+					? Optional.ofNullable(((Card)b).getLearnNextTime())
+					.map(Timestamp::toLocalDateTime).orElse(LocalDateTime.MAX)
+					: Optional.ofNullable(((ImageCard)b).getLearnNextTime())
+					.map(Timestamp::toLocalDateTime).orElse(LocalDateTime.MAX);
+
+			// learnNextTime이 null이면 마지막
+			return nextA.compareTo(nextB);
 		});
 
 		int totalCards = allCards.size();
@@ -402,7 +418,6 @@ public class CardComponentService {
 			}
 		});
 	}
-
 
 	private CardResponse.getCardLists mapToWordCardResponse(Card card, StudyCardSet studyCardSet) {
 		CardResponse.getCardLists getCardLists;
@@ -472,6 +487,14 @@ public class CardComponentService {
 		return overlayDtos;
 	}
 
+	/**
+	 * 난이도 선택 시 다음 학습 시간, 난이도, 학습 횟수 상태 업데이트
+	 * update date 2025.10.25
+	 *
+	 * @name updateCardDifficulty
+	 * @param token
+	 * @param request
+	 */
 	public void updateCardDifficulty(String token, CardRequest.difficulty request) {
 		Long userId = findUserId(token);
 
@@ -479,7 +502,8 @@ public class CardComponentService {
 			throw new BadRequestException(NOT_EXIST_DIFFICULTY_CODE);
 		}
 
-		if (request.getCardType() == 0) {
+		// 카드 난이도 선택
+		if (request.getCardType() == 0 | request.getCardType() == 1 | request.getCardType() == 2) {
 			Card card = cardModuleService.getCardById(request.getCardId());
 			card.setDifficulty(request.getDifficulty());
 			cardModuleService.updateWordCardDifficulty(card);
@@ -489,6 +513,8 @@ public class CardComponentService {
 			cardModuleService.updateImageCardDifficulty(imageCard);
 		}
 
+		// 카드 개별로 학습한 후에 분석학습이 완료됨
+		completeStudy(token, request.getCardId(), request.getCardType());
 	}
 
 	public CardResponse.cardStudyGraph viewStudyCardGraph(String token, Long studyCardSetId) {
@@ -502,7 +528,7 @@ public class CardComponentService {
 		int easyCardsCount = 0;
 		int normalCardsCount = 0;
 		int hardCardsCount = 0;
-		int passCardsCount = 0;
+		int expertCardsCount = 0;
 
 		int totalCards = cards.size() + imageCards.size();
 
@@ -519,8 +545,8 @@ public class CardComponentService {
 				case HARD:
 					hardCardsCount++;
 					break;
-				case PASS:
-					passCardsCount++;
+				case EXPERT:
+					expertCardsCount++;
 					break;
 			}
 		}
@@ -538,8 +564,8 @@ public class CardComponentService {
 				case HARD:
 					hardCardsCount++;
 					break;
-				case PASS:
-					passCardsCount++;
+				case EXPERT:
+					expertCardsCount++;
 					break;
 			}
 		}
@@ -547,17 +573,17 @@ public class CardComponentService {
 		int easyCardsPercent = (easyCardsCount * 100) / totalCards;
 		int normalCardsPercent = (normalCardsCount * 100) / totalCards;
 		int hardCardsPercent = (hardCardsCount * 100) / totalCards;
-		int passCardsPercent = (passCardsCount * 100) / totalCards;
+		int expertCardsPercent = (expertCardsCount * 100) / totalCards;
 
 		return CardResponse.cardStudyGraph.builder()
 			.easyCardsNumber(easyCardsCount)
 			.normalCardsNumber(normalCardsCount)
 			.hardCardsNumber(hardCardsCount)
-			.passCardsNumber(passCardsCount)
+			.expertCardsNumber(expertCardsCount)
 			.easyCardsPercent(easyCardsPercent)
 			.normalCardsPercent(normalCardsPercent)
 			.hardCardsPercent(hardCardsPercent)
-			.passCardsPercent(passCardsPercent)
+			.expertCardsPercent(expertCardsPercent)
 			.build();
 	}
 
@@ -578,66 +604,98 @@ public class CardComponentService {
 			.build());
 	}
 
+	/**
+	 * 실제 난이도에 따른 다음 학습 시간 계산하여 DB 업데이트
+	 * update date 2025.10.25
+	 *
+	 * @name calculateNextStudyTime(Card)
+	 * @param card
+	 * @return Timestamp
+	 */
 	public Timestamp calculateNextStudyTime(Card card) {
 		LocalDateTime currentTime = LocalDateTime.now();
 		long baseInterval; // 기본 학습 간격 (분 단위로 계산)
 		double increaseFactor; // 증가 비율
-		long currentInterval; // 현재 학습 간격
-
-		// 난이도가 NONE인 경우, 학습을 하지 않으므로 null 반환
-		if (card.getDifficulty() == Difficulty.NONE) {
-			log.debug("Card {} has difficulty NONE, skipping calculation.", card.getCardId());
-			return null;
-		}
+		long nextInterval; // 계산된 다음 학습 간격 (분)
 
 		switch (card.getDifficulty()) {
-			case HARD: // 난이도 1
-				baseInterval = 30; // 30분 (0.5시간)
-				increaseFactor = 1;
+			case EXPERT: // 난이도 1
+				baseInterval = 0; // 즉시 학습
+				increaseFactor = 0.0;
 				break;
-			case NORMAL: // 난이도 2
-				baseInterval = 60; // 1시간
+			case HARD: // 난이도 2
+				baseInterval = 10; // 10분
+				increaseFactor = 1.0;
+				break;
+			case NORMAL: // 난이도 3
+				baseInterval = 30; // 30분
 				increaseFactor = 1.5;
 				break;
-			case EASY: // 난이도 3
-				baseInterval = 48 * 60; // 48시간 (2일)
-				increaseFactor = 2;
+			case EASY: // 난이도 4
+				baseInterval = 24 * 60; // 24시간 (1일)
+				increaseFactor = 2.0;
 				break;
 			default:
-				baseInterval = 60; // 기본적으로 1시간으로 설정
-				increaseFactor = 1;
+				baseInterval = 0; // 재학습 or 새로 만든 카드라면, 즉시학습으로 지정되어 baseInterval 0, increaseFactor = 0.0
+				increaseFactor = 0.0;
 		}
 
 		log.debug("Card {} - Difficulty: {}", card.getCardId(), card.getDifficulty());
 		log.debug("Card {} - Base Interval (minutes): {}", card.getCardId(), baseInterval);
 		log.debug("Card {} - Increase Factor: {}", card.getCardId(), increaseFactor);
 
+		// 1. 학습 간격 계산
 		if (card.getCountLearn() == 0) {
 			// 첫 학습인 경우
-			currentInterval = baseInterval;
-			card.setLearnLastTime(Timestamp.valueOf(currentTime)); // 학습 시점을 기록
-			card.setLearnNextTime(Timestamp.valueOf(currentTime.plusMinutes(currentInterval)));
+			nextInterval = baseInterval;
+			log.debug("Card {} - First Learning: using base interval {}", card.getCardId(), baseInterval);
 		} else {
-			// 이미 학습된 카드인 경우
-			long timeSinceLastLearn = card.getLearnLastTime().toLocalDateTime().until(currentTime, ChronoUnit.MINUTES);
-			log.debug("Card {} - Time Since Last Learn (minutes): {}", card.getCardId(), timeSinceLastLearn);
-			currentInterval = (long)(baseInterval * increaseFactor); // 기본 간격에 증가 비율을 적용
-			card.setLearnNextTime(Timestamp.valueOf(currentTime.plusMinutes(currentInterval)));
+			// 누적 간격 증가
+			long prevInterval = 0;
+			if (card.getLearnLastTime() != null && card.getLearnNextTime() != null) {
+				prevInterval = ChronoUnit.MINUTES.between(
+						card.getLearnLastTime().toLocalDateTime(),
+						card.getLearnNextTime().toLocalDateTime()
+				);
+			} else {
+				prevInterval = baseInterval; // 데이터가 없을 경우 fallback
+			}
+			nextInterval = (long) (prevInterval * increaseFactor);
+			log.debug("Card {} - Previous Interval: {} minutes", card.getCardId(), prevInterval);
 		}
 
-		card.setCountLearn(card.getCountLearn() + 1); // 학습 횟수를 증가시킴
+		// 2. EXPERT 즉시학습
+		LocalDateTime nextStudyTime;
+		if (card.getDifficulty() == Difficulty.EXPERT) {
+			nextStudyTime = currentTime;
+			nextInterval = 0;
+		} else {
+			nextStudyTime = currentTime.plusMinutes(nextInterval);
+		}
 
-		log.debug("Card {} - Current Interval (minutes): {}", card.getCardId(), currentInterval);
+		card.setLearnLastTime(Timestamp.valueOf(currentTime));
+		card.setLearnNextTime(Timestamp.valueOf(nextStudyTime));
+		card.setCountLearn(card.getCountLearn() + 1);
+
+		log.debug("Card {} - Current Interval (minutes): {}", card.getCardId(), nextInterval);
 		log.debug("Card {} - Next Study Time: {}", card.getCardId(), card.getLearnNextTime());
 
 		return card.getLearnNextTime();
 	}
 
+	/**
+	 * 실제 난이도에 따른 다음 학습 시간 계산하여 DB 업데이트
+	 * update date 2025.10.25
+	 *
+	 * @name calculateNextStudyTime(ImageCard)
+	 * @param imageCard
+	 * @return Timestamp
+	 */
 	public Timestamp calculateNextStudyTime(ImageCard imageCard) {
 		LocalDateTime currentTime = LocalDateTime.now();
 		long baseInterval; // 기본 학습 간격 (분 단위로 계산)
 		double increaseFactor; // 증가 비율
-		long currentInterval; // 현재 학습 간격
+		long nextInterval; // 다음 학습 간격
 
 		// 난이도가 NONE인 경우, 학습을 하지 않으므로 null 반환
 		if (imageCard.getDifficulty() == Difficulty.NONE) {
@@ -646,20 +704,24 @@ public class CardComponentService {
 		}
 
 		switch (imageCard.getDifficulty()) {
-			case HARD: // 난이도 1
-				baseInterval = 30; // 30분 (0.5시간)
+			case EXPERT: // 난이도 1
+				baseInterval = 0; // 즉시 학습
+				increaseFactor = 0;
+				break;
+			case HARD: // 난이도 2
+				baseInterval = 10; // 10분
 				increaseFactor = 1;
 				break;
-			case NORMAL: // 난이도 2
-				baseInterval = 60; // 1시간
+			case NORMAL: // 난이도 3
+				baseInterval = 30; // 30분
 				increaseFactor = 1.5;
 				break;
-			case EASY: // 난이도 3
-				baseInterval = 48 * 60; // 48시간 (2일)
+			case EASY: // 난이도 4
+				baseInterval = 24 * 60; // 24시간 (1일)
 				increaseFactor = 2;
 				break;
 			default:
-				baseInterval = 60; // 기본적으로 1시간으로 설정
+				baseInterval = 0; // 기본적으로 현재 난이도가 없는 경우(새로 만든 경우 or 학습횟수가 0으로 돌아간 경우)
 				increaseFactor = 1;
 		}
 
@@ -667,131 +729,45 @@ public class CardComponentService {
 		log.debug("ImageCard {} - Base Interval (minutes): {}", imageCard.getId(), baseInterval);
 		log.debug("ImageCard {} - Increase Factor: {}", imageCard.getId(), increaseFactor);
 
+		// 1. 학습 간격 계산
 		if (imageCard.getCountLearn() == 0) {
 			// 첫 학습인 경우
-			currentInterval = baseInterval;
-			imageCard.setLearnLastTime(Timestamp.valueOf(currentTime)); // 학습 시점을 기록
-			imageCard.setLearnNextTime(Timestamp.valueOf(currentTime.plusMinutes(currentInterval)));
+			nextInterval = baseInterval;
+			log.debug("ImageCard {} - First Learning: using base interval {}", imageCard.getId(), baseInterval);
 		} else {
-			// 이미 학습된 카드인 경우
-			long timeSinceLastLearn = imageCard.getLearnLastTime()
-				.toLocalDateTime()
-				.until(currentTime, ChronoUnit.MINUTES);
-			log.debug("ImageCard {} - Time Since Last Learn (minutes): {}", imageCard.getId(), timeSinceLastLearn);
-			currentInterval = (long)(baseInterval * increaseFactor); // 기본 간격에 증가 비율을 적용
-			imageCard.setLearnNextTime(Timestamp.valueOf(currentTime.plusMinutes(currentInterval)));
+			// 누적 간격 증가
+			long prevInterval = 0;
+			if (imageCard.getLearnLastTime() != null && imageCard.getLearnNextTime() != null) {
+				prevInterval = ChronoUnit.MINUTES.between(
+						imageCard.getLearnLastTime().toLocalDateTime(),
+						imageCard.getLearnNextTime().toLocalDateTime()
+				);
+			} else {
+				prevInterval = baseInterval; // 데이터가 없을 경우 fallback
+			}
+			nextInterval = (long) (prevInterval * increaseFactor);
+			log.debug("ImageCard {} - Previous Interval: {} minutes", imageCard.getId(), prevInterval);
 		}
 
-		imageCard.setCountLearn(imageCard.getCountLearn() + 1); // 학습 횟수를 증가시킴
+		// 2. EXPERT 즉시학습
+		LocalDateTime nextStudyTime;
+		if (imageCard.getDifficulty() == Difficulty.EXPERT) {
+			nextStudyTime = currentTime;
+			nextInterval = 0;
+		} else {
+			nextStudyTime = currentTime.plusMinutes(nextInterval);
+		}
 
-		log.debug("ImageCard {} - Current Interval (minutes): {}", imageCard.getId(), currentInterval);
+		imageCard.setLearnLastTime(Timestamp.valueOf(currentTime));
+		imageCard.setLearnNextTime(Timestamp.valueOf(nextStudyTime));
+		imageCard.setCountLearn(imageCard.getCountLearn() + 1);
+
+		log.debug("ImageCard {} - Current Interval (minutes): {}", imageCard.getId(), nextInterval);
 		log.debug("ImageCard {} - Next Study Time: {}", imageCard.getId(), imageCard.getLearnNextTime());
 
 		return imageCard.getLearnNextTime();
 	}
 
-	@Transactional
-	public void completeStudy(String token, Long studyCardSetId) {
-		Long userId = findUserId(token);
-
-		StudyCardSet studyCardSet = cardModuleService.getStudyCardSetById(studyCardSetId);
-
-		List<Card> cards = cardModuleService.getCardsByStudyCardSet(studyCardSet);
-		List<ImageCard> imageCards = cardModuleService.getImageCardsByStudyCardSet(studyCardSet);
-
-		int remainingCardsCount = cards.size() + imageCards.size();
-
-		int compltedCount = 0;
-		for (Card card : cards) {
-			if (card.getDifficulty() == Difficulty.PASS) {
-				compltedCount++;
-			}
-		}
-		for (ImageCard imageCard : imageCards) {
-			if (imageCard.getDifficulty() == Difficulty.PASS) {
-				compltedCount++;
-			}
-		}
-
-		StudyLog studyLog = StudyLog.builder()
-			.studyDate(LocalDateTime.now())
-			.studyCardNumber(remainingCardsCount)
-			.studyCardSet(studyCardSet)
-			.user(studyCardSet.getUser())
-			.build();
-
-		studyLogRepository.save(studyLog);
-
-		// 연간학습 통계 기록을 남기기 위한 기록 append-only 데이터
-		StudyHistory studyHistory = StudyHistory.builder()
-				.studyDate(LocalDateTime.now())
-				.studiedCardCount(remainingCardsCount)
-				.studyCardSet(studyCardSet)
-				.user(studyCardSet.getUser())
-				.build();
-
-		studyHistoryRepository.save(studyHistory);
-
-		Timestamp earliestNextStudyTime = null;
-		boolean allCardsPassed = true;
-
-		for (Card card : cards) {
-			if (card.getDifficulty() == Difficulty.PASS) {
-				continue;
-			}
-			System.out.println("card = " + card.getCardId());
-			allCardsPassed = false;
-
-			Timestamp nextStudyTime = calculateNextStudyTime(card);
-			if (nextStudyTime != null) {  // null 체크 추가
-				card.setLearnNextTime(nextStudyTime);
-				card.setLearnLastTime(Timestamp.valueOf(LocalDateTime.now()));
-				cardModuleService.saveCard(card);
-
-				if (earliestNextStudyTime == null || nextStudyTime.before(earliestNextStudyTime)) {
-					earliestNextStudyTime = nextStudyTime;
-				}
-			}
-		}
-
-		for (ImageCard imageCard : imageCards) {
-			if (imageCard.getDifficulty() == Difficulty.PASS) {
-				continue;
-			}
-			allCardsPassed = false;
-			System.out.println("imageCard = " + imageCard.getId());
-			Timestamp nextStudyTime = calculateNextStudyTime(imageCard);
-
-			if (nextStudyTime != null) {  // null 체크 추가
-				imageCard.setLearnNextTime(nextStudyTime);
-				imageCard.setLearnLastTime(Timestamp.valueOf(LocalDateTime.now()));
-				cardModuleService.saveImageCard(imageCard);
-
-				if (earliestNextStudyTime == null || nextStudyTime.before(earliestNextStudyTime)) {
-					earliestNextStudyTime = nextStudyTime;
-				}
-			}
-
-		}
-
-		studyCardSet.setRecentStudyDate(LocalDateTime.now());
-
-		studyCardSet.setStudyStatus(StudyStatus.IN_PROGRESS);
-
-		if (allCardsPassed) {
-			studyCardSet.setStudyStatus(StudyStatus.PERMANENT_STORAGE);
-		}
-
-		if (earliestNextStudyTime != null) {
-			studyCardSet.setNextStudyDate(earliestNextStudyTime.toLocalDateTime());
-		}
-
-		// 홈 화면 진도율 관련 - 카드셋 완료카드, 학습 예정 카드 업데이트
-		studyCardSet.setCardsDueForStudy(remainingCardsCount);
-		studyCardSet.setCompletedCardsCount(compltedCount);
-
-		studyCardSetRepository.save(studyCardSet);
-	}
 
 	public void addCardToNote(Card card, Note note) {
 		Card newCard = Card.builder()
@@ -802,6 +778,81 @@ public class CardComponentService {
 			.build();
 
 		cardModuleService.saveCard(newCard);
+	}
+
+	/**
+	 * 난이도 전달 시 분석학습 전달 내부 메서드(다음 학습 시간 저장, 학습 횟수 증가)
+	 * update date 2025.10.25
+	 *
+	 * @name completeStudy
+	 * @param token
+	 * @param cardId
+	 * @param cardType
+	 */
+	// NOTE : findByUserAndCard, findByUserAndImageCard 유의
+	private void completeStudy(String token, Long cardId, int cardType) {
+		Long userId = findUserId(token);
+		int difficulty = cardModuleService.getCardDifficulty(cardId, cardType);
+		LocalDateTime now = LocalDateTime.now();
+
+		if(cardType == 0) {
+			Card card = cardModuleService.getCardById(cardId);
+			card.setDifficulty(difficulty);
+			card.setCountLearn(card.getCountLearn() == null ? 1 : card.getCountLearn() + 1);
+			card.setLearnLastTime(Timestamp.valueOf(now));
+
+			Timestamp nextStudyTime = calculateNextStudyTime(card);
+			card.setLearnNextTime(nextStudyTime);
+			cardModuleService.saveCard(card);
+
+			// StudyLog
+			studyLogRepository.save(StudyLog.builder()
+					.user(card.getStudyCardSet().getUser())
+					.card(card)
+					.difficulty(difficulty)
+					.studyDate(now)
+					.build());
+
+			// StudyHistory 갱신
+			StudyHistory history = studyHistoryRepository.findByUserAndCard(card.getStudyCardSet().getUser(), card)
+					.orElse(StudyHistory.builder()
+							.user(card.getStudyCardSet().getUser())
+							.card(card)
+							.totalLearnCount(0)
+							.build());
+
+			history.setTotalLearnCount(history.getTotalLearnCount() + 1);
+			history.setLastLearnedAt(now);
+			studyHistoryRepository.save(history);
+		} else {
+			ImageCard imageCard = cardModuleService.getImageCardById(cardId);
+			imageCard.setDifficulty(difficulty);
+			imageCard.setCountLearn(imageCard.getCountLearn() == null ? 1 : imageCard.getCountLearn() + 1);
+			imageCard.setLearnLastTime(Timestamp.valueOf(now));
+
+			Timestamp nextStudyTime = calculateNextStudyTime(imageCard);
+			imageCard.setLearnNextTime(nextStudyTime);
+			cardModuleService.saveImageCard(imageCard);
+
+			studyLogRepository.save(StudyLog.builder()
+					.user(imageCard.getStudyCardSet().getUser())
+					.imageCard(imageCard)
+					.difficulty(difficulty)
+					.studyDate(now)
+					.build());
+
+			StudyHistory history = studyHistoryRepository.findByUserAndImageCard(
+							imageCard.getStudyCardSet().getUser(), imageCard)
+					.orElse(StudyHistory.builder()
+							.user(imageCard.getStudyCardSet().getUser())
+							.imageCard(imageCard)
+							.totalLearnCount(0)
+							.build());
+
+			history.setTotalLearnCount(history.getTotalLearnCount() + 1);
+			history.setLastLearnedAt(now);
+			studyHistoryRepository.save(history);
+		}
 	}
 
 	public CardResponse.weeklyResultDTO getCardByWeek(String token) {
@@ -877,6 +928,87 @@ public class CardComponentService {
 				.collect(Collectors.toList());
 	}
 
+
+	/**
+	 * 예측 학습 시간 반환
+	 * update date 2025.10.25
+	 *
+	 * @name getExpectedNextStudyTimes
+	 * @param cardId
+	 * @param cardType
+	 * @return Map<String, LocalDateTime>
+	 */
+	// NOTE : 난이도 선택에서 학습 시간 계산하여 반환
+	public Map<String, LocalDateTime> getExpectedNextStudyTimes(Long cardId, int cardType) {
+		Map<String, LocalDateTime> result = new LinkedHashMap<>();
+
+		int countLearn = cardModuleService.getCardCountLearn(cardId, cardType);
+		LocalDateTime currentTime = LocalDateTime.now();
+
+		for (Difficulty diff : Difficulty.values()) {
+			if (diff == Difficulty.NONE) continue;
+
+			LocalDateTime expectedTime = calculateExpectedNextStudyTime(diff, countLearn, currentTime);
+			result.put(diff.name(), expectedTime);
+		}
+
+		return result;
+	}
+
+	/**
+	 * 학습 난이도별 다음 학습 시간 계산 (예측용)
+	 * update date 2025.10.25
+	 *
+	 * @name calculateExpectedNextStudyTime
+	 * @param difficulty 난이도
+	 * @param countLearn 현재 학습 횟수
+	 * @param currentTime 현재 시각 (기준 시각)
+	 * @return 예측되는 다음 학습 시각(LocalDateTime)
+	 */
+	private LocalDateTime calculateExpectedNextStudyTime(Difficulty difficulty, int countLearn, LocalDateTime currentTime) {
+		long baseInterval;
+		double increaseFactor;
+
+		switch (difficulty) {
+			case EXPERT: // 난이도 1
+				baseInterval = 0; // 즉시 학습
+				increaseFactor = 0.0;
+				break;
+			case HARD: // 난이도 2
+				baseInterval = 10; // 10분
+				increaseFactor = 1.0;
+				break;
+			case NORMAL: // 난이도 3
+				baseInterval = 30; // 30분
+				increaseFactor = 1.5;
+				break;
+			case EASY: // 난이도 4
+				baseInterval = 24 * 60; // 24시간 (1일)
+				increaseFactor = 2.0;
+				break;
+			default:
+				return null;
+		}
+
+
+		// 학습 횟수에 따른 누적 간격 계산
+		// countLearn = 0 → 첫 학습 = baseInterval
+		// countLearn ≥ 1 → baseInterval * (increaseFactor ^ countLearn)
+		double totalMinutes = baseInterval * Math.pow(increaseFactor, countLearn > 0 ? countLearn : 1);
+
+		// EXPERT의 경우 즉시 복습 처리
+		if (difficulty == Difficulty.EXPERT) {
+			return currentTime; // 즉시 복습 (지금)
+		}
+
+		// 계산된 간격을 현재 시각에 더함
+		LocalDateTime nextTime = currentTime.plusMinutes((long) totalMinutes);
+
+		// 한국 시간대 명시 (서버가 UTC일 수 있으므로)
+		return nextTime.atZone(ZoneId.systemDefault())
+				.withZoneSameInstant(ZoneId.of("Asia/Seoul"))
+				.toLocalDateTime();
+	}
 
 	public CardResponse.AnnualResultDTO getCardByYear(String token, int year) {
 		Long userId = findUserId(token);
