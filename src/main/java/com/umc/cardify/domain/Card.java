@@ -1,21 +1,16 @@
 package com.umc.cardify.domain;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
 
+import jakarta.persistence.*;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
 
 import com.umc.cardify.domain.enums.CardType;
 import com.umc.cardify.domain.enums.Difficulty;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -65,6 +60,12 @@ public class Card extends BaseEntity {
 
 	@Column(name = "type", nullable = false)
 	private int type;  // 카드 타입
+
+	@OneToMany(mappedBy = "card", cascade = CascadeType.ALL)
+	private List<StudyLog> studyLogs = new ArrayList<>();
+
+	@OneToMany(mappedBy = "card", cascade = CascadeType.ALL)
+	private List<StudyHistory> studyHistories = new ArrayList<>();
 
 	public void setCountLearn(Long countLearn) {
 		this.countLearn = countLearn;

@@ -35,9 +35,20 @@ public class StudyLog {
 	@JoinColumn(name = "user_id")
 	private User user;
 
-	@Column(nullable = false)
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "card_id", nullable = true)
+	private Card card;
+
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "image_card_id", nullable = true)
+	private ImageCard imageCard;
+
+	@Column(name = "study_date", nullable = false)
 	private LocalDateTime studyDate;
 
-	@Column(nullable = false)
+	@Column(name = "difficulty", nullable = false)
+	private Integer difficulty; // 난이도 선택값 (1~4)
+
+	@Column(name = "study_card_number", nullable = false)
 	private int studyCardNumber;
 }

@@ -52,6 +52,12 @@ public class ImageCard extends BaseEntity {
 
 	private Timestamp learnLastTime;
 
+	@OneToMany(mappedBy = "imageCard", cascade = CascadeType.ALL)
+	private List<StudyLog> studyLogs = new  ArrayList<>();
+
+	@OneToMany(mappedBy = "imageCard", cascade = CascadeType.ALL)
+	private List<StudyHistory> studyHistories = new  ArrayList<>();
+
 	@OneToMany(mappedBy = "imageCard", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
 	private List<Overlay> overlays = new ArrayList<>();
 
