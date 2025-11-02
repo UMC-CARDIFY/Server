@@ -391,8 +391,20 @@ public class CardComponentService {
 					: Optional.ofNullable(((ImageCard)b).getLearnNextTime())
 					.map(Timestamp::toLocalDateTime).orElse(LocalDateTime.MAX);
 
-			// learnNextTime이 null이면 마지막
-			return nextA.compareTo(nextB);
+			int compareTime = nextA.compareTo(nextB);
+			if (compareTime != 0) {
+				return compareTime; // learnNextTime 기준 우선 정렬
+			}
+
+			// ⚙️ learnNextTime이 동일하면 cardId 기준으로 정렬
+			Long idA = (a instanceof Card)
+					? ((Card)a).getCardId()
+					: ((ImageCard)a).getId();
+			Long idB = (b instanceof Card)
+					? ((Card)b).getCardId()
+					: ((ImageCard)b).getId();
+
+			return idA.compareTo(idB);
 		});
 
 		int totalCards = allCards.size();
@@ -495,6 +507,7 @@ public class CardComponentService {
 	 * @param token
 	 * @param request
 	 */
+	@Transactional
 	public void updateCardDifficulty(String token, CardRequest.difficulty request) {
 		Long userId = findUserId(token);
 
@@ -503,13 +516,16 @@ public class CardComponentService {
 		}
 
 		// 카드 난이도 선택
-		if (request.getCardType() == 0 | request.getCardType() == 1 | request.getCardType() == 2) {
+		if (request.getCardType() == 0 || request.getCardType() == 1 || request.getCardType() == 2) {
 			Card card = cardModuleService.getCardById(request.getCardId());
 			card.setDifficulty(request.getDifficulty());
+
+			Timestamp next = calculateNextStudyTime(card);
 			cardModuleService.updateWordCardDifficulty(card);
 		} else {
 			ImageCard imageCard = cardModuleService.getImageCardById(request.getCardId());
 			imageCard.setDifficulty(request.getDifficulty());
+			Timestamp next = calculateNextStudyTime(imageCard);
 			cardModuleService.updateImageCardDifficulty(imageCard);
 		}
 
@@ -645,23 +661,31 @@ public class CardComponentService {
 		log.debug("Card {} - Increase Factor: {}", card.getCardId(), increaseFactor);
 
 		// 1. 학습 간격 계산
-		if (card.getCountLearn() == 0) {
+		if (card.getCountLearn() == 0L) {
 			// 첫 학습인 경우
 			nextInterval = baseInterval;
 			log.debug("Card {} - First Learning: using base interval {}", card.getCardId(), baseInterval);
 		} else {
 			// 누적 간격 증가
-			long prevInterval = 0;
+			long prevInterval = baseInterval;
 			if (card.getLearnLastTime() != null && card.getLearnNextTime() != null) {
-				prevInterval = ChronoUnit.MINUTES.between(
-						card.getLearnLastTime().toLocalDateTime(),
-						card.getLearnNextTime().toLocalDateTime()
-				);
-			} else {
-				prevInterval = baseInterval; // 데이터가 없을 경우 fallback
+				try {
+					prevInterval = ChronoUnit.MINUTES.between(
+							card.getLearnLastTime().toLocalDateTime(),
+							card.getLearnNextTime().toLocalDateTime()
+					);
+					if (prevInterval <= 0) {
+						// 만약 prevInterval이 0 이하라면 baseInterval로 보정
+						prevInterval = baseInterval > 0 ? baseInterval : 1;
+					}
+				} catch (Exception e) {
+					log.warn("prevInterval 계산 실패, fallback to baseInterval", e);
+					prevInterval = baseInterval > 0 ? baseInterval : 1;
+				}
 			}
-			nextInterval = (long) (prevInterval * increaseFactor);
-			log.debug("Card {} - Previous Interval: {} minutes", card.getCardId(), prevInterval);
+			nextInterval = (long) Math.round(prevInterval * increaseFactor);
+			log.debug("countLearn>0 -> prevInterval={} * increaseFactor={} => nextInterval={}",
+					prevInterval, increaseFactor, nextInterval);
 		}
 
 		// 2. EXPERT 즉시학습
@@ -738,15 +762,23 @@ public class CardComponentService {
 			// 누적 간격 증가
 			long prevInterval = 0;
 			if (imageCard.getLearnLastTime() != null && imageCard.getLearnNextTime() != null) {
-				prevInterval = ChronoUnit.MINUTES.between(
-						imageCard.getLearnLastTime().toLocalDateTime(),
-						imageCard.getLearnNextTime().toLocalDateTime()
-				);
-			} else {
-				prevInterval = baseInterval; // 데이터가 없을 경우 fallback
+				try {
+					prevInterval = ChronoUnit.MINUTES.between(
+							imageCard.getLearnLastTime().toLocalDateTime(),
+							imageCard.getLearnNextTime().toLocalDateTime()
+					);
+					if (prevInterval <= 0) {
+						// 만약 prevInterval이 0 이하라면 baseInterval로 보정
+						prevInterval = baseInterval > 0 ? baseInterval : 1;
+					}
+				} catch (Exception e) {
+					log.warn("prevInterval 계산 실패, fallback to baseInterval", e);
+					prevInterval = baseInterval > 0 ? baseInterval : 1;
+				}
 			}
-			nextInterval = (long) (prevInterval * increaseFactor);
-			log.debug("ImageCard {} - Previous Interval: {} minutes", imageCard.getId(), prevInterval);
+			nextInterval = (long) Math.round(prevInterval * increaseFactor);
+			log.debug("countLearn>0 -> prevInterval={} * increaseFactor={} => nextInterval={}",
+					prevInterval, increaseFactor, nextInterval);
 		}
 
 		// 2. EXPERT 즉시학습
@@ -793,7 +825,7 @@ public class CardComponentService {
 	private void completeStudy(String token, Long cardId, int cardType) {
 		Long userId = findUserId(token);
 		int difficulty = cardModuleService.getCardDifficulty(cardId, cardType);
-		LocalDateTime now = LocalDateTime.now();
+		LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
 
 		if(cardType == 0) {
 			Card card = cardModuleService.getCardById(cardId);
@@ -818,12 +850,29 @@ public class CardComponentService {
 					.orElse(StudyHistory.builder()
 							.user(card.getStudyCardSet().getUser())
 							.card(card)
+							.studyDate(LocalDateTime.now())
 							.totalLearnCount(0)
 							.build());
 
 			history.setTotalLearnCount(history.getTotalLearnCount() + 1);
-			history.setLastLearnedAt(now);
 			studyHistoryRepository.save(history);
+
+			// StudyCardSet 갱신
+			StudyCardSet scs = card.getStudyCardSet();
+			if (scs != null) {
+				// recentStudyDate : 마지막 학습시각 (card.learnLastTime)
+				scs.setRecentStudyDate(card.getLearnLastTime() == null ? null :
+						card.getLearnLastTime().toLocalDateTime());
+				// nextStudyDate : 가장 최근에 학습한 카드의 nextStudyTime (또는 전체 세트의 다음 예정시간을 계산하려면 별도 로직 필요)
+				scs.setNextStudyDate(card.getLearnNextTime() == null ? null :
+						card.getLearnNextTime().toLocalDateTime());
+				// completedCardsCount 증가 (null 안전 처리)
+				Integer prev = scs.getCompletedCardsCount();
+				scs.setCompletedCardsCount(prev == null ? 1 : prev + 1);
+
+				studyCardSetRepository.save(scs); // 반드시 저장
+			}
+
 		} else {
 			ImageCard imageCard = cardModuleService.getImageCardById(cardId);
 			imageCard.setDifficulty(difficulty);
@@ -846,12 +895,25 @@ public class CardComponentService {
 					.orElse(StudyHistory.builder()
 							.user(imageCard.getStudyCardSet().getUser())
 							.imageCard(imageCard)
+							.studyDate(LocalDateTime.now())
 							.totalLearnCount(0)
 							.build());
 
 			history.setTotalLearnCount(history.getTotalLearnCount() + 1);
-			history.setLastLearnedAt(now);
 			studyHistoryRepository.save(history);
+
+			// StudyCardSet 갱신
+			StudyCardSet scs = imageCard.getStudyCardSet();
+			if (scs != null) {
+				scs.setRecentStudyDate(imageCard.getLearnLastTime() == null ? null :
+						imageCard.getLearnLastTime().toLocalDateTime());
+				scs.setNextStudyDate(imageCard.getLearnNextTime() == null ? null :
+						imageCard.getLearnNextTime().toLocalDateTime());
+				Integer prev = scs.getCompletedCardsCount();
+				scs.setCompletedCardsCount(prev == null ? 1 : prev + 1);
+
+				studyCardSetRepository.save(scs);
+			}
 		}
 	}
 
@@ -1010,6 +1072,15 @@ public class CardComponentService {
 				.toLocalDateTime();
 	}
 
+	/**
+	 * 365일치 DTO 리스트 반환
+	 * update date 2025.11.2
+	 *
+	 * @name getCardByYear
+	 * @param token
+	 * @param year
+	 * @return CardResponse.AnnualResultDTO
+	 */
 	public CardResponse.AnnualResultDTO getCardByYear(String token, int year) {
 		Long userId = findUserId(token);
 

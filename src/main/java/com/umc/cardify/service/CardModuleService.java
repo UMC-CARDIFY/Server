@@ -3,6 +3,7 @@ package com.umc.cardify.service;
 import static com.umc.cardify.config.exception.ErrorResponseStatus.*;
 
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Queue;
 
@@ -115,12 +116,14 @@ public class CardModuleService {
 		saveOverlays(node.getAttrs().getOverlays(), savedImageCard);
 	}
 
+	// NOTE : 이미지 카드 최초 생성 시 다음 학습시간은 즉시 학습으로 지정
 	private ImageCard buildImageCard(String imgUrl, Attr attrs) {
 		return ImageCard.builder()
 			.imageUrl(imgUrl)
 			.height(attrs.getBaseImageHeight())
 			.width(attrs.getBaseImageWidth())
 			.countLearn(0L)
+			.learnNextTime(Timestamp.valueOf(LocalDateTime.now())) // 즉시 학습
 			.build();
 	}
 
@@ -194,6 +197,7 @@ public class CardModuleService {
 		}
 	}
 
+	// NOTE : 카드 생성 시, 즉시 '카드 학습 시간' 생성
 	public Card createCard(Note note, String contents, String questionFront, String questionBack, String answer, CardType cardType) {
 		return Card.builder()
 			.note(note)
@@ -202,6 +206,7 @@ public class CardModuleService {
 			.contentsBack(questionBack)
 			.answer(answer)
 			.countLearn(0L)
+			.learnNextTime(Timestamp.valueOf(LocalDateTime.now())) // 생성된 시간으로 다음 학습 시간이 생성됨
 			.type(cardType.getValue())
 			.build();
 	}
