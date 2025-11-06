@@ -699,7 +699,6 @@ public class CardComponentService {
 
 		card.setLearnLastTime(Timestamp.valueOf(currentTime));
 		card.setLearnNextTime(Timestamp.valueOf(nextStudyTime));
-		card.setCountLearn(card.getCountLearn() + 1);
 
 		log.debug("Card {} - Current Interval (minutes): {}", card.getCardId(), nextInterval);
 		log.debug("Card {} - Next Study Time: {}", card.getCardId(), card.getLearnNextTime());
@@ -831,10 +830,9 @@ public class CardComponentService {
 			Card card = cardModuleService.getCardById(cardId);
 			card.setDifficulty(difficulty);
 			card.setCountLearn(card.getCountLearn() == null ? 1 : card.getCountLearn() + 1);
-			card.setLearnLastTime(Timestamp.valueOf(now));
 
 			Timestamp nextStudyTime = calculateNextStudyTime(card);
-			card.setLearnNextTime(nextStudyTime);
+			//card.setLearnNextTime(nextStudyTime);
 			cardModuleService.saveCard(card);
 
 			// StudyLog
@@ -877,10 +875,10 @@ public class CardComponentService {
 			ImageCard imageCard = cardModuleService.getImageCardById(cardId);
 			imageCard.setDifficulty(difficulty);
 			imageCard.setCountLearn(imageCard.getCountLearn() == null ? 1 : imageCard.getCountLearn() + 1);
-			imageCard.setLearnLastTime(Timestamp.valueOf(now));
+			//imageCard.setLearnLastTime(Timestamp.valueOf(now));
 
 			Timestamp nextStudyTime = calculateNextStudyTime(imageCard);
-			imageCard.setLearnNextTime(nextStudyTime);
+			//imageCard.setLearnNextTime(nextStudyTime);
 			cardModuleService.saveImageCard(imageCard);
 
 			studyLogRepository.save(StudyLog.builder()

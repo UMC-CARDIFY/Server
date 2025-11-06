@@ -34,14 +34,14 @@ public class StudyHistory extends BaseEntity{
     @Column(name = "total_learn_count", nullable = false)
     private Integer totalLearnCount;
 
-    @Column(name = "last_learned_at", nullable = false)
-    private LocalDateTime lastLearnedAt;
+//    @Column(name = "last_learned_at", nullable = false)
+//    private LocalDateTime lastLearnedAt;
 
     public void setTotalLearnCount(Integer totalLearnCount) {
         this.totalLearnCount = totalLearnCount;
     }
 
-    public void setLastLearnedAt(LocalDateTime lastLearnedAt) {
-        this.lastLearnedAt = lastLearnedAt;
-    }
+//    public void setLastLearnedAt(LocalDateTime lastLearnedAt) {
+//        this.lastLearnedAt = lastLearnedAt;
+//    }
 }
