@@ -127,16 +127,6 @@ public class CardController {
 //		return ResponseEntity.ok().build();
 //	}
 
-	@GetMapping("{studyCardSetId}/study-graph")
-	@Operation(summary = "학습 통계 그래프 조회")
-	public ResponseEntity<CardResponse.cardStudyGraph> viewStudyCardGraph(
-			@RequestHeader("Authorization") String token,
-			@PathVariable Long studyCardSetId) {
-
-		CardResponse.cardStudyGraph cardStudyGraph = cardComponentService.viewStudyCardGraph(token, studyCardSetId);
-		return ResponseEntity.ok(cardStudyGraph);
-	}
-
 
 	@GetMapping("{studyCardSetId}/study-log")
 	@Operation(summary = "분석 학습 기록 조회")
@@ -148,6 +138,7 @@ public class CardController {
 	}
 
 	// NOTE : 2025.7월 기준 기능입니다. - '학습 추천' 탭에서 "지금 학습하면 좋은 카드 리스트" 반환
+
 	@PostMapping("/study-suggestion")
 	@Operation(summary = "분석 학습 제안")
 	public ResponseEntity<List<CardResponse.getStudySuggestion>> suggestionAnalyzeStudy(
@@ -158,7 +149,6 @@ public class CardController {
 		List<CardResponse.getStudySuggestion> suggestions = cardComponentService.suggestionAnalyzeStudy(token, date);
 		return ResponseEntity.ok(suggestions);
 	}
-
 	@DeleteMapping("{studyCardSetId}")
 	@Operation(summary = "학습 카드셋 삭제")
 	public ResponseEntity<?> deleteStudyCardSet(
@@ -170,6 +160,7 @@ public class CardController {
 	}
 
 	// NOTE : 2025.10.21 수정 (parameter studyCardId -> cardId로 변경)
+
 	@GetMapping("{cardId}/re-study")
 	@Operation(summary = "재학습")
 	public ResponseEntity<?> reStudy(
@@ -180,17 +171,25 @@ public class CardController {
 
 		return ResponseEntity.ok().build();
 	}
-
 	@GetMapping("/weekly-count")
-	@Operation(summary = "주간 학습 결과 API", description = "사용자 조회 성공 시, 해당 주의 총 학습 카드 개수와 날짜별 학습 카드 개수 반환")
+	@Operation(summary = "학습 대시보드 - 주간 학습 결과 API", description = "사용자 조회 성공 시, 해당 주의 총 학습 카드 개수와 날짜별 학습 카드 개수 반환 | 월요일(1), 화요일(2) ... 일요일(7)")
 	public ResponseEntity<CardResponse.weeklyResultDTO> getCardByWeek(@RequestHeader("Authorization") String token) {
 
 		CardResponse.weeklyResultDTO weekCard = cardComponentService.getCardByWeek(token);
 		return ResponseEntity.ok(weekCard);
 	}
 
+	@GetMapping("{studyCardSetId}/study-graph")
+	@Operation(summary = "학습 대시보드 - 주간 학습 난이도 통계 그래프", description = "이번 주 학습 카드에 대한 난이도 통계 반환(가장 높은 값은 프론트에서 처리)")
+	public ResponseEntity<CardResponse.cardStudyGraph> viewStudyCardGraph(
+			@RequestHeader("Authorization") String token) {
+
+		CardResponse.cardStudyGraph cardStudyGraph = cardComponentService.viewStudyCardGraph(token);
+		return ResponseEntity.ok(cardStudyGraph);
+	}
+
 	@GetMapping("/contributions/{annual}")
-	@Operation(summary = "연간 분석 학습 통계 API", description = "현재 연동 입력 후, 사용자의 전체 학습 개수와 1~4단계의 color 반환")
+	@Operation(summary = "학습 대시보드 - 연간 분석 학습 통계 API", description = "현재 연동 입력 후, 사용자의 전체 학습 개수와 1~4단계의 color 반환")
 	public ResponseEntity<CardResponse.AnnualResultDTO> getContributionsByAnnual(
 			@RequestHeader("Authorization") String token,
 			@PathVariable Integer annual) {
@@ -200,22 +199,24 @@ public class CardController {
 	}
 
 
-	@GetMapping("/study-suggestion/{years}/{month}")
-	@Operation(summary = "이번 달 학습 예정 일자")
-	public ResponseEntity<?> getExpectedStudyDate(@RequestHeader("Authorization") String token, @PathVariable int years, @PathVariable int month){
-
-		CardResponse.getExpectedStudyDateDTO studyDateDTO = cardComponentService.getExpectedStudyDate(token, years, month);
-
-		return ResponseEntity.ok(studyDateDTO);
-	}
-
 	@GetMapping("/quick-learning")
-	@Operation(summary = "빠른 학습 탭 - 플래시 카드 세트 조회",
-			description = "사용자에게 학습 시간 도달한 카드가 있는 StudyCardSet을 최대 3개 반환")
+	@Operation(summary = "학습 대시보드 - 플래시 카드 세트 조회", description = "사용자에게 학습 시간 도달한 카드가 있는 StudyCardSet을 최대 3개 반환")
 	public ResponseEntity<List<CardResponse.getExpectedCardSetListDTO>> getQuickLearningStudySets(
 			@RequestHeader("Authorization") String token) {
 
 		List<CardResponse.getExpectedCardSetListDTO> sets = cardComponentService.getStudyCardSetsForQuickLearning(token);
 		return ResponseEntity.ok(sets);
+	}
+
+	// NOTE : 홈 화면에 위치하는 기능
+	@GetMapping("/study-suggestion/{years}/{month}")
+	@Operation(summary = "이번 달 학습 예정 일자(홈 화면에 위치하는 기능)", description = "연도, 월을 int로 입력하면 학습 예정 날짜 반환")
+	public ResponseEntity<?> getExpectedStudyDate(
+			@RequestHeader("Authorization") String token,
+			@PathVariable int years,
+			@PathVariable int month){
+
+		CardResponse.getExpectedStudyDateDTO studyDateDTO = cardComponentService.getExpectedStudyDate(token, years, month);
+		return ResponseEntity.ok(studyDateDTO);
 	}
 }

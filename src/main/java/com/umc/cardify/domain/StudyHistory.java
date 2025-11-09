@@ -31,6 +31,9 @@ public class StudyHistory extends BaseEntity{
     @Column(name = "study_date", nullable = false)
     private LocalDateTime studyDate;
 
+    @Column(name = "difficulty", nullable = false)
+    private Integer difficulty; // 난이도 선택값 (1~4)
+
     @Column(name = "total_learn_count", nullable = false)
     private Integer totalLearnCount;
 

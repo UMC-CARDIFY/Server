@@ -533,76 +533,6 @@ public class CardComponentService {
 		completeStudy(token, request.getCardId(), request.getCardType());
 	}
 
-	public CardResponse.cardStudyGraph viewStudyCardGraph(String token, Long studyCardSetId) {
-		Long userId = findUserId(token);
-
-		StudyCardSet studyCardSet = cardModuleService.getStudyCardSetById(studyCardSetId);
-
-		List<Card> cards = cardModuleService.getCardsByStudyCardSet(studyCardSet);
-		List<ImageCard> imageCards = cardModuleService.getImageCardsByStudyCardSet(studyCardSet);
-
-		int easyCardsCount = 0;
-		int normalCardsCount = 0;
-		int hardCardsCount = 0;
-		int expertCardsCount = 0;
-
-		int totalCards = cards.size() + imageCards.size();
-
-		for (Card card : cards) {
-			switch (card.getDifficulty()) {
-				case NONE:
-					continue;
-				case EASY:
-					easyCardsCount++;
-					break;
-				case NORMAL:
-					normalCardsCount++;
-					break;
-				case HARD:
-					hardCardsCount++;
-					break;
-				case EXPERT:
-					expertCardsCount++;
-					break;
-			}
-		}
-
-		for (ImageCard card : imageCards) {
-			switch (card.getDifficulty()) {
-				case NONE:
-					continue;
-				case EASY:
-					easyCardsCount++;
-					break;
-				case NORMAL:
-					normalCardsCount++;
-					break;
-				case HARD:
-					hardCardsCount++;
-					break;
-				case EXPERT:
-					expertCardsCount++;
-					break;
-			}
-		}
-
-		int easyCardsPercent = (easyCardsCount * 100) / totalCards;
-		int normalCardsPercent = (normalCardsCount * 100) / totalCards;
-		int hardCardsPercent = (hardCardsCount * 100) / totalCards;
-		int expertCardsPercent = (expertCardsCount * 100) / totalCards;
-
-		return CardResponse.cardStudyGraph.builder()
-			.easyCardsNumber(easyCardsCount)
-			.normalCardsNumber(normalCardsCount)
-			.hardCardsNumber(hardCardsCount)
-			.expertCardsNumber(expertCardsCount)
-			.easyCardsPercent(easyCardsPercent)
-			.normalCardsPercent(normalCardsPercent)
-			.hardCardsPercent(hardCardsPercent)
-			.expertCardsPercent(expertCardsPercent)
-			.build();
-	}
-
 	@Transactional
 	public Page<CardResponse.getStudyLog> viewStudyLog(String token, Long studyCardSetId, int page, int size) {
 		Long userId = findUserId(token);
@@ -849,6 +779,7 @@ public class CardComponentService {
 							.user(card.getStudyCardSet().getUser())
 							.card(card)
 							.studyDate(LocalDateTime.now())
+							.difficulty(difficulty)
 							.totalLearnCount(0)
 							.build());
 
@@ -894,6 +825,7 @@ public class CardComponentService {
 							.user(imageCard.getStudyCardSet().getUser())
 							.imageCard(imageCard)
 							.studyDate(LocalDateTime.now())
+							.difficulty(difficulty)
 							.totalLearnCount(0)
 							.build());
 
@@ -915,9 +847,15 @@ public class CardComponentService {
 		}
 	}
 
+	/**
+	 * 주간 학습 결과 반환
+	 * @param token
+	 * @return CardResponse.weeklyResultDTO
+	 */
 	public CardResponse.weeklyResultDTO getCardByWeek(String token) {
 		Long userId = findUserId(token);
-		User user = userRepository.findById(userId).orElseThrow(() -> new BadRequestException(INVALID_USERID));
+		User user = userRepository.findById(userId)
+				.orElseThrow(() -> new BadRequestException(INVALID_USERID));
 
 		LocalDate today = LocalDate.now();
 		LocalDate startOfWeek = today.with(DayOfWeek.MONDAY); //DayOfWeek.of(1)
@@ -926,13 +864,14 @@ public class CardComponentService {
 		LocalDate startOfLastWeek = startOfWeek.minusWeeks(1);
 		LocalDate endOfLastWeek = endOfWeek.minusWeeks(1);
 
-		List<Card> thisWeekCards = cardRepository.findCardsByUserAndLearnLastTimeBetween(user,
-			startOfWeek.atStartOfDay(), endOfWeek.atTime(LocalTime.MAX));
-		List<Card> lastWeekCards = cardRepository.findCardsByUserAndLearnLastTimeBetween(user,
-			startOfLastWeek.atStartOfDay(), endOfLastWeek.atTime(LocalTime.MAX));
+		List<StudyHistory> thisWeekHistory = studyHistoryRepository
+				.findByUserAndStudyDateBetween(user, startOfWeek.atStartOfDay(), endOfWeek.atTime(LocalTime.MAX));
 
-		Map<Integer, Long> dailyThisWeekStudy = calculateDailyStudyCount(thisWeekCards);
-		Map<Integer, Long> dailyLastWeekStudy = calculateDailyStudyCount(lastWeekCards);
+		List<StudyHistory> lastWeekHistory = studyHistoryRepository
+				.findByUserAndStudyDateBetween(user, startOfLastWeek.atStartOfDay(), endOfLastWeek.atTime(LocalTime.MAX));
+
+		Map<Integer, Long> dailyThisWeekStudy = calculateDailyStudyHistoryCount(thisWeekHistory);
+		Map<Integer, Long> dailyLastWeekStudy = calculateDailyStudyHistoryCount(lastWeekHistory);
 
 		Map<Integer, Long> weekStudyResult = initializeWeekStudyResult(dailyThisWeekStudy);
 		Map<Integer, Long> lastWeekStudyResult = initializeWeekStudyResult(dailyLastWeekStudy);
@@ -947,15 +886,15 @@ public class CardComponentService {
 			.build();
 	}
 
-	private Map<Integer, Long> calculateDailyStudyCount(List<Card> cards) {
-		return cards.stream()
-			.collect(Collectors.groupingBy(card -> card.getLearnLastTime().toLocalDateTime().getDayOfWeek().getValue(),
-				Collectors.collectingAndThen(
-					Collectors.toMap(card -> card.getStudyCardSet(), card -> card.getLearnLastTime(),
-						(time1, time2) -> time1.before(time2) ? time1 : time2), map -> (long)map.size())));
+	private Map<Integer, Long> calculateDailyStudyHistoryCount(List<StudyHistory> histories) {
+		return histories.stream()
+				.collect(Collectors.groupingBy(
+						h -> h.getStudyDate().toLocalDate().getDayOfWeek().getValue(),
+						Collectors.counting()
+				));
 	}
 
-	public Map<Integer, Long> initializeWeekStudyResult(Map<Integer, Long> dailyStudyCount) {
+	private Map<Integer, Long> initializeWeekStudyResult(Map<Integer, Long> dailyStudyCount) {
 		Map<Integer, Long> weekResult = new HashMap<>();
 
 		for (int i = 1; i <= 7; i++) {
@@ -964,6 +903,72 @@ public class CardComponentService {
 		return weekResult;
 	}
 
+	/**
+	 * 주간 학습 카드 난이도 통계 반환
+	 * @param token
+	 * @return
+	 */
+	public CardResponse.cardStudyGraph viewStudyCardGraph(String token) {
+		Long userId = findUserId(token);
+		User user = userRepository.findById(userId)
+				.orElseThrow(() -> new BadRequestException(INVALID_USERID));
+
+		// 1) 이번 주 기간 계산
+		LocalDate today = LocalDate.now();
+		LocalDate startOfWeek = today.with(DayOfWeek.MONDAY);
+		LocalDate endOfWeek = today.with(DayOfWeek.SUNDAY);
+
+		// 2) 이번 주 학습 이력 조회
+		List<StudyHistory> thisWeekHistories = studyHistoryRepository.findByUserAndStudyDateBetween(
+				user,
+				startOfWeek.atStartOfDay(),
+				endOfWeek.atTime(LocalTime.MAX)
+		);
+
+		if (thisWeekHistories.isEmpty()) {
+			return CardResponse.cardStudyGraph.builder()
+					.easyCardsNumber(0).normalCardsNumber(0)
+					.hardCardsNumber(0).expertCardsNumber(0)
+					.easyCardsPercent(0).normalCardsPercent(0)
+					.hardCardsPercent(0).expertCardsPercent(0)
+					.build();
+		}
+
+		// 3) 난이도별 개수 집계 (1~4)
+		Map<Integer, Long> difficultyCount = thisWeekHistories.stream()
+				.collect(Collectors.groupingBy(StudyHistory::getDifficulty, Collectors.counting()));
+
+		int easyCount = difficultyCount.getOrDefault(1, 0L).intValue();
+		int normalCount = difficultyCount.getOrDefault(2, 0L).intValue();
+		int hardCount = difficultyCount.getOrDefault(3, 0L).intValue();
+		int expertCount = difficultyCount.getOrDefault(4, 0L).intValue();
+
+		int total = easyCount + normalCount + hardCount + expertCount;
+
+		// 4) 비율 계산
+		int easyPercent = total == 0 ? 0 : (easyCount * 100) / total;
+		int normalPercent = total == 0 ? 0 : (normalCount * 100) / total;
+		int hardPercent = total == 0 ? 0 : (hardCount * 100) / total;
+		int expertPercent = total == 0 ? 0 : (expertCount * 100) / total;
+
+		return CardResponse.cardStudyGraph.builder()
+				.easyCardsNumber(easyCount)
+				.normalCardsNumber(normalCount)
+				.hardCardsNumber(hardCount)
+				.expertCardsNumber(expertCount)
+				.easyCardsPercent(easyPercent)
+				.normalCardsPercent(normalPercent)
+				.hardCardsPercent(hardPercent)
+				.expertCardsPercent(expertPercent)
+				.build();
+	}
+
+
+	/**
+	 * 학습 시간에 도달한 카드 세트 3개 반환
+	 * @param token
+	 * @return List<CardResponse.getExpectedCardSetListDTO>
+	 */
 	public List<CardResponse.getExpectedCardSetListDTO> getStudyCardSetsForQuickLearning(String token) {
 		Long userId = findUserId(token);
 		List<StudyCardSet> studyCardSets = studyCardSetRepository.findByUserOrderByNextStudyDateAsc(userId);

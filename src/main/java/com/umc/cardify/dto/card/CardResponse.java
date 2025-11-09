@@ -105,7 +105,7 @@ public class CardResponse {
 		@Schema(description = "쉬움 카드 학습 개수")
 		int easyCardsNumber;
 
-		@Schema(description = "알맞음 카드 학습 개수")
+		@Schema(description = "보통 카드 학습 개수")
 		int normalCardsNumber;
 
 		@Schema(description = "어려움 카드 학습 개수")
@@ -117,10 +117,10 @@ public class CardResponse {
 		@Schema(description = "쉬움 카드 학습 비율")
 		int easyCardsPercent;
 
-		@Schema(description = "쉬움 카드 학습 비율")
+		@Schema(description = "보통 카드 학습 비율")
 		int normalCardsPercent;
 
-		@Schema(description = "쉬움 카드 학습 비율")
+		@Schema(description = "어려움 카드 학습 비율")
 		int hardCardsPercent;
 
 		@Schema(description = "매우 어려움 카드 학습 비율")
