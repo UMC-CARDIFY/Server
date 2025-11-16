@@ -25,4 +25,7 @@ public interface ImageCardRepository extends JpaRepository<ImageCard, Long> {
 
 	@Query("SELECT i.difficulty FROM ImageCard i WHERE i.id = :cardId")
 	int findImageCardDifficultyByCardId(@Param("cardId") Long cardId);
+
+	@Query("SELECT ic FROM ImageCard ic WHERE ic.studyCardSet.user.userId = :userId")
+    List<ImageCard> findByUser(Long userId);
 }

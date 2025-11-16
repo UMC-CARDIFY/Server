@@ -229,8 +229,22 @@ public class CardModuleService {
 			.build());
 	}
 
+	/**
+	 * 2025.11.16 추가 by 임수빈
+	 * studyCardSet에 allCardCount 저장하기 위한 로직
+	 * createCard - createNewStudyCard 이후에 addCardToStudyCardSet에서 실행도어야 allCardsCount가 업데이트됨
+	 *
+	 * @param studyCardSet
+	 */
+	public void updateCardCount(StudyCardSet studyCardSet) {
+		int count = cardRepository.countByNoteId(studyCardSet.getNote().getNoteId());
+		studyCardSet.setAllCardsCount(count);
+		studyCardSetRepository.save(studyCardSet);
+	}
+
 	public void addCardToStudyCardSet(Card card, Note note) {
 		StudyCardSet studyCardSet = findStudyCardSetByNote(note);
+		updateCardCount(studyCardSet);
 		card.setStudyCardSet(studyCardSet);
 		studyCardSetRepository.save(studyCardSet);
 	}

@@ -966,32 +966,69 @@ public class CardComponentService {
 
 	/**
 	 * 학습 시간에 도달한 카드 세트 3개 반환
+	 * 카드 세트 내부 카드들의 learnNextTime 중 가장 오래된(가장 과거인) 값 : 스페이스트 리피티션(SRS) 원리 사용
 	 * @param token
 	 * @return List<CardResponse.getExpectedCardSetListDTO>
 	 */
 	public List<CardResponse.getExpectedCardSetListDTO> getStudyCardSetsForQuickLearning(String token) {
 		Long userId = findUserId(token);
-		List<StudyCardSet> studyCardSets = studyCardSetRepository.findByUserOrderByNextStudyDateAsc(userId);
 
-		studyCardSets = studyCardSets.stream()
-				.filter(set -> set.getProgressRate() < 1.0)
+		// 1. 사용자 모든 카드 조회 (Card + ImageCard 포함)
+		List<Card> cards = cardRepository.findByUser(userId);
+		List<ImageCard> imageCards = imageCardRepository.findByUser(userId);
+
+		LocalDateTime now = LocalDateTime.now();
+
+		// 2. (Card + ImageCard) 모두 통합하여 카드세트 기준으로 묶기
+		Map<Long, List<LocalDateTime>> setOverdueMap = new HashMap<>();
+
+		// 일반 카드 처리
+		for (Card card : cards) {
+			if (card.getStudyCardSet() != null) {
+				setOverdueMap
+						.computeIfAbsent(card.getStudyCardSet().getId(), k -> new ArrayList<>())
+						.add(card.getLearnNextTime().toLocalDateTime());
+			}
+		}
+
+		// 이미지 카드 처리
+		for (ImageCard card : imageCards) {
+			if (card.getStudyCardSet() != null) {
+				setOverdueMap
+						.computeIfAbsent(card.getStudyCardSet().getId(), k -> new ArrayList<>())
+						.add(card.getLearnNextTime().toLocalDateTime());
+			}
+		}
+
+		// 3. 카드세트별 가장 오래 지난 learnNextTime 계산
+		List<StudyCardSet> sets = cardModuleService.getStudyCardSetsByUser(userId);
+
+		List<StudyCardSet> sortedSets = sets.stream()
+				.filter(set -> setOverdueMap.containsKey(set.getId())) // 카드 없는 경우 제외
+				.sorted((a, b) -> {
+					LocalDateTime aOldest = Collections.min(setOverdueMap.get(a.getId()));
+					LocalDateTime bOldest = Collections.min(setOverdueMap.get(b.getId()));
+					return aOldest.compareTo(bOldest); // 과거일수록 우선
+				})
 				.limit(3)
 				.collect(Collectors.toList());
 
-		return studyCardSets.stream()
+		// 4. DTO 변환
+		return sortedSets.stream()
 				.map(set -> CardResponse.getExpectedCardSetListDTO.builder()
 						.studyCardSetId(set.getId())
 						.folderName(set.getFolder() != null ? set.getFolder().getName() : null)
 						.noteName(set.getNoteName())
 						.color(set.getColor())
 						.cardsDueForStudy(set.getCardsDueForStudy())
+						.allCardsCount(set.getAllCardsCount())
 						.completedCardsCount(set.getCompletedCardsCount())
-						.progressRate(set.getProgressRate())
 						.recentStudyDate(set.getRecentStudyDate())
 						.nextStudyDate(set.getNextStudyDate())
 						.build())
 				.collect(Collectors.toList());
 	}
+
 
 
 	/**

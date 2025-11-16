@@ -171,6 +171,16 @@ public class CardController {
 
 		return ResponseEntity.ok().build();
 	}
+
+	@GetMapping("/quick-learning")
+	@Operation(summary = "예정된 학습 - 플래시 카드 세트 3개 조회", description = "사용자에게 학습 시간 도달 or 지난 카드가 있는 StudyCardSet을 최대 3개 반환")
+	public ResponseEntity<List<CardResponse.getExpectedCardSetListDTO>> getQuickLearningStudySets(
+			@RequestHeader("Authorization") String token) {
+
+		List<CardResponse.getExpectedCardSetListDTO> sets = cardComponentService.getStudyCardSetsForQuickLearning(token);
+		return ResponseEntity.ok(sets);
+	}
+
 	@GetMapping("/weekly-count")
 	@Operation(summary = "학습 대시보드 - 주간 학습 결과 API", description = "사용자 조회 성공 시, 해당 주의 총 학습 카드 개수와 날짜별 학습 카드 개수 반환 | 월요일(1), 화요일(2) ... 일요일(7)")
 	public ResponseEntity<CardResponse.weeklyResultDTO> getCardByWeek(@RequestHeader("Authorization") String token) {
@@ -196,16 +206,6 @@ public class CardController {
 
 		CardResponse.AnnualResultDTO annualResult = cardComponentService.getCardByYear(token, annual);
 		return ResponseEntity.ok(annualResult);
-	}
-
-
-	@GetMapping("/quick-learning")
-	@Operation(summary = "학습 대시보드 - 플래시 카드 세트 조회", description = "사용자에게 학습 시간 도달한 카드가 있는 StudyCardSet을 최대 3개 반환")
-	public ResponseEntity<List<CardResponse.getExpectedCardSetListDTO>> getQuickLearningStudySets(
-			@RequestHeader("Authorization") String token) {
-
-		List<CardResponse.getExpectedCardSetListDTO> sets = cardComponentService.getStudyCardSetsForQuickLearning(token);
-		return ResponseEntity.ok(sets);
 	}
 
 	// NOTE : 홈 화면에 위치하는 기능

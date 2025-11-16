@@ -200,6 +200,7 @@ public class CardResponse {
 		String noteName;
 		String color;
 		int cardsDueForStudy;
+		int allCardsCount;
 		int completedCardsCount;
 		double progressRate;
 		LocalDateTime recentStudyDate;
