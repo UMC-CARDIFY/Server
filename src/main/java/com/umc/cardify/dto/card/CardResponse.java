@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
 public class CardResponse {
+
 	@Getter
 	@Schema(title = "CARD_RES_01 : 이미지 카드 조회 DTO")
 	@Builder

@@ -36,4 +36,6 @@ public interface StudyHistoryRepository extends JpaRepository<StudyHistory, Long
     Optional<StudyHistory> findByUserAndImageCard(User user, ImageCard imageCard);
 
     List<StudyHistory> findByUserAndStudyDateBetween(User user, LocalDateTime localDateTime, LocalDateTime localDateTime1);
+
+    List<StudyHistory> findByUser(User user);
 }

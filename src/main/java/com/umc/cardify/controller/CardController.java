@@ -189,12 +189,13 @@ public class CardController {
 		return ResponseEntity.ok(weekCard);
 	}
 
-	@GetMapping("{studyCardSetId}/study-graph")
-	@Operation(summary = "학습 대시보드 - 주간 학습 난이도 통계 그래프", description = "이번 주 학습 카드에 대한 난이도 통계 반환(가장 높은 값은 프론트에서 처리)")
+	@GetMapping("/study-graph/{range}")
+	@Operation(summary = "학습 대시보드 - 주간 학습 난이도 통계 그래프", description = "전체(1)/주간(2) pathvariable로 입력 | 학습 카드에 대한 난이도 통계 반환(가장 높은 값은 프론트에서 처리)")
 	public ResponseEntity<CardResponse.cardStudyGraph> viewStudyCardGraph(
-			@RequestHeader("Authorization") String token) {
+			@RequestHeader("Authorization") String token,
+			@PathVariable Integer range) {
 
-		CardResponse.cardStudyGraph cardStudyGraph = cardComponentService.viewStudyCardGraph(token);
+		CardResponse.cardStudyGraph cardStudyGraph = cardComponentService.viewStudyCardGraph(token, range);
 		return ResponseEntity.ok(cardStudyGraph);
 	}
 

@@ -906,26 +906,39 @@ public class CardComponentService {
 	/**
 	 * 주간 학습 카드 난이도 통계 반환
 	 * @param token
+	 * @param range all=1, week=2
 	 * @return
 	 */
-	public CardResponse.cardStudyGraph viewStudyCardGraph(String token) {
+	public CardResponse.cardStudyGraph viewStudyCardGraph(String token, Integer range) {
 		Long userId = findUserId(token);
 		User user = userRepository.findById(userId)
 				.orElseThrow(() -> new BadRequestException(INVALID_USERID));
 
-		// 1) 이번 주 기간 계산
-		LocalDate today = LocalDate.now();
-		LocalDate startOfWeek = today.with(DayOfWeek.MONDAY);
-		LocalDate endOfWeek = today.with(DayOfWeek.SUNDAY);
+		List<StudyHistory> histories;
 
-		// 2) 이번 주 학습 이력 조회
-		List<StudyHistory> thisWeekHistories = studyHistoryRepository.findByUserAndStudyDateBetween(
-				user,
-				startOfWeek.atStartOfDay(),
-				endOfWeek.atTime(LocalTime.MAX)
-		);
+		// range가 all이면 전체 카드를 계산, range가 week이면 이번주에 학습한 카드만 계산
+		if (range == 1) {
+			// 1) 전체(all=1) 조회
+			histories = studyHistoryRepository.findByUser(user);
 
-		if (thisWeekHistories.isEmpty()) {
+		} else if (range == 2) {
+			LocalDate today = LocalDate.now();
+			LocalDate startOfWeek = today.with(DayOfWeek.MONDAY);
+			LocalDate endOfWeek = today.with(DayOfWeek.SUNDAY);
+
+			histories = studyHistoryRepository.findByUserAndStudyDateBetween(
+					user,
+					startOfWeek.atStartOfDay(),
+					endOfWeek.atTime(LocalTime.MAX)
+			);
+		}
+		// 3) 예외 처리
+		else {
+			throw new BadRequestException(ErrorResponseStatus.INVALID_VALUE);
+		}
+
+		// 4) 학습이 없을 경우
+		if (histories.isEmpty()) {
 			return CardResponse.cardStudyGraph.builder()
 					.easyCardsNumber(0).normalCardsNumber(0)
 					.hardCardsNumber(0).expertCardsNumber(0)
@@ -934,8 +947,8 @@ public class CardComponentService {
 					.build();
 		}
 
-		// 3) 난이도별 개수 집계 (1~4)
-		Map<Integer, Long> difficultyCount = thisWeekHistories.stream()
+		// 5) 난이도별 개수 집계
+		Map<Integer, Long> difficultyCount = histories.stream()
 				.collect(Collectors.groupingBy(StudyHistory::getDifficulty, Collectors.counting()));
 
 		int easyCount = difficultyCount.getOrDefault(1, 0L).intValue();
@@ -945,12 +958,13 @@ public class CardComponentService {
 
 		int total = easyCount + normalCount + hardCount + expertCount;
 
-		// 4) 비율 계산
+		// 6) 비율 계산
 		int easyPercent = total == 0 ? 0 : (easyCount * 100) / total;
 		int normalPercent = total == 0 ? 0 : (normalCount * 100) / total;
 		int hardPercent = total == 0 ? 0 : (hardCount * 100) / total;
 		int expertPercent = total == 0 ? 0 : (expertCount * 100) / total;
 
+		// 7) 최종 반환
 		return CardResponse.cardStudyGraph.builder()
 				.easyCardsNumber(easyCount)
 				.normalCardsNumber(normalCount)
