@@ -46,7 +46,7 @@ public class CardModuleService {
 	private final S3Service s3Service;
     private final ObjectMapper objectMapper;
 
-	boolean existsByNote(Note note){
+	public boolean existsByNote(Note note){
 
 		return studyCardSetRepository.existsByNote(note);
 	}
@@ -55,11 +55,11 @@ public class CardModuleService {
 		studyCardSetRepository.deleteById(studyCardSetId);
 	}
 
-	void deleteAllCardsByNoteId(Long noteId) {
+	public void deleteAllCardsByNoteId(Long noteId) {
 		cardRepository.deleteCardsByNoteId(noteId);
 	}
 
-	void deleteAllImageCardsByNoteId(Long noteId) {
+	public void deleteAllImageCardsByNoteId(Long noteId) {
 		Note note = noteRepository.findById(noteId).orElseThrow(() -> new DatabaseException(NOT_FOUND_ERROR));
 		StudyCardSet studyCardSet = studyCardSetRepository.findByNote(note)
 			.orElseThrow(() -> new DatabaseException(NOT_FOUND_ERROR));

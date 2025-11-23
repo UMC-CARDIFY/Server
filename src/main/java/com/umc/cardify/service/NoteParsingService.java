@@ -25,7 +25,7 @@ public class NoteParsingService {
         }
     }
 
-    public void processTextNode(Node node, StringBuilder input) {
+    private void processTextNode(Node node, StringBuilder input) {
         String nodeText = node.getText();
         if (!nodeText.endsWith("."))
             nodeText += ".";

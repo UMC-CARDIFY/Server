@@ -34,7 +34,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class NoteService {
     private final NoteRepository noteRepository;
-    private final UserRepository userRepository;
     private final LibraryRepository libraryRepository;
     private final CategoryRepository categoryRepository;
     private final LibraryCategoryRepository libraryCategoryRepository;
@@ -237,7 +236,7 @@ public class NoteService {
      * @param search 검색어
      * @return 검색 결과 DTO
      */
-    public List<NoteResponse.SearchNoteResDTO> searchNote(Folder folder, String search) {
+    public NoteResponse.SearchNoteDTO searchNote(Folder folder, String search) {
         //문단 구분점인 .을 입력시 빈 리스트 반환
         if (search.trim().equals("."))
             return null;
@@ -250,7 +249,10 @@ public class NoteService {
                 .map(list -> noteConverter.toSearchNoteResult(list, search))
                 .collect(Collectors.toList());
 
-        return searchList;
+        return NoteResponse.SearchNoteDTO.builder()
+                .searchTxt(search)
+                .noteList(searchList)
+                .build();
     }
 
     /**
@@ -594,10 +596,21 @@ public class NoteService {
      * @param UUID 대상 UUID
      * @return 조회 노트
      */
-    public Long getNoteIdToUUID(String UUID){
+    public NoteResponse.getNoteDTO getNoteIdToUUID(String UUID){
         Note note = noteRepository.findByUuid(UUID).orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
 
-        return note.getNoteId();
+        //노트 내용 반환
+        List<NoteResponse.getNoteCardDTO> cardDTO = note.getCards().stream()
+                .map(card -> NoteResponse.getNoteCardDTO.builder()
+                    .cardId(card.getCardId())
+                    .cardName(note.getName())
+                    .contents(card.getContents())
+                    .contentsFront(card.getContentsFront())
+                    .contentsBack(card.getContentsBack())
+                .build())
+                .toList();
+
+        return noteConverter.getNoteDTO(note, cardDTO);
     }
 
     /**
