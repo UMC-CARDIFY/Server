@@ -9,6 +9,7 @@ import java.util.Queue;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -55,10 +56,12 @@ public class CardModuleService {
 		studyCardSetRepository.deleteById(studyCardSetId);
 	}
 
+    @Transactional
 	public void deleteAllCardsByNoteId(Long noteId) {
 		cardRepository.deleteCardsByNoteId(noteId);
 	}
 
+    @Transactional
 	public void deleteAllImageCardsByNoteId(Long noteId) {
 		Note note = noteRepository.findById(noteId).orElseThrow(() -> new DatabaseException(NOT_FOUND_ERROR));
 		StudyCardSet studyCardSet = studyCardSetRepository.findByNote(note)

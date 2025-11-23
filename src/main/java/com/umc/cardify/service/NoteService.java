@@ -110,9 +110,9 @@ public class NoteService {
      * @param note_del 삭제할 노트 객체
      * @return 삭제 결과
      */
+    @Transactional
     public Boolean deleteNote(Note note_del) {
         noteRepository.delete(note_del);
-        contentsNoteRepository.delete(contentsNoteRepository.findByNote(note_del).get());
         return true;
     }
 

@@ -43,14 +43,14 @@ public class NoteController {
 
 	private final JwtTokenProvider jwtTokenProvider;
 
-	@GetMapping("/addNote")
+	@PostMapping("/addNote")
 	@Operation(summary = "노트 추가 API")
 	public ResponseEntity<NoteResponse.AddNoteResultDTO> addNote(@RequestHeader("Authorization") String token,
-		@RequestParam @Valid Long folderId) {
+		@RequestBody @Valid NoteRequest.AddNoteDto request) {
 		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
 		AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
         User user = userService.getUser(email, provider);
-        Folder folder = folderService.getFolder(folderId);
+        Folder folder = folderService.getFolder(request.getFolderId());
 
         // 노트 개수 검증
         if(!noteService.checkNoteCnt(user))
@@ -107,7 +107,7 @@ public class NoteController {
 	}
 
 	@PostMapping(value = "/write", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	@Operation(summary = "노트 작성 API", description = "노트 UUID 입력, 성공 시 작성 성공 여부 반환")
+	@Operation(summary = "노트 작성 API", description = "노트 내용 입력, 성공 시 작성 성공 여부 반환")
 	public ResponseEntity<NoteResponse.IsSuccessNoteDTO> writeNote(@RequestHeader("Authorization") String token,
 		@RequestPart(value = "images", required = false) List<MultipartFile> images,
 		@RequestPart @Valid NoteRequest.WriteNoteDto request) {
