@@ -979,12 +979,15 @@ public class CardComponentService {
 
 
 	/**
-	 * 학습 시간에 도달한 카드 세트 3개 반환
+	 * 다음 학습시간 <= now로 작동되는 기능
+	 * limit에 따라 조회되는 크기 달라짐
 	 * 카드 세트 내부 카드들의 learnNextTime 중 가장 오래된(가장 과거인) 값 : 스페이스트 리피티션(SRS) 원리 사용
+	 * update date 2025.11.23
+	 *
 	 * @param token
 	 * @return List<CardResponse.getExpectedCardSetListDTO>
 	 */
-	public List<CardResponse.getExpectedCardSetListDTO> getStudyCardSetsForQuickLearning(String token) {
+	public List<CardResponse.getExpectedCardSetListDTO> getStudyCardSetsForQuickLearning(String token, int limit) {
 		Long userId = findUserId(token);
 
 		// 1. 사용자 모든 카드 조회 (Card + ImageCard 포함)
@@ -1024,7 +1027,7 @@ public class CardComponentService {
 					LocalDateTime bOldest = Collections.min(setOverdueMap.get(b.getId()));
 					return aOldest.compareTo(bOldest); // 과거일수록 우선
 				})
-				.limit(3)
+				.limit(limit)
 				.collect(Collectors.toList());
 
 		// 4. DTO 변환
@@ -1198,5 +1201,70 @@ public class CardComponentService {
 		return new CardResponse.AnnualResultDTO(contributions, maxStreak);
 
 	}
+
+	/**
+	 *  다음 학습시간 > now 로 작동되는 기능
+	 *  update date 2025.11.23
+	 *
+	 * @param token
+	 * @return List<CardResponse.getExpectedCardSetListDTO> 전체 카드셋 출력
+	 */
+	public List<CardResponse.getExpectedCardSetListDTO> getIntendedLearningSets(String token) {
+		Long userId = findUserId(token);
+
+		List<Card> cards = cardRepository.findByUser(userId);
+		List<ImageCard> imageCards = imageCardRepository.findByUser(userId);
+		LocalDateTime now = LocalDateTime.now();
+
+		// 2. 일반, 이미지카드 통합하여 카드세트 묶기
+		Map<Long, List<LocalDateTime>> setTimeMap = new HashMap<>();
+
+		// 2-1. 일반 카드
+		for (Card card : cards) {
+			if (card.getStudyCardSet() != null) {
+				setTimeMap
+						.computeIfAbsent(card.getStudyCardSet().getId(), k -> new ArrayList<>())
+						.add(card.getLearnNextTime().toLocalDateTime());
+			}
+		}
+
+		// 2-2. 이미지 카드
+		for (ImageCard card : imageCards) {
+			if (card.getStudyCardSet() != null) {
+				setTimeMap
+						.computeIfAbsent(card.getStudyCardSet().getId(), k -> new ArrayList<>())
+						.add(card.getLearnNextTime().toLocalDateTime());
+			}
+		}
+
+		// 3. 학습시간에 도달하지 않은 세트
+		List<StudyCardSet> sets = cardModuleService.getStudyCardSetsByUser(userId);
+
+		List<StudyCardSet> notYetSets = sets.stream()
+				.filter(set -> {
+					List<LocalDateTime> times = setTimeMap.get(set.getId());
+					if (times == null) return false;
+
+					// 모든 카드의 learnNextTime이 미래인 세트 = 학습 시간 안 된 세트
+					return times.stream().allMatch(t -> t.isAfter(now));
+				})
+				.sorted(Comparator.comparing(StudyCardSet::getNextStudyDate))
+				.collect(Collectors.toList());
+
+		return notYetSets.stream()
+				.map(set -> CardResponse.getExpectedCardSetListDTO.builder()
+						.studyCardSetId(set.getId())
+						.folderName(set.getFolder() != null ? set.getFolder().getName() : null)
+						.noteName(set.getNoteName())
+						.color(set.getColor())
+						.cardsDueForStudy(set.getCardsDueForStudy())
+						.allCardsCount(set.getAllCardsCount())
+						.completedCardsCount(set.getCompletedCardsCount())
+						.recentStudyDate(set.getRecentStudyDate())
+						.nextStudyDate(set.getNextStudyDate())
+						.build())
+				.collect(Collectors.toList());
+	}
+
 }
 

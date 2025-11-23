@@ -173,11 +173,12 @@ public class CardController {
 	}
 
 	@GetMapping("/quick-learning")
-	@Operation(summary = "예정된 학습 - 플래시 카드 세트 3개 조회", description = "사용자에게 학습 시간 도달 or 지난 카드가 있는 StudyCardSet을 최대 3개 반환")
+	@Operation(summary = "빠른 학습 탭/예정된 학습 탭 - 플래시 카드 세트 조회", description = "사용자에게 학습 시간 도달(지난 카드)가 있는 StudyCardSet을 원하는 개수만큼 반환 | limit = null or 3")
 	public ResponseEntity<List<CardResponse.getExpectedCardSetListDTO>> getQuickLearningStudySets(
-			@RequestHeader("Authorization") String token) {
+			@RequestHeader("Authorization") String token,
+			@RequestParam(name = "limit", required = false) int limit) {
 
-		List<CardResponse.getExpectedCardSetListDTO> sets = cardComponentService.getStudyCardSetsForQuickLearning(token);
+		List<CardResponse.getExpectedCardSetListDTO> sets = cardComponentService.getStudyCardSetsForQuickLearning(token, limit);
 		return ResponseEntity.ok(sets);
 	}
 
@@ -208,6 +209,16 @@ public class CardController {
 		CardResponse.AnnualResultDTO annualResult = cardComponentService.getCardByYear(token, annual);
 		return ResponseEntity.ok(annualResult);
 	}
+
+	@GetMapping("/intended-learning")
+	@Operation(summary = "아직 학습 시간이 도달하지 않은 카드세트 전체 조회", description = "현재(now)를 기준으로 다음학습시간이 미래인 카드 리스트")
+	public ResponseEntity<List<CardResponse.getExpectedCardSetListDTO>> getIntendedLearning(
+			@RequestHeader("Authorization") String token) {
+
+		List<CardResponse.getExpectedCardSetListDTO> sets = cardComponentService.getIntendedLearningSets(token);
+		return ResponseEntity.ok(sets);
+	}
+
 
 	// NOTE : 홈 화면에 위치하는 기능
 	@GetMapping("/study-suggestion/{years}/{month}")
