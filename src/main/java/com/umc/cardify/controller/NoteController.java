@@ -1,6 +1,9 @@
 package com.umc.cardify.controller;
 
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 
 import com.umc.cardify.auth.jwt.JwtTokenProvider;
 import com.umc.cardify.config.exception.BadRequestException;
@@ -9,8 +12,7 @@ import com.umc.cardify.domain.User;
 import com.umc.cardify.domain.enums.AuthProvider;
 import com.umc.cardify.dto.folder.FolderRequest;
 import com.umc.cardify.dto.folder.FolderResponse;
-import com.umc.cardify.repository.UserRepository;
-import org.springframework.data.domain.Page;
+import com.umc.cardify.service.*;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,8 +23,6 @@ import com.umc.cardify.domain.Folder;
 import com.umc.cardify.domain.Note;
 import com.umc.cardify.dto.note.NoteRequest;
 import com.umc.cardify.dto.note.NoteResponse;
-import com.umc.cardify.service.FolderService;
-import com.umc.cardify.service.NoteComponentService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -34,27 +34,32 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @RequestMapping("api/v1/notes")
 public class NoteController {
-
 	private final FolderService folderService;
-	private final NoteComponentService noteComponentService;
-	private final JwtTokenProvider jwtTokenProvider;
-	private final UserRepository userRepository;
+	private final NoteService noteService;
+    private final UserService userService;
 
-	@GetMapping("/addNote")
+    private final CardModuleService cardModuleService;
+    private final NoteParsingService noteParsingService;
+
+	private final JwtTokenProvider jwtTokenProvider;
+
+	@PostMapping("/addNote")
 	@Operation(summary = "노트 추가 API")
 	public ResponseEntity<NoteResponse.AddNoteResultDTO> addNote(@RequestHeader("Authorization") String token,
-		@RequestParam @Valid Long folderId) {
+		@RequestBody @Valid NoteRequest.AddNoteDto request) {
 		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
 		AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
-		Long userId = userRepository.findByEmailAndProvider(email, provider)
-				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID)).getUserId();
+        User user = userService.getUser(email, provider);
+        Folder folder = folderService.getFolder(request.getFolderId());
 
-		// FIXME: 노트 개수 무료회원은 19개로 변경됨
-		if(!noteComponentService.checkNoteCnt(userId))
+        // 노트 개수 검증
+        if(!noteService.checkNoteCnt(user))
 			throw new BadRequestException(ErrorResponseStatus.NOTE_CREATED_NOT_ALLOWED);
 
-		Folder folder = folderService.getFolder(folderId);
-		Note note = noteComponentService.addNote(folder, userId);
+        // 소유권 확인
+        folderService.checkOwnership(user, folder);
+
+		Note note = noteService.addNote(folder);
 		return ResponseEntity.ok(NoteConverter.toAddNoteResult(note));
 	}
 
@@ -64,11 +69,13 @@ public class NoteController {
 		@RequestParam @Valid Long noteId) {
 		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
 		AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
-		Long userId = userRepository.findByEmailAndProvider(email, provider)
-				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID)).getUserId();
 
-		Boolean isSuccess = noteComponentService.deleteNote(noteId, userId);
-		return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(isSuccess));
+        User user = userService.getUser(email, provider);
+        Note note = noteService.getNoteById(noteId);
+
+        noteService.checkOwnership(user, note);
+
+		return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(noteService.deleteNote(note)));
 	}
 
 	// TODO : auth 인증 추가 여부
@@ -79,7 +86,7 @@ public class NoteController {
 	public ResponseEntity<NoteResponse.GetNoteToFolderResultDTO> getNoteToFolder(
 		@RequestBody @Valid NoteRequest.GetNoteToFolderDto request) {
 		Folder folder = folderService.getFolder(request.getFolderId());
-		NoteResponse.GetNoteToFolderResultDTO noteList = noteComponentService.getNoteToFolder(folder, request);
+		NoteResponse.GetNoteToFolderResultDTO noteList = noteService.getNoteToFolder(folder, request);
 		return ResponseEntity.ok(noteList);
 	}
 
@@ -89,36 +96,63 @@ public class NoteController {
 		@RequestParam @Valid Long noteId, @RequestParam @Valid Boolean isMark) {
 		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
 		AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
-		Long userId = userRepository.findByEmailAndProvider(email, provider)
-				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID)).getUserId();
 
-		Boolean isSuccess = noteComponentService.markNote(noteId, isMark, userId);
+        User user = userService.getUser(email, provider);
+        Note note = noteService.getNoteById(noteId);
+
+        noteService.checkOwnership(user, note);
+
+		Boolean isSuccess = noteService.markNote(note, isMark);
 		return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(isSuccess));
 	}
 
 	@PostMapping(value = "/write", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	@Operation(summary = "노트 작성 API", description = "노트 UUID 입력, 성공 시 작성 성공 여부 반환")
+	@Operation(summary = "노트 작성 API", description = "노트 내용 입력, 성공 시 작성 성공 여부 반환")
 	public ResponseEntity<NoteResponse.IsSuccessNoteDTO> writeNote(@RequestHeader("Authorization") String token,
 		@RequestPart(value = "images", required = false) List<MultipartFile> images,
 		@RequestPart @Valid NoteRequest.WriteNoteDto request) {
 		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
 		AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
-		Long userId = userRepository.findByEmailAndProvider(email, provider)
-				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID)).getUserId();
 
-		Boolean isSuccess = noteComponentService.writeNote(request, userId, images);
+        User user = userService.getUser(email, provider);
+        Note note = noteService.getNoteById(request.getNoteId());
+
+        noteService.checkOwnership(user, note);
+
+        // 작성 모드 설정
+        String mode = request.getMode();
+        if(mode == null || mode.isEmpty())
+            mode = "standard";
+        if(!mode.equals("standard") && !mode.equals("light"))
+            throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
+
+        if (cardModuleService.existsByNote(note) && mode.equals("standard")) {
+            cardModuleService.deleteAllCardsByNoteId(note.getNoteId());
+            cardModuleService.deleteAllImageCardsByNoteId(note.getNoteId());
+        }
+
+        note.setName(request.getName());
+
+        if(mode.equals("standard")) {
+            StringBuilder totalText = new StringBuilder();
+
+            Queue<MultipartFile> imageQueue = new LinkedList<>(images != null ? images : Collections.emptyList());
+            noteParsingService.parsingNode(request.getContents(), totalText, note, imageQueue);
+            note.setTotalText(totalText.toString());
+        }
+
+		Boolean isSuccess = noteService.writeNote(note, request.getContents(), images);
 		return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(isSuccess));
 	}
 
 	// TODO : auth 추가 여부
 	@PostMapping("/searchFolder")
 	@Operation(summary = "폴더 내 노트 검색 API", description = "폴더 ID와 검색어 입력, 성공 시 검색 결과 반환")
-	public ResponseEntity<NoteResponse.SearchNoteDTO> searchNote(
-		@RequestBody @Valid NoteRequest.SearchNoteDto request) {
+	public ResponseEntity<NoteResponse.SearchNoteDTO> searchNote(@RequestBody @Valid NoteRequest.SearchNoteDto request) {
 		Folder folder = folderService.getFolder(request.getFolderId());
 		String searchTxt = request.getSearchTxt();
-		List<NoteResponse.SearchNoteResDTO> DTOList = noteComponentService.searchNote(folder, searchTxt);
-		return ResponseEntity.ok(NoteResponse.SearchNoteDTO.builder().searchTxt(searchTxt).noteList(DTOList).build());
+
+		return ResponseEntity.ok(noteService.searchNote(folder, searchTxt));
 	}
 
 	@GetMapping("/searchAll")
@@ -127,11 +161,10 @@ public class NoteController {
 			@RequestParam @Valid String search) {
 		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
 		AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
-		User user = userRepository.findByEmailAndProvider(email, provider)
-				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+        User user = userService.getUser(email, provider);
 
-		NoteResponse.SearchNoteAllDTO dto = noteComponentService.searchNoteAll(user, search);
-		noteComponentService.addSearchHistory(user, search);
+		NoteResponse.SearchNoteAllDTO dto = noteService.searchNoteAll(user, search);
+		noteService.addSearchHistory(user, search);
 
 		return ResponseEntity.ok(dto);
 	}
@@ -142,11 +175,12 @@ public class NoteController {
 		@RequestBody @Valid NoteRequest.ShareLibDto request) {
 		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
 		AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
-		Long userId = userRepository.findByEmailAndProvider(email, provider)
-				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID)).getUserId();
+        User user = userService.getUser(email, provider);
+        Note note = noteService.getNoteById(request.getNoteId());
 
-		Boolean isSuccess = noteComponentService.shareLib(userId, request);
-		return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(isSuccess));
+        noteService.checkOwnership(user, note);
+
+		return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(noteService.shareLib(note, request.getCategory())));
 	}
 
 	@DeleteMapping("/cancelShare")
@@ -155,17 +189,20 @@ public class NoteController {
 		@RequestParam @Valid Long noteId) {
 		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
 		AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
-		Long userId = userRepository.findByEmailAndProvider(email, provider)
-				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID)).getUserId();
+        User user = userService.getUser(email, provider);
+        Note note = noteService.getNoteById(noteId);
 
-		Boolean isSuccess = noteComponentService.cancelShare(noteId, userId);
-		return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(isSuccess));
+        noteService.checkOwnership(user, note);
+
+		return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(noteService.cancelShare(note)));
 	}
 
 	@GetMapping("/getNote")
 	@Operation(summary = "노트 내용 조회 API", description = "노트 ID 입력, 성공 시 노트 내용 반환")
 	public ResponseEntity<NoteResponse.getNoteDTO> getNote(@RequestParam @Valid Long noteId) {
-		return ResponseEntity.ok(noteComponentService.getNote(noteId));
+        Note note = noteService.getNoteById(noteId);
+
+		return ResponseEntity.ok(noteService.getNote(note));
 	}
 
 	@GetMapping("/recent-notes")
@@ -174,10 +211,10 @@ public class NoteController {
 		@RequestParam(required = false, defaultValue = "0") int page, @RequestParam(required = false) Integer size) {
 		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
 		AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
-		Long userId = userRepository.findByEmailAndProvider(email, provider)
-				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID)).getUserId();
 
-		List<NoteResponse.NoteInfoDTO> notes = noteComponentService.getRecentNotes(userId, page, size);
+        User user = userService.getUser(email, provider);
+
+		List<NoteResponse.NoteInfoDTO> notes = noteService.getRecentNotes(user, page, size);
 		return ResponseEntity.ok(notes);
 	}
 
@@ -186,10 +223,9 @@ public class NoteController {
 	public ResponseEntity<List<String>> getRecentSearch(@RequestHeader("Authorization") String token) {
 		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
 		AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
-		User user = userRepository.findByEmailAndProvider(email, provider)
-				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+        User user = userService.getUser(email, provider);
 
-		return ResponseEntity.ok(noteComponentService.getSearchHistory(user));
+		return ResponseEntity.ok(noteService.getSearchHistory(user));
 	}
 
 	@DeleteMapping("/recent-search")
@@ -197,10 +233,9 @@ public class NoteController {
 	public ResponseEntity<NoteResponse.IsSuccessNoteDTO> delRecentSearch(@RequestHeader("Authorization") String token, @RequestParam @Valid String search) {
 		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
 		AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
-		User user = userRepository.findByEmailAndProvider(email, provider)
-				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+        User user = userService.getUser(email, provider);
 
-		return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(noteComponentService.delSearchHistory(user, search)));
+		return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(noteService.delSearchHistory(user, search)));
 	}
 
 	@PostMapping("/link")
@@ -208,16 +243,18 @@ public class NoteController {
 	public ResponseEntity<NoteResponse.getNoteUUIDDTO> createNoteUUID(@RequestHeader("Authorization") String token, @RequestBody @Valid NoteRequest.MakeLinkDto request) {
 		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
 		AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
-		User user = userRepository.findByEmailAndProvider(email, provider)
-				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+        User user = userService.getUser(email, provider);
+        Note note = noteService.getNoteById(request.getNoteId());
 
-		return ResponseEntity.ok(noteComponentService.createNoteUUID(request, user));
+        noteService.checkOwnership(user, note);
+
+		return ResponseEntity.ok(noteService.createNoteUUID(note));
 	}
 
 	@GetMapping("/link")
 	@Operation(summary = "노트 링크 조회 API", description = "고유값 입력받아 노트 내용 전달")
 	public ResponseEntity<NoteResponse.getNoteDTO> getNoteToUUID(@RequestParam @Valid String uuid) {
-		return ResponseEntity.ok(noteComponentService.getNote(noteComponentService.getNoteIdToUUID(uuid)));
+		return ResponseEntity.ok(noteService.getNoteIdToUUID(uuid));
 	}
 
 	@DeleteMapping("/link")
@@ -225,10 +262,12 @@ public class NoteController {
 	public ResponseEntity<NoteResponse.IsSuccessNoteDTO> delNoteLink(@RequestHeader("Authorization") String token, @RequestParam @Valid Long noteId) {
 		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
 		AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
-		User user = userRepository.findByEmailAndProvider(email, provider)
-				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+        User user = userService.getUser(email, provider);
+        Note note = noteService.getNoteById(noteId);
 
-		return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(noteComponentService.delNoteUUID(user, noteId)));
+        noteService.checkOwnership(user, note);
+
+		return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(noteService.delNoteUUID(note)));
 	}
 
 	@GetMapping("/recent-marks")
@@ -237,9 +276,9 @@ public class NoteController {
 			@RequestHeader("Authorization") String token) {
 		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
 		AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
-		User user = userRepository.findByEmailAndProvider(email, provider)
-				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
-		return ResponseEntity.ok(noteComponentService.getRecentFavoriteNotes(user.getUserId()));
+        User user = userService.getUser(email, provider);
+
+		return ResponseEntity.ok(noteService.getRecentFavoriteNotes(user));
 	}
 
 	@GetMapping("/search-parent")
@@ -253,11 +292,9 @@ public class NoteController {
 		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
 		AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", ""));
 
-		Long userId = userRepository.findByEmailAndProvider(email, provider)
-				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
-				.getUserId();
+        User user = userService.getUser(email, provider);
 
-		return ResponseEntity.ok(folderService.searchFolders(userId, keyword, page, size));
+		return ResponseEntity.ok(folderService.searchFolders(user.getUserId(), keyword, page, size));
 	}
 
 	@PatchMapping("/{noteId}/move")
@@ -270,11 +307,10 @@ public class NoteController {
 		String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
 		AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", ""));
 
-		Long userId = userRepository.findByEmailAndProvider(email, provider)
-				.orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
-				.getUserId();
+        User user = userService.getUser(email, provider);
 
-		NoteResponse.NoteMoveResultDTO result = folderService.moveNote(userId, noteId, request.getTargetParentFolderId());
+        //FIXME: moveNote 내 User 유효성 검사 제거
+		NoteResponse.NoteMoveResultDTO result = folderService.moveNote(user.getUserId(), noteId, request.getTargetParentFolderId());
 		return ResponseEntity.ok(result);
 	}
 
@@ -285,9 +321,11 @@ public class NoteController {
             @PathVariable Long noteId) {
         String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
         AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
-        User user = userRepository.findByEmailAndProvider(email, provider)
-                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+        User user = userService.getUser(email, provider);
+        Note note = noteService.getNoteById(noteId);
 
-        return ResponseEntity.ok(noteComponentService.getNoteCards(user, noteId));
+        noteService.checkOwnership(user, note);
+
+        return ResponseEntity.ok(noteService.getNoteCards(note));
     }
 }

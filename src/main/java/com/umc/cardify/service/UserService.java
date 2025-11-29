@@ -23,6 +23,10 @@ public class UserService {
     private final UserRepository userRepository;
     private final JwtTokenProvider jwtTokenProvider;  // JwtUtil 대신 JwtTokenProvider 사용
 
+    public User getUser(String email, AuthProvider provider){
+        return userRepository.findByEmailAndProvider(email, provider)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+    }
     // 로그아웃
     @Transactional
     public void logout(String token) {

@@ -60,7 +60,6 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class CardComponentService {
 	private final CardModuleService cardModuleService;
-	private final NoteModuleService noteModuleService;
 	private final S3Service s3Service;
 
 	private final ImageCardRepository imageCardRepository;
@@ -145,7 +144,6 @@ public class CardComponentService {
 
 		StudyCardSet studyCardSet = cardModuleService.getStudyCardSetById(studyCardSetId);
 		cardModuleService.deleteCardSet(studyCardSetId);
-		noteModuleService.deleteNoteById(studyCardSet.getNote().getNoteId());
 	}
 
 	@Transactional
@@ -202,7 +200,7 @@ public class CardComponentService {
 		return String.format("%02d 시간 %02d 분", hours, minutes);
 	}
 	@Transactional
-	public String addImageCard(String token, MultipartFile image, CardRequest.addImageCard request) {
+	public String addImageCard(String token, MultipartFile image, CardRequest.addImageCard request, Note note) {
 		Long userId = findUserId(token);
 		String imgUrl = s3Service.upload(image, "imageCards");
 
@@ -211,8 +209,6 @@ public class CardComponentService {
 			.height(request.getBaseImageHeight())
 			.width(request.getBaseImageWidth())
 			.build();
-
-		Note note = noteModuleService.getNoteById(request.getNoteId());
 
 		StudyCardSet studyCardSet = cardModuleService.findStudyCardSetByNote(note);
 

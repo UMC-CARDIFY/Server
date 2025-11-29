@@ -8,7 +8,9 @@ import java.util.List;
 import com.umc.cardify.auth.jwt.JwtTokenProvider;
 import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
+import com.umc.cardify.domain.Note;
 import com.umc.cardify.repository.UserRepository;
+import com.umc.cardify.service.NoteService;
 import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -42,6 +44,7 @@ import lombok.RequiredArgsConstructor;
 public class CardController {
 
 	private final CardComponentService cardComponentService;
+    private final NoteService noteService;
 
 	@PostMapping(value = "/add/Image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	@Operation(summary = "이미지 카드 생성", description = "이미지 및 가림판들의 크기와 위치 전송")
@@ -50,7 +53,8 @@ public class CardController {
 			@RequestPart("image") MultipartFile image,
 			@RequestPart("imageCard") CardRequest.addImageCard request) {
 
-		String imgUrl = cardComponentService.addImageCard(token, image, request);
+        Note note = noteService.getNoteById(request.getNoteId());
+		String imgUrl = cardComponentService.addImageCard(token, image, request, note);
 
 		return ResponseEntity.ok(imgUrl);
 	}

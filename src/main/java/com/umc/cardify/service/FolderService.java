@@ -48,6 +48,11 @@ public class FolderService {
     private final UserRepository userRepository;
     private final NoteConverter noteConverter;
 
+    public void checkOwnership(User user, Folder folder){
+        if (!user.equals(folder.getUser()))
+            throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
+    }
+
     public Folder getFolder(long folderId){
         return folderRepository.findById(folderId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
     }

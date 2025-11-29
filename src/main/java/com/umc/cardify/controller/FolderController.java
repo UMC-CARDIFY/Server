@@ -11,7 +11,8 @@ import com.umc.cardify.dto.folder.FolderResponse;
 import com.umc.cardify.dto.note.NoteResponse;
 import com.umc.cardify.repository.UserRepository;
 import com.umc.cardify.service.FolderService;
-import com.umc.cardify.service.NoteComponentService;
+import com.umc.cardify.service.NoteService;
+import com.umc.cardify.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -29,7 +30,8 @@ import java.util.List;
 public class FolderController {
 
     private final FolderService folderService;
-    private final NoteComponentService noteComponentService;
+    private final NoteService noteService;
+    private final UserService userService;
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
 
@@ -62,10 +64,12 @@ public class FolderController {
             @RequestParam(required = false) String filter){
         String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
         AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
-        Long userId = userRepository.findByEmailAndProvider(email, provider)
-            .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID)).getUserId();
+        User user = userService.getUser(email, provider);
+        Folder folder = folderService.getFolder(folderId);
 
-        NoteResponse.NoteListDTO notes = noteComponentService.getNotesBySortFilter(userId, page, size, order, filter, folderId);
+        folderService.checkOwnership(user, folder);
+
+        NoteResponse.NoteListDTO notes = noteService.getNotesBySortFilter(page, size, order, filter, folder);
         return ResponseEntity.ok(notes);
     }
 
