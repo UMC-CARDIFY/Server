@@ -6,6 +6,7 @@ import lombok.*;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -60,4 +61,10 @@ public class Folder extends BaseEntity {
 
     @OneToMany(mappedBy = "parentFolder", cascade = CascadeType.ALL)
     private List<Folder> subFolders = new ArrayList<>();
+
+    // 부모 폴더 업데이트 메서드
+    public void updateParentFolder(Folder newParentFolder) {
+        this.parentFolder = newParentFolder;
+        this.editDate = Timestamp.valueOf(LocalDateTime.now());
+    }
 }

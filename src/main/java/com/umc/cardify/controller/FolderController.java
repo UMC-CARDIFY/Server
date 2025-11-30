@@ -11,7 +11,8 @@ import com.umc.cardify.dto.folder.FolderResponse;
 import com.umc.cardify.dto.note.NoteResponse;
 import com.umc.cardify.repository.UserRepository;
 import com.umc.cardify.service.FolderService;
-import com.umc.cardify.service.NoteComponentService;
+import com.umc.cardify.service.NoteService;
+import com.umc.cardify.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -29,7 +30,8 @@ import java.util.List;
 public class FolderController {
 
     private final FolderService folderService;
-    private final NoteComponentService noteComponentService;
+    private final NoteService noteService;
+    private final UserService userService;
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
 
@@ -55,17 +57,19 @@ public class FolderController {
     @Operation(summary = "노트 정렬과 필터링 기능 API", description = "성공 시 해당 유저의 전체 노트를 정렬해서 반환, 아무것도 입력 안하면 일반 조회 기능 | order = asc, desc, edit-newest, edit-oldest | 쉼표로 구분된 색상 문자열 입력")
     public ResponseEntity<NoteResponse.NoteListDTO> notesBySortFilter(
             @RequestHeader("Authorization") String token,
-            @RequestParam(required = false)  Integer page,
-            @RequestParam(required = false)  Integer size,
+            @RequestParam Long folderId,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
             @RequestParam(required = false) String order,
-            // FIXME :  폴더 아이디 요청
-            @RequestParam Long folderId){
+            @RequestParam(required = false) String filter){
         String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
         AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
-        Long userId = userRepository.findByEmailAndProvider(email, provider)
-            .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID)).getUserId();
+        User user = userService.getUser(email, provider);
+        Folder folder = folderService.getFolder(folderId);
 
-        NoteResponse.NoteListDTO notes = noteComponentService.getNotesBySortFilter(userId, page, size, order, folderId);
+        folderService.checkOwnership(user, folder);
+
+        NoteResponse.NoteListDTO notes = noteService.getNotesBySortFilter(page, size, order, filter, folder);
         return ResponseEntity.ok(notes);
     }
 
@@ -168,5 +172,42 @@ public class FolderController {
         User user = userRepository.findByEmailAndProvider(email, provider)
                 .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
         return ResponseEntity.ok(folderService.getRecentFavoriteFolders(user.getUserId()));
+    }
+
+    @GetMapping("/search-parent")
+    @Operation(summary = "하위 폴더 이동 - 상위폴더 검색 API", description = "검색어로 상위폴더를 검색하여 리스트 반환. 검색어가 없으면 전체 상위폴더 조회")
+    public ResponseEntity<FolderResponse.ParentFolderListDTO> searchParentFolders(
+            @RequestHeader("Authorization") String token,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+
+        String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+        AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", ""));
+
+        Long userId = userRepository.findByEmailAndProvider(email, provider)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
+                .getUserId();
+
+        FolderResponse.ParentFolderListDTO result = folderService.searchParentFolders(userId, keyword, page, size);
+        return ResponseEntity.ok(result);
+    }
+
+    @PatchMapping("/{folderId}/move")
+    @Operation(summary = "하위폴더 이동 - 하위 폴더 이동 API", description = "하위폴더를 다른 상위폴더로 이동")
+    public ResponseEntity<FolderResponse.FolderMoveResultDTO> moveSubFolder(
+            @RequestHeader("Authorization") String token,
+            @PathVariable Long folderId,
+            @RequestBody FolderRequest.MoveFolderDTO request) {
+
+        String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+        AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", ""));
+
+        Long userId = userRepository.findByEmailAndProvider(email, provider)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID))
+                .getUserId();
+
+        FolderResponse.FolderMoveResultDTO result = folderService.moveSubFolder(userId, folderId, request.getTargetParentFolderId());
+        return ResponseEntity.ok(result);
     }
 }

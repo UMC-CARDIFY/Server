@@ -16,19 +16,28 @@ import com.umc.cardify.repository.FolderRepository;
 import com.umc.cardify.repository.NoteRepository;
 import com.umc.cardify.repository.UserRepository;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
+
+import static com.umc.cardify.domain.enums.MarkStatus.ACTIVE;
 
 @Slf4j
 @Service
@@ -38,6 +47,11 @@ public class FolderService {
     private final NoteRepository noteRepository;
     private final UserRepository userRepository;
     private final NoteConverter noteConverter;
+
+    public void checkOwnership(User user, Folder folder){
+        if (!user.equals(folder.getUser()))
+            throw new BadRequestException(ErrorResponseStatus.INVALID_USERID);
+    }
 
     public Folder getFolder(long folderId){
         return folderRepository.findById(folderId).orElseThrow(()-> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
@@ -55,7 +69,7 @@ public class FolderService {
         List<Folder> folders;
         String parentFolderName = "";
         String parentFolderColor = "";
-        MarkStatus parnetMarkStatus = MarkStatus.ACTIVE;
+        MarkStatus parnetMarkStatus = ACTIVE;
 
         // 1. 상위 폴더와 하위 폴더를 구분하여 기본 폴더 리스트 가져오기
         if (parentFolderId == null) {
@@ -123,7 +137,7 @@ public class FolderService {
             return folders;
         }
 
-        List<String> orderList = Arrays.asList("asc", "desc", "edit-newest", "edit-oldest");
+        List<String> orderList = Arrays.asList("asc", "desc", "edit-newest", "edit-oldest", "create-newest", "create-oldest");
         if (!orderList.contains(order)) {
             throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
         }
@@ -184,7 +198,7 @@ public class FolderService {
 
         // 유료 결제 여부에 따른 상위 폴더 개수 제한
         int folderCount = folderRepository.countByUserAndParentFolderIsNull(user);
-        if (!isSubscribed && folderCount >= 9) { // 무료 사용자 제한
+        if (!isSubscribed && folderCount >= 61) { // 무료 사용자 제한
             throw new BadRequestException(ErrorResponseStatus.FOLDER_CREATED_NOT_ALLOWED);
         }
 
@@ -252,6 +266,7 @@ public class FolderService {
     }
 
 
+    // 폴더 수정
     @Transactional
     public FolderResponse.editFolderResultDTO editFolder(Long userId, Long folderId, FolderRequest.editFolderDto folderRequest) {
         User user = userRepository.findById(userId)
@@ -264,8 +279,25 @@ public class FolderService {
             throw new BadRequestException(ErrorResponseStatus.DUPLICATE_ERROR);
         }
 
-        folder.setEditDate(Timestamp.valueOf(LocalDateTime.now())); //수정된 시간을 저장
+        boolean isParentFolder = folder.getParentFolder() == null;
+
+        // 자식 폴더일때 색상 변경하면 에러처리
+        if (!isParentFolder && folderRequest.getColor() != null && !folderRequest.getColor().equals(folder.getColor())) {
+            throw new BadRequestException(ErrorResponseStatus.SUB_FOLDER_COLOR_CHANGE_NOT_ALLOWED);
+        }
+
         folder.setName(folderRequest.getName()); // 수정된 이름 저장
+
+        // 부모 폴더인 경우에만 색상 변경 허용 및 하위 폴더에 반영
+        if (isParentFolder && folderRequest.getColor() != null && !folderRequest.getColor().equals(folder.getColor())) {
+            folder.setColor(folderRequest.getColor());
+            List<Folder> subFolders = folderRepository.findAllByParentFolder(folder);
+            for (Folder sub : subFolders) {
+                sub.setColor(folderRequest.getColor());
+            }
+        }
+
+        folder.setEditDate(Timestamp.valueOf(LocalDateTime.now())); //수정된 시간을 저장
         folder.setColor(folderRequest.getColor()); // 수정된 색상 저장
 
         folder = folderRepository.save(folder);
@@ -286,10 +318,10 @@ public class FolderService {
         Folder folder = folderRepository.findByFolderIdAndUser(folderId, user)
                 .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.REQUEST_ERROR));
 
-        if(folder.getMarkState() == MarkStatus.ACTIVE){
+        if(folder.getMarkState() == ACTIVE){
             folder.setMarkState(MarkStatus.INACTIVE);
         } else {
-            folder.setMarkState(MarkStatus.ACTIVE);
+            folder.setMarkState(ACTIVE);
         }
 
         folder.setMarkDate(Timestamp.valueOf(LocalDateTime.now()));
@@ -358,5 +390,220 @@ public class FolderService {
                         .noteCount(folder.getNoteCount())
                         .build())
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public FolderResponse.ParentFolderListDTO searchParentFolders(Long userId, String keyword, Integer page, Integer size) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+
+        // 페이징 설정
+        int getPage = (page != null) ? page : 0;
+        int getSize = (size != null) ? size : Integer.MAX_VALUE;
+        Pageable pageable = PageRequest.of(getPage, getSize);
+
+        // 상위폴더 검색 (parentFolderId가 null인 폴더들)
+        Page<Folder> parentFolders;
+
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            // 검색어가 있는 경우
+            parentFolders = folderRepository.findParentFoldersByKeyword(user, keyword.trim(), pageable);
+        } else {
+            // 검색어가 없는 경우 전체 상위폴더 조회
+            parentFolders = folderRepository.findAllParentFolders(user, pageable);
+        }
+
+        // 각 상위폴더의 하위폴더 개수 조회
+        List<FolderResponse.ParentFolderInfoDTO> parentFolderInfos = parentFolders.getContent()
+                .stream()
+                .map(folder -> {
+                    Long subFolderCount = folderRepository.countSubFolders(folder);
+                    return FolderResponse.ParentFolderInfoDTO.builder()
+                            .folderId(folder.getFolderId())
+                            .folderName(folder.getName())
+                            .folderColor(folder.getColor())
+                            .markState(folder.getMarkState())
+                            .getSubFolderCount(folder.getSubFolders().size())
+                            .createdAt(folder.getCreatedAt())
+                            .editDate(folder.getEditDate())
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        return FolderResponse.ParentFolderListDTO.builder()
+                .parentFolders(parentFolderInfos)
+                .listSize(parentFolders.getSize())
+                .currentPage(getPage + 1)
+                .totalPages(parentFolders.getTotalPages())
+                .totalElements(parentFolders.getTotalElements())
+                .isFirst(parentFolders.isFirst())
+                .isLast(parentFolders.isLast())
+                .build();
+    }
+
+    public FolderResponse.FolderMoveResultDTO moveSubFolder(Long userId, Long subFolderId, Long targetParentFolderId) {
+
+        // 사용자 검증
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+
+        // 이동할 하위폴더 검증
+        Folder subFolder = folderRepository.findById(subFolderId)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_FOLDERID));
+
+        // 하위폴더인지 확인
+        if (subFolder.getParentFolder() == null) {
+            throw new BadRequestException(ErrorResponseStatus.CANNOT_MOVE_PARENT_FOLDER);
+        }
+
+        // 대상 상위폴더 검증
+        Folder targetParentFolder = folderRepository.findById(targetParentFolderId)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_FOLDERID));
+
+        // 대상이 상위폴더인지 확인
+        if (targetParentFolder.getParentFolder() != null) {
+            throw new BadRequestException(ErrorResponseStatus.TARGET_MUST_BE_PARENT_FOLDER);
+        }
+
+        // 자기 자신으로 이동하려는 경우 방지
+        if (subFolder.getParentFolder().getFolderId().equals(targetParentFolderId)) {
+            throw new BadRequestException(ErrorResponseStatus.ALREADY_IN_TARGET_FOLDER);
+        }
+
+        // 기존 상위폴더 정보 저장
+        String previousParentName = subFolder.getParentFolder().getName();
+
+        // 폴더 이동 실행
+        subFolder.updateParentFolder(targetParentFolder);
+        Folder savedFolder = folderRepository.save(subFolder);
+
+        return FolderResponse.FolderMoveResultDTO.builder()
+                .folderId(savedFolder.getFolderId())
+                .folderName(savedFolder.getName())
+                .previousParentFolderId(subFolder.getParentFolder().getFolderId())
+                .previousParentFolderName(previousParentName)
+                .newParentFolderId(targetParentFolder.getFolderId())
+                .newParentFolderName(targetParentFolder.getName())
+                .editDate(savedFolder.getEditDate())
+                .build();
+    }
+
+    // 노트 이동 - 전체 폴더 검색
+    @Transactional(readOnly = true)
+    public List<FolderResponse.FolderParentListDTO> searchFolders(Long userId, String keyword, Integer page, Integer size) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+
+        // 페이징 설정
+        int getPage = (page != null) ? page : 0;
+        int getSize = (size != null) ? size : Integer.MAX_VALUE;
+        Pageable pageable = PageRequest.of(getPage, getSize);
+
+        List<Folder> parentFoldersToShow;
+
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            // 1. 키워드에 매칭되는 모든 폴더들 조회
+            Page<Folder> matchedFolders = folderRepository.findFoldersByKeyword(user, keyword.trim(), pageable);
+
+            // 2. 매칭된 폴더들로부터 상위폴더 ID들 추출
+            Set<Long> parentFolderIds = matchedFolders.getContent().stream()
+                    .map(folder -> folder.getParentFolder() == null ?
+                            folder.getFolderId() : folder.getParentFolder().getFolderId())
+                    .collect(Collectors.toSet());
+
+            // 3. 해당 상위폴더들을 모든 하위폴더와 함께 조회
+            parentFoldersToShow = folderRepository.findParentFoldersWithSubFolders(user, new ArrayList<>(parentFolderIds));
+
+        } else {
+            // 검색어가 없는 경우 모든 상위폴더 조회
+            Page<Folder> allParentFolders = folderRepository.findAllFolders(user, pageable);
+            parentFoldersToShow = allParentFolders.getContent();
+        }
+
+        // 4. 즐겨찾기 우선 정렬
+        parentFoldersToShow.sort((a, b) -> {
+            boolean aHasFavorite = a.getMarkState() == ACTIVE ||
+                    a.getSubFolders().stream().anyMatch(sub -> sub.getMarkState() == ACTIVE);
+            boolean bHasFavorite = b.getMarkState() == ACTIVE ||
+                    b.getSubFolders().stream().anyMatch(sub -> sub.getMarkState() == ACTIVE);
+
+            if (aHasFavorite != bHasFavorite) {
+                return aHasFavorite ? -1 : 1;
+            }
+            return a.getName().compareTo(b.getName());
+        });
+
+        // 5. DTO 변환
+        List<FolderResponse.FolderParentListDTO> parentFolderInfos = parentFoldersToShow.stream()
+                .map(parent -> {
+                    // 하위폴더 리스트 생성 (즐겨찾기 우선 정렬)
+                    List<FolderResponse.FolderInfoDTO> subFolderInfos = parent.getSubFolders().stream()
+                            .sorted((sub1, sub2) -> {
+                                if (sub1.getMarkState() != sub2.getMarkState()) {
+                                    return sub1.getMarkState() == ACTIVE ? -1 : 1;
+                                }
+                                return sub1.getName().compareTo(sub2.getName());
+                            })
+                            .map(sub -> FolderResponse.FolderInfoDTO.builder()
+                                    .folderId(sub.getFolderId())
+                                    .name(sub.getName())
+                                    .color(sub.getColor())
+                                    .markState(sub.getMarkState())
+                                    .getNoteCount(sub.getNotes().size())
+                                    .markDate(sub.getMarkDate())
+                                    .editDate(sub.getEditDate())
+                                    .createdAt(sub.getCreatedAt())
+                                    .build())
+                            .collect(Collectors.toList());
+
+                    return FolderResponse.FolderParentListDTO.builder()
+                            .parentFolderID(parent.getFolderId())
+                            .parentFolderName(parent.getName())
+                            .parentFolderColor(parent.getColor())
+                            .parentMarkState(parent.getMarkState())
+                            .getNoteCount(parent.getNotes().size())
+                            .foldersList(subFolderInfos)
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        return parentFolderInfos;
+    }
+
+    // 노트 이동 - 노트 이동 API(상위폴더로 이동할 수 있고 하위폴더로 이동할 수 있음)
+    @Transactional
+    public NoteResponse.NoteMoveResultDTO moveNote(Long userId, Long noteId, Long targetFolderId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
+
+        // 노트 조회
+        Note note = noteRepository.findById(noteId)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_EXIST_NOTE));
+
+        // 이전 폴더
+        Folder previousFolder = note.getFolder();
+
+        // 이동할 폴더 검증
+        Folder targetFolder = folderRepository.findById(targetFolderId)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_FOLDERID));
+
+        // 동일 폴더 이동 방지
+        if (previousFolder.getFolderId().equals(targetFolderId)) {
+            throw new BadRequestException(ErrorResponseStatus.ALREADY_IN_TARGET_FOLDER);
+        }
+
+        // 폴더 변경
+        note.setFolder(targetFolder);
+        Note savedNote = noteRepository.save(note);
+
+        return NoteResponse.NoteMoveResultDTO.builder()
+                .noteId(note.getNoteId())
+                .noteName(note.getName())
+                .previousFolderId(previousFolder.getFolderId())
+                .previousFolderName(previousFolder.getName())
+                .newFolderId(targetFolder.getFolderId())
+                .newFolderName(targetFolder.getName())
+                .editDate(savedNote.getEditDate())
+                .build();
     }
 }
