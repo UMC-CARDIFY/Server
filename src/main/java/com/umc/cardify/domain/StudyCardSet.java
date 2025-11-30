@@ -70,6 +70,9 @@ public class StudyCardSet extends BaseEntity {
 	@Column(name = "next_study_date")
 	private LocalDateTime nextStudyDate;
 
+	@Column(name = "all_cards_count")
+	private int allCardsCount;
+
 	@Column(name = "completed_cards_count")
 	private int completedCardsCount;
 

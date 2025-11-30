@@ -4,6 +4,7 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.umc.cardify.domain.Note;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -29,5 +30,17 @@ public interface CardRepository extends JpaRepository<Card, Long> {
 
 	@Query("SELECT c FROM Card c WHERE c.studyCardSet.user.userId = :userId AND c.learnNextTime BETWEEN :start AND :end")
 	List<Card> findAllByUserIdAndLearnNextTimeBetween(@Param("userId") Long userId, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+	// note : 2025.10 새로 생성
+    int findCardTypeByCardId(Long cardId);
+
+	@Query("SELECT c.difficulty FROM Card c WHERE c.cardId = :cardId")
+	int findCardDifficultyByCardId(@Param("cardId") Long cardId);
+
+	@Query("SELECT c FROM Card c WHERE c.studyCardSet.user.userId = :userId")
+    List<Card> findByUser(Long userId);
+
+	@Query("SELECT COUNT(c) FROM Card c WHERE c.note.noteId = :noteId")
+	int countByNoteId(@Param("noteId") Long noteId);
 }
 

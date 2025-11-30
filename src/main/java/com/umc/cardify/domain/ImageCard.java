@@ -52,15 +52,22 @@ public class ImageCard extends BaseEntity {
 
 	private Timestamp learnLastTime;
 
+	@OneToMany(mappedBy = "imageCard", cascade = CascadeType.ALL)
+	private List<StudyLog> studyLogs = new  ArrayList<>();
+
+	@OneToMany(mappedBy = "imageCard", cascade = CascadeType.ALL)
+	private List<StudyHistory> studyHistories = new  ArrayList<>();
+
 	@OneToMany(mappedBy = "imageCard", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
 	private List<Overlay> overlays = new ArrayList<>();
 
 	@Builder
-	public ImageCard(String imageUrl, Long width, Long height, Long countLearn) {
+	public ImageCard(String imageUrl, Long width, Long height, Long countLearn, Timestamp learnNextTime) {
 		this.imageUrl = imageUrl;
 		this.width = width;
 		this.height = height;
 		this.countLearn = countLearn;
+		this.learnNextTime = learnNextTime;
 	}
 
 	// 연관관계 편의 메서드

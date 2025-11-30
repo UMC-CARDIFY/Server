@@ -23,4 +23,9 @@ public interface ImageCardRepository extends JpaRepository<ImageCard, Long> {
 	@Query("SELECT ic FROM ImageCard ic WHERE ic.studyCardSet.user.userId = :userId AND ic.learnNextTime BETWEEN :start AND :end")
 	List<ImageCard> findAllByUserIdAndLearnNextTimeBetween(@Param("userId") Long userId, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
+	@Query("SELECT i.difficulty FROM ImageCard i WHERE i.id = :cardId")
+	int findImageCardDifficultyByCardId(@Param("cardId") Long cardId);
+
+	@Query("SELECT ic FROM ImageCard ic WHERE ic.studyCardSet.user.userId = :userId")
+    List<ImageCard> findByUser(Long userId);
 }
