@@ -190,8 +190,6 @@ public class CardComponentService {
 			.width(request.getBaseImageWidth())
 			.build();
 
-		// 선규 Note note = noteModuleService.getNoteById(request.getNoteId());
-
 		StudyCardSet studyCardSet = cardModuleService.findStudyCardSetByNote(note);
 
 		imageCard.setStudyCardSet(studyCardSet);
