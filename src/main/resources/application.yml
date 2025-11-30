@@ -10,7 +10,7 @@ spring:
     password: ${DB_PASSWORD}
   jpa:
     hibernate:
-      ddl-auto: create
+      ddl-auto: none
       jdbc:
         time_zone: Asia/Seoul
     properties:
