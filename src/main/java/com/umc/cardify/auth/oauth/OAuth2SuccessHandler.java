@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Value;
 import lombok.extern.slf4j.Slf4j;
 import java.io.IOException;
 import java.util.Map;
+import com.umc.cardify.config.OAuth2Properties;
 
 @Slf4j
 @Component
@@ -26,9 +27,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
     private final JwtTokenProvider jwtTokenProvider;
     private final UserService userService;
-
-    @Value("${app.oauth2.redirect-uri}")
-    private String redirectUri;
+    private final OAuth2Properties oauth2Properties;
 
     @Value("${spring.profiles.active:local}")  // 프로필 설정 추가 (로컬 환경)
     private String activeProfile;
@@ -103,7 +102,34 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         refreshTokenCookie.setMaxAge(604800); // 7일
         response.addCookie(refreshTokenCookie);
 
-        // 클린 URL로 리다이렉트
-        getRedirectStrategy().sendRedirect(request, response, redirectUri);
+        // Origin 헤더에서 요청 출처 확인
+        String origin = request.getHeader("Origin");
+        String referer = request.getHeader("Referer");
+
+        // redirect URI 선택
+        String selectedRedirectUri = oauth2Properties.getRedirectUris().stream()
+            .filter(uri -> {
+                if (origin != null && uri.startsWith(origin)) {
+                    return true;
+                }
+                if (referer != null && uri.startsWith(getBaseUrl(referer))) {  // ← 여기서 호출
+                    return true;
+                }
+                return false;
+            })
+            .findFirst()
+            .orElse(oauth2Properties.getRedirectUris().get(0));
+
+        getRedirectStrategy().sendRedirect(request, response, selectedRedirectUri);
+    }
+
+    private String getBaseUrl(String url) {
+        try {
+            java.net.URI uri = new java.net.URI(url);
+            return uri.getScheme() + "://" + uri.getHost() +
+                (uri.getPort() != -1 ? ":" + uri.getPort() : "");
+        } catch (Exception e) {
+            return url;
+        }
     }
 }
