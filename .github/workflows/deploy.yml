@@ -52,7 +52,6 @@ jobs:
         key: ${{ secrets.EC2_SSH_KEY }}
         source: "build/libs/cardify-0.0.1-SNAPSHOT.jar"
         target: "/home/ubuntu/Server/"
-        strip_components: 2
     
     - name: Start application
       uses: appleboy/ssh-action@master
@@ -62,11 +61,9 @@ jobs:
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
           cd /home/ubuntu/Server/build/libs
-          # .env 파일에서 환경변수 로드
           set -a
           source ~/Server/.env
           set +a
-          # 애플리케이션 시작
           nohup java -jar cardify-0.0.1-SNAPSHOT.jar > app.log 2>&1 &
           echo "새 애플리케이션 시작 완료"
           sleep 5
