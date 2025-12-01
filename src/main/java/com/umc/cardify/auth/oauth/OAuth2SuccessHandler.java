@@ -106,6 +106,8 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         String origin = request.getHeader("Origin");
         String referer = request.getHeader("Referer");
 
+        log.info("Origin: {}, Referer: {}", origin, referer);  
+
         // redirect URI 선택
         String selectedRedirectUri = oauth2Properties.getRedirectUris().stream()
             .filter(uri -> {
@@ -119,7 +121,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
             })
             .findFirst()
             .orElse(oauth2Properties.getRedirectUris().get(0));
-
+        log.info("선택된 Redirect URI: {}", selectedRedirectUri); 
         getRedirectStrategy().sendRedirect(request, response, selectedRedirectUri);
     }
 
