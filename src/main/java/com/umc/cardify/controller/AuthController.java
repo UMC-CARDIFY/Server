@@ -74,30 +74,6 @@ public class AuthController {
         return ResponseEntity.ok(tokens);
     }
 
-    // OAuth2 로그인 후 발급된 액세스 토큰을 프론트엔드에 제공하는 API
-    // 프론트엔드에서는 리다이렉트 후 이 API를 호출하여 액세스 토큰을 가져감
-    @GetMapping("/token")
-    @Operation(summary = "토큰 발급", description = "로그인 후 리다이렉트하여 토큰 발급받기")
-    public ResponseEntity<Map<String, String>> getAccessToken(HttpServletRequest request) {
-        HttpSession session = request.getSession(false);
-        Map<String, String> response = new HashMap<>();
-
-        if (session != null) {
-            String accessToken = (String) session.getAttribute("OAUTH2_ACCESS_TOKEN");
-
-            if (accessToken != null) {
-                // 토큰을 응답으로 반환하고 세션에서 제거 (일회성 접근)
-                response.put("accessToken", accessToken);
-                session.removeAttribute("OAUTH2_ACCESS_TOKEN");
-                return ResponseEntity.ok(response);
-            }
-        }
-
-        // 토큰이 없는 경우
-        response.put("error", "No access token available");
-        return ResponseEntity.badRequest().body(response);
-    }
-
     // 리프래시 토큰 유효성 검증
     @GetMapping("/check-refresh-token")
     public ResponseEntity<Map<String, Boolean>> checkRefreshToken(HttpServletRequest request) {

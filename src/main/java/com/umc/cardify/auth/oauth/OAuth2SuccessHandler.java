@@ -7,7 +7,6 @@ import com.umc.cardify.service.UserService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
@@ -29,7 +28,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     private final UserService userService;
     private final OAuth2Properties oauth2Properties;
 
-    @Value("${spring.profiles.active:local}")  // 프로필 설정 추가 (로컬 환경)
+    @Value("${spring.profiles.active:local}")
     private String activeProfile;
 
     @Override
@@ -65,17 +64,13 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         // 항상 새 토큰 발급
         log.info("로그인 감지 - 새 토큰 발급: {}", email);
 
-        // 1. 기존 세션 토큰 제거
-        HttpSession session = request.getSession();
-        session.removeAttribute("OAUTH2_ACCESS_TOKEN");
-
-        // 2. 기존 리프레시 토큰 무효화 (DB에서)
+        // 기존 리프레시 토큰 무효화 (DB에서)
         if (user.getRefreshToken() != null) {
             log.info("기존 리프레시 토큰 무효화: {}", email);
             user.setRefreshToken(null);
         }
 
-        // 3. 새 토큰 생성
+        // 새 토큰 생성
         String accessToken = jwtTokenProvider.createAccessToken(email, provider);
         String refreshToken = jwtTokenProvider.createRefreshToken();
 
@@ -91,9 +86,6 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         user.setRefreshToken(refreshToken);
         userService.saveUser(user);
 
-        // 새로운 accessToken을 세션에 저장
-        session.setAttribute("OAUTH2_ACCESS_TOKEN", accessToken);
-
         // refreshToken은 HttpOnly 쿠키에 저장
         Cookie refreshTokenCookie = new Cookie("refreshToken", refreshToken);
         refreshTokenCookie.setHttpOnly(true);
@@ -106,7 +98,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         String origin = request.getHeader("Origin");
         String referer = request.getHeader("Referer");
 
-        log.info("Origin: {}, Referer: {}", origin, referer);  
+        log.info("Origin: {}, Referer: {}", origin, referer);
 
         // redirect URI 선택
         String selectedRedirectUri = oauth2Properties.getRedirectUris().stream()
@@ -114,15 +106,19 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                 if (origin != null && uri.startsWith(origin)) {
                     return true;
                 }
-                if (referer != null && uri.startsWith(getBaseUrl(referer))) {  // ← 여기서 호출
+                if (referer != null && uri.startsWith(getBaseUrl(referer))) {
                     return true;
                 }
                 return false;
             })
             .findFirst()
             .orElse(oauth2Properties.getRedirectUris().get(0));
-        log.info("선택된 Redirect URI: {}", selectedRedirectUri); 
-        getRedirectStrategy().sendRedirect(request, response, selectedRedirectUri);
+
+        // 쿼리 파라미터로 Access Token 전달
+        String redirectUrl = selectedRedirectUri + "?accessToken=" + accessToken;
+
+        log.info("🔀 리다이렉트 (토큰 포함): {}", selectedRedirectUri);
+        getRedirectStrategy().sendRedirect(request, response, redirectUrl);
     }
 
     private String getBaseUrl(String url) {
