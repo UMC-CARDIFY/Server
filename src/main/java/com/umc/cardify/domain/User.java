@@ -3,6 +3,7 @@ package com.umc.cardify.domain;
 import com.umc.cardify.domain.enums.AuthProvider;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
 

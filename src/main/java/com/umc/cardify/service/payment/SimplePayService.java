@@ -11,8 +11,6 @@ public interface SimplePayService {
   BillingKeyResponse.RequestBillingKeyRes requestBillingKey(BillingKeyRequestDTO.RequestBillingKeyReq request);
   BillingKeyResponse.ApproveBillingKeyRes approveBillingKey(BillingKeyRequestDTO.ApproveBillingKeyReq request);
   BillingKeyResponse.BillingStatusRes getBillingStatus(String merchantUid);
-  BillingKeyResponse.CheckBillingKeyStatusRes checkBillingKeyStatus(String impUid);
-
 
   // 결제 관련
   boolean cancelPayment(SubscriptionRequest.CancelPaymentReq request);

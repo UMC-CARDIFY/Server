@@ -2,6 +2,7 @@ package com.umc.cardify.domain;
 
 
 import com.umc.cardify.domain.enums.PaymentStatus;
+import com.umc.cardify.domain.enums.PaymentType;
 import jakarta.persistence.*;
 import lombok.*;
 

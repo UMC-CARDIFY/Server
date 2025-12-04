@@ -60,12 +60,4 @@ public class BillingKeyRequestDTO {
       @Schema(description = "사용자 ID", example = "1")
       Long userId
   ) {}
-
-  @Builder
-  @Schema(title = "BILLING_REQ_03 : 빌링키 상태 확인 요청")
-  public record CheckBillingKeyStatusReq(
-      @NotBlank(message = "포트원 결제 고유 번호를 입력해 주세요.")
-      @Schema(description = "포트원 결제 고유 번호 (imp_uid)", example = "imp_1234567890")
-      String impUid
-  ) {}
 }

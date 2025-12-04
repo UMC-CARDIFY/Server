@@ -1,5 +1,6 @@
 package com.umc.cardify.controller;
 
+import com.umc.cardify.auth.jwt.JwtTokenProvider;
 import com.umc.cardify.dto.user.UserRequest;
 import com.umc.cardify.dto.user.UserResponse;
 import com.umc.cardify.service.UserService;
@@ -19,6 +20,9 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
+    private final JwtTokenProvider jwtTokenProvider; // JwtUtil에서 변경
+
+    // 회원가입, 로그인 관련 엔드포인트 제거 (소셜 로그인으로 대체)
 
     // 로그아웃
     @PostMapping("/logout")
