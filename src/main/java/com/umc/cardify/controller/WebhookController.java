@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "WebhookController", description = "결제 웹훅 처리 API")
 public class WebhookController {
 
-  private final SimplePayServiceImpl simplePayServiceImpl;
+  private final SimplePayService simplePayService;
 
   @Operation(summary = "결제 웹훅 처리", description = "포트원/카카오페이로부터 전송되는 결제 상태 웹훅을 처리합니다.")
   @PostMapping("/payment")
@@ -34,7 +34,7 @@ public class WebhookController {
     }
 
     try {
-      simplePayServiceImpl.handleWebhook(request);
+      simplePayService.handleWebhook(request);
       return ResponseEntity.ok().build();
     } catch (Exception e) {
       log.error("웹훅 처리 중 오류 발생: {}", e.getMessage());

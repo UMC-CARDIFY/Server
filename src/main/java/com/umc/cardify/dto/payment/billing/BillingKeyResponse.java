@@ -1,5 +1,6 @@
 package com.umc.cardify.dto.payment.billing;
 
+import com.siot.IamportRestClient.response.Payment;
 import com.umc.cardify.domain.PaymentMethod;
 import com.umc.cardify.domain.enums.PaymentType;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -61,19 +62,7 @@ public class BillingKeyResponse {
 
       @Schema(description = "등록 일시", example = "2025-03-27T15:30:45")
       LocalDateTime createdAt
-  ) {
-    // PaymentMethod 객체로부터 KakaoPayMethodRes 생성하는 생성자 추가
-    public static KakaoPayMethodRes fromPaymentMethod(PaymentMethod paymentMethod) {
-      return KakaoPayMethodRes.builder()
-          .id(paymentMethod.getId())
-          .type(paymentMethod.getType())
-          .provider(paymentMethod.getProvider())
-          .cardNumber(paymentMethod.getCardNumber())
-          .isDefault(paymentMethod.getIsDefault())
-          .createdAt(paymentMethod.getCreatedAt())
-          .build();
-    }
-  }
+  ) {}
 
   @Builder
   @Schema(title = "BILLING_RES_04 : 빌링키 발급 승인 응답")
@@ -107,6 +96,32 @@ public class BillingKeyResponse {
       String customerUid,
 
       @Schema(description = "상태", example = "paid")
+      String status
+  ) {}
+
+  @Builder
+  @Schema(title = "BILLING_RES_06 : 빌링키 상태 상세 조회 응답", description = "포트원 결제 정보와 빌링키 요청 정보를 포함")
+  public record CheckBillingKeyStatusRes(
+      @Schema(description = "포트원 결제 정보")
+      Payment payment,
+
+      @Schema(description = "빌링키 요청 정보 (없을 수 있음)")
+      BillingKeyRequestInfo billingKeyRequest
+  ) {}
+
+  @Builder
+  @Schema(title = "BILLING_RES_07 : 빌링키 요청 정보")
+  public record BillingKeyRequestInfo(
+      @Schema(description = "빌링키 요청 ID", example = "1")
+      Long id,
+
+      @Schema(description = "가맹점 주문 번호", example = "merchant_1234567890")
+      String merchantUid,
+
+      @Schema(description = "고객 고유 번호", example = "customer_1_1620000000000")
+      String customerUid,
+
+      @Schema(description = "빌링키 상태", example = "COMPLETED")
       String status
   ) {}
 }
