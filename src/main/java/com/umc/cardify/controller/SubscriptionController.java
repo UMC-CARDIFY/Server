@@ -4,7 +4,7 @@ import com.umc.cardify.config.exception.ResourceNotFoundException;
 import com.umc.cardify.dto.payment.subscription.SubscriptionRequest;
 import com.umc.cardify.dto.payment.subscription.SubscriptionResponse;
 import com.umc.cardify.dto.payment.subscription.SubscriptionResponse.SubscriptionInfoRes;
-import com.umc.cardify.service.subscription.SubscriptionServiceImpl;
+import com.umc.cardify.service.subscription.SubscriptionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "SubscriptionController", description = "구독 관련 API")
 public class SubscriptionController {
 
-  private final SubscriptionServiceImpl subscriptionServiceImpl;
+  private final SubscriptionService subscriptionService;
 
 
   // FIXME : 삭제해도 될 거 같음
@@ -33,7 +33,7 @@ public class SubscriptionController {
 
     log.info("구독 생성 요청: userId={}, productId={}", request.userId(), request.productId());
     try {
-      SubscriptionInfoRes response = subscriptionServiceImpl.createSubscription(request, token);
+      SubscriptionInfoRes response = subscriptionService.createSubscription(request, token);
       return ResponseEntity.status(HttpStatus.CREATED).body(response);
     } catch (ResourceNotFoundException e) {
       log.error("구독 생성 오류: {}", e.getMessage());
@@ -49,7 +49,7 @@ public class SubscriptionController {
   public ResponseEntity<SubscriptionInfoRes> getSubscription(@PathVariable("id") Long subscriptionId,
                                                              @RequestHeader("Authorization") String token) {
     try {
-      SubscriptionInfoRes response = subscriptionServiceImpl.getSubscription(subscriptionId, token);
+      SubscriptionInfoRes response = subscriptionService.getSubscription(subscriptionId, token);
       return ResponseEntity.ok(response);
     } catch (ResourceNotFoundException e) {
       log.error("구독 조회 오류: {}", e.getMessage());
@@ -60,7 +60,7 @@ public class SubscriptionController {
   @Operation(summary = "사용자별 구독 목록 조회", description = "사용자의 모든 구독을 조회합니다.")
   @GetMapping("/user")
   public ResponseEntity<SubscriptionResponse.SubscriptionListRes> getSubscriptionsByUserId(@RequestHeader("Authorization") String token) {
-    SubscriptionResponse.SubscriptionListRes response = subscriptionServiceImpl.getSubscriptionsByUserId(token);
+    SubscriptionResponse.SubscriptionListRes response = subscriptionService.getSubscriptionsByUserId(token);
     return ResponseEntity.ok(response);
   }
 
@@ -72,7 +72,7 @@ public class SubscriptionController {
 
     log.info("구독 취소 요청: subscriptionId={}", request.subscriptionId());
     try {
-      boolean success = subscriptionServiceImpl.cancelSubscription(request, token);
+      boolean success = subscriptionService.cancelSubscription(request, token);
       return success ? ResponseEntity.ok().build() : ResponseEntity.badRequest().build();
     } catch (ResourceNotFoundException e) {
       log.error("구독 취소 오류: {}", e.getMessage());
@@ -90,7 +90,7 @@ public class SubscriptionController {
 
     log.info("자동 갱신 설정 변경 요청: subscriptionId={}, autoRenew={}", subscriptionId, autoRenew);
     try {
-      boolean success = subscriptionServiceImpl.updateAutoRenew(subscriptionId, autoRenew, token);
+      boolean success = subscriptionService.updateAutoRenew(subscriptionId, autoRenew, token);
       return success ? ResponseEntity.ok().build() : ResponseEntity.badRequest().build();
     } catch (ResourceNotFoundException e) {
       log.error("자동 갱신 설정 변경 오류: {}", e.getMessage());
@@ -104,7 +104,7 @@ public class SubscriptionController {
       @PathVariable("id") Long subscriptionId,
       @RequestHeader("Authorization") String token) {
 
-    SubscriptionResponse.PaymentHistoryListRes response = subscriptionServiceImpl.getPaymentHistoriesBySubscriptionId(subscriptionId, token);
+    SubscriptionResponse.PaymentHistoryListRes response = subscriptionService.getPaymentHistoriesBySubscriptionId(subscriptionId, token);
     return ResponseEntity.ok(response);
   }
 }
