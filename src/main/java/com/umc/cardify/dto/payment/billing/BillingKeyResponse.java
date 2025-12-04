@@ -1,7 +1,6 @@
 package com.umc.cardify.dto.payment.billing;
 
 import com.siot.IamportRestClient.response.Payment;
-import com.umc.cardify.domain.PaymentMethod;
 import com.umc.cardify.domain.enums.PaymentType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;

@@ -5,7 +5,6 @@ import com.umc.cardify.dto.payment.subscription.SubscriptionRequest;
 import com.umc.cardify.dto.payment.subscription.SubscriptionResponse;
 import com.umc.cardify.dto.payment.subscription.SubscriptionResponse.SubscriptionInfoRes;
 import com.umc.cardify.service.subscription.SubscriptionService;
-import com.umc.cardify.service.subscription.SubscriptionServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;

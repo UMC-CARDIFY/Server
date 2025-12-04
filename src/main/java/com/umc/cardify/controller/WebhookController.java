@@ -2,7 +2,6 @@ package com.umc.cardify.controller;
 
 import com.umc.cardify.dto.payment.webhook.WebhookRequest;
 import com.umc.cardify.service.payment.SimplePayService;
-import com.umc.cardify.service.payment.SimplePayServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;

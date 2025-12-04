@@ -3,7 +3,6 @@ package com.umc.cardify.controller;
 import com.umc.cardify.dto.payment.method.PaymentMethodRequest;
 import com.umc.cardify.dto.payment.method.PaymentMethodResponse;
 import com.umc.cardify.service.paymentMethod.PaymentMethodService;
-import com.umc.cardify.service.paymentMethod.PaymentMethodServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;

@@ -1,6 +1,5 @@
 package com.umc.cardify.controller;
 
-import com.umc.cardify.auth.jwt.JwtTokenProvider;
 import com.umc.cardify.dto.user.UserRequest;
 import com.umc.cardify.dto.user.UserResponse;
 import com.umc.cardify.service.UserService;

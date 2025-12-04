@@ -5,7 +5,6 @@ import com.umc.cardify.dto.payment.billing.BillingKeyResponse;
 import com.umc.cardify.dto.payment.subscription.SubscriptionRequest;
 import com.umc.cardify.dto.payment.webhook.WebhookRequest;
 import com.umc.cardify.service.payment.SimplePayService;
-import com.umc.cardify.service.payment.SimplePayServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -15,7 +14,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.Parameter;
-import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @Slf4j

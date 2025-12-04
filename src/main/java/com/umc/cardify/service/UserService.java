@@ -3,7 +3,6 @@ package com.umc.cardify.service;
 import com.umc.cardify.auth.jwt.JwtTokenProvider;
 import com.umc.cardify.config.exception.BadRequestException;
 import com.umc.cardify.config.exception.ErrorResponseStatus;
-import com.umc.cardify.config.exception.ResourceNotFoundException;
 import com.umc.cardify.domain.User;
 import com.umc.cardify.domain.enums.AuthProvider;
 import com.umc.cardify.dto.user.UserRequest;
@@ -12,7 +11,6 @@ import com.umc.cardify.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
