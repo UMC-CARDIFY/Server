@@ -46,7 +46,7 @@ public class AuthServiceImpl implements AuthService {
         user.getProvider()
     );
 
-    log.info("액세스 토큰 갱신 성공: userId={}, email={}", user.getId(), user.getEmail());
+    log.info("액세스 토큰 갱신 성공: userId={}, email={}", user.getUserId(), user.getEmail());
 
     // 5. 응답 생성
     return AuthResponse.RefreshTokenRes.builder()
