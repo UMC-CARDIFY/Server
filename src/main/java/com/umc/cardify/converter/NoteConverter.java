@@ -26,10 +26,10 @@ import java.util.stream.Collectors;
 public class NoteConverter {
     private final LibraryService libraryService;
     private final ContentsNoteRepository contentsNoteRepository;
-    public static Note toAddNote(Folder folder){
+    public static Note toAddNote(Folder folder, String name){
         return Note.builder()
                 .folder(folder)
-                .name("제목없음")
+                .name(name)
                 .viewAt(LocalDateTime.now())
                 .totalText(".")
                 .isEdit(true)

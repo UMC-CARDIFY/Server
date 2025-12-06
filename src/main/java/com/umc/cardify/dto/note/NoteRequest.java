@@ -16,6 +16,7 @@ public class NoteRequest {
     public static class AddNoteDto{
         @NotNull
         Long folderId;
+        String name;
     }
     @Getter
     @Schema(title = "NOTE_REQ_02 : 노트 작성 요청 DTO")
