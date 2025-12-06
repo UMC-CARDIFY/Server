@@ -34,7 +34,7 @@ spring:
             client-secret: ${KAKAO_CLIENT_SECRET}
             client-name: Kakao
             authorization-grant-type: authorization_code
-            redirect-uri: "https://cardify.co.kr/login/oauth2/code/kakao"
+            redirect-uri: "http://3.37.20.234:8080/login/oauth2/code/kakao"
             scope:
               - profile_nickname
               - account_email
@@ -75,7 +75,8 @@ spring:
 app:
   oauth2:
     redirect-uris:
-      - cardify.co.kr
+      - http://localhost:5173/          # 개발: 프론트 로컬
+      - https://cardify.co.kr/           # 배포: 프론트 배포 주소
 jwt:
   secret: ${SECRET_KEY}
   refreshTokenValidity: ${REFRESH_TOKEN}
