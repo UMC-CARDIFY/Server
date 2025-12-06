@@ -76,7 +76,7 @@ app:
   oauth2:
     redirect-uris:
       - http://localhost:5173/
-      - http://3.37.20.234:8080/
+      - cardify.co.kr
 jwt:
   secret: ${SECRET_KEY}
   refreshTokenValidity: ${REFRESH_TOKEN}
