@@ -75,7 +75,7 @@ spring:
 app:
   oauth2:
     redirect-uris:
-      - http://localhost:5173/          # 개발: 프론트 로컬
+      # - http://localhost:5173/          # 개발: 프론트 로컬
       - https://cardify.co.kr/           # 배포: 프론트 배포 주소
 jwt:
   secret: ${SECRET_KEY}
