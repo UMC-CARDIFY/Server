@@ -71,8 +71,8 @@ public class NoteService {
      * @param folder 추가할 노트의 폴더
      * @return 추가된 노트 객체
      */
-    public Note addNote(Folder folder) {
-        Note newNote = NoteConverter.toAddNote(folder);
+    public Note addNote(Folder folder, String name) {
+        Note newNote = NoteConverter.toAddNote(folder, name);
         noteRepository.save(newNote);
 
         ContentsNote contentsNote = ContentsNote.builder().note(newNote).build();
