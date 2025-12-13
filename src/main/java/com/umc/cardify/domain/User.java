@@ -71,6 +71,12 @@ public class User extends BaseEntity {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<Subscription> subscriptions = new ArrayList<>();
 
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<StudyHistory> studyHistories = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<StudyLog> studyLogs =  new ArrayList<>();
+
     @Builder
     public User(String name, String email, AuthProvider provider, String providerId, String profileImage, Integer point, boolean notificationEnabled) {
         this.name = name;

@@ -4,6 +4,7 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 
 import com.umc.cardify.auth.jwt.JwtTokenProvider;
 import com.umc.cardify.config.exception.BadRequestException;
@@ -91,6 +92,7 @@ public class CardController {
 		return ResponseEntity.ok(cardListsPage);
 	}
 
+	// NOTE : https://www.figma.com/design/BxpTfbBq0G5MxIfy3Nl7X9?node-id=4-2#1450135366 '학습 카드' 기능이 이해 안되면 해당 댓글 참고
 	@GetMapping(value = "/{studyCardSetId}")
 	@Operation(summary = "학습 카드 - 카드 학습", description = "해당 노트(StudyCardSet)의 학습 카드 전부를 Pageable 리스트로 전달")
 	public ResponseEntity<Page<Object>> studyCard(
@@ -112,25 +114,27 @@ public class CardController {
 		return ResponseEntity.ok().build();
 	}
 
-	@GetMapping("{studyCardSetId}/study-graph")
-	@Operation(summary = "학습 통계 그래프 조회")
-	public ResponseEntity<CardResponse.cardStudyGraph> viewStudyCardGraph(
-			@RequestHeader("Authorization") String token,
-			@PathVariable Long studyCardSetId) {
-		CardResponse.cardStudyGraph cardStudyGraph = cardComponentService.viewStudyCardGraph(token, studyCardSetId);
+	@GetMapping("/{cardId}/next-time")
+	@Operation(summary = "학습 카드 - 난이도 선택 - 다음 학습 시간 예측 반환", description = "난이도 선택 전에, 각 난이도에 따른 다음 학습시간 예측 반환 | CardType은 일반카드는 0")
+	public ResponseEntity<Map<String, LocalDateTime>> getExpectedNextStudyTimes(
+			@PathVariable Long cardId,
+			@RequestParam int cardType) {
 
-		return ResponseEntity.ok(cardStudyGraph);
+		Map<String, LocalDateTime> result = cardComponentService.getExpectedNextStudyTimes(cardId, cardType);
+		return ResponseEntity.ok(result);
 	}
 
-	@GetMapping("{studyCardSetId}/study-completed")
-	@Operation(summary = "분석 학습 완료")
-	public ResponseEntity<?> completeStudy(
-			@RequestHeader("Authorization") String token,
-			@PathVariable Long studyCardSetId) {
-		cardComponentService.completeStudy(token, studyCardSetId);
+	// NOTE : 학습 난이도 선택에 분석학습이 합쳐짐 -- 나중에 개발 기간 끝나고 삭제
+//	@GetMapping("{studyCardSetId}/study-completed")
+//	@Operation(summary = "분석 학습 완료")
+//	public ResponseEntity<?> completeStudy(
+//			@RequestHeader("Authorization") String token,
+//			@PathVariable Long studyCardSetId) {
+//		cardComponentService.completeStudy(token, studyCardSetId);
+//
+//		return ResponseEntity.ok().build();
+//	}
 
-		return ResponseEntity.ok().build();
-	}
 
 	@GetMapping("{studyCardSetId}/study-log")
 	@Operation(summary = "분석 학습 기록 조회")
@@ -141,6 +145,8 @@ public class CardController {
 		return ResponseEntity.ok(studyLogs);
 	}
 
+	// NOTE : 2025.7월 기준 기능입니다. - '학습 추천' 탭에서 "지금 학습하면 좋은 카드 리스트" 반환
+
 	@PostMapping("/study-suggestion")
 	@Operation(summary = "분석 학습 제안")
 	public ResponseEntity<List<CardResponse.getStudySuggestion>> suggestionAnalyzeStudy(
@@ -148,12 +154,9 @@ public class CardController {
 		@RequestBody CardRequest.getSuggestion request) {
 
 		Timestamp date = Timestamp.valueOf(LocalDateTime.parse(request.getDate(), DateTimeFormatter.ISO_DATE_TIME));
-
 		List<CardResponse.getStudySuggestion> suggestions = cardComponentService.suggestionAnalyzeStudy(token, date);
-
 		return ResponseEntity.ok(suggestions);
 	}
-
 	@DeleteMapping("{studyCardSetId}")
 	@Operation(summary = "학습 카드셋 삭제")
 	public ResponseEntity<?> deleteStudyCardSet(
@@ -164,40 +167,76 @@ public class CardController {
 		return ResponseEntity.ok().build();
 	}
 
-	@GetMapping("{studyCardSetId}/re-study")
+	// NOTE : 2025.10.21 수정 (parameter studyCardId -> cardId로 변경)
+
+	@GetMapping("{cardId}/re-study")
 	@Operation(summary = "재학습")
 	public ResponseEntity<?> reStudy(
 			@RequestHeader("Authorization") String token,
-			@PathVariable Long studyCardSetId) {
-		cardComponentService.reStudy(token, studyCardSetId);
+			@PathVariable Long cardId,
+			@RequestParam int cardType) {
+		cardComponentService.reStudy(token, cardId, cardType);
 
 		return ResponseEntity.ok().build();
 	}
 
+	@GetMapping("/quick-learning")
+	@Operation(summary = "빠른 학습 탭/예정된 학습 탭 - 플래시 카드 세트 조회", description = "사용자에게 학습 시간 도달(지난 카드)가 있는 StudyCardSet을 원하는 개수만큼 반환 | limit = null or 3")
+	public ResponseEntity<List<CardResponse.getExpectedCardSetListDTO>> getQuickLearningStudySets(
+			@RequestHeader("Authorization") String token,
+			@RequestParam(name = "limit", required = false) int limit) {
+
+		List<CardResponse.getExpectedCardSetListDTO> sets = cardComponentService.getStudyCardSetsForQuickLearning(token, limit);
+		return ResponseEntity.ok(sets);
+	}
+
 	@GetMapping("/weekly-count")
-	@Operation(summary = "주간 학습 결과 API", description = "사용자 조회 성공 시, 해당 주의 총 학습 카드 개수와 날짜별 학습 카드 개수 반환")
+	@Operation(summary = "학습 대시보드 - 주간 학습 결과 API", description = "사용자 조회 성공 시, 해당 주의 총 학습 카드 개수와 날짜별 학습 카드 개수 반환 | 월요일(1), 화요일(2) ... 일요일(7)")
 	public ResponseEntity<CardResponse.weeklyResultDTO> getCardByWeek(@RequestHeader("Authorization") String token) {
 
 		CardResponse.weeklyResultDTO weekCard = cardComponentService.getCardByWeek(token);
 		return ResponseEntity.ok(weekCard);
 	}
 
-	@GetMapping("/study-suggestion/{years}/{month}")
-	@Operation(summary = "이번 달 학습 예정 일자")
-	public ResponseEntity<?> getExpectedStudyDate(@RequestHeader("Authorization") String token, @PathVariable int years, @PathVariable int month){
+	@GetMapping("/study-graph/{range}")
+	@Operation(summary = "학습 대시보드 - 주간 학습 난이도 통계 그래프", description = "전체(1)/주간(2) pathvariable로 입력 | 학습 카드에 대한 난이도 통계 반환(가장 높은 값은 프론트에서 처리)")
+	public ResponseEntity<CardResponse.cardStudyGraph> viewStudyCardGraph(
+			@RequestHeader("Authorization") String token,
+			@PathVariable Integer range) {
 
-		CardResponse.getExpectedStudyDateDTO studyDateDTO = cardComponentService.getExpectedStudyDate(token, years, month);
-
-		return ResponseEntity.ok(studyDateDTO);
+		CardResponse.cardStudyGraph cardStudyGraph = cardComponentService.viewStudyCardGraph(token, range);
+		return ResponseEntity.ok(cardStudyGraph);
 	}
 
-	@GetMapping("/quick-learning")
-	@Operation(summary = "빠른 학습 탭 - 플래시 카드 세트 조회",
-			description = "사용자에게 학습 시간 도달한 카드가 있는 StudyCardSet을 최대 3개 반환")
-	public ResponseEntity<List<CardResponse.getExpectedCardSetListDTO>> getQuickLearningStudySets(
+	@GetMapping("/contributions/{annual}")
+	@Operation(summary = "학습 대시보드 - 연간 분석 학습 통계 API", description = "현재 연동 입력 후, 사용자의 전체 학습 개수와 1~4단계의 color 반환")
+	public ResponseEntity<CardResponse.AnnualResultDTO> getContributionsByAnnual(
+			@RequestHeader("Authorization") String token,
+			@PathVariable Integer annual) {
+
+		CardResponse.AnnualResultDTO annualResult = cardComponentService.getCardByYear(token, annual);
+		return ResponseEntity.ok(annualResult);
+	}
+
+	@GetMapping("/intended-learning")
+	@Operation(summary = "아직 학습 시간이 도달하지 않은 카드세트 전체 조회", description = "현재(now)를 기준으로 다음학습시간이 미래인 카드 리스트")
+	public ResponseEntity<List<CardResponse.getExpectedCardSetListDTO>> getIntendedLearning(
 			@RequestHeader("Authorization") String token) {
 
-		List<CardResponse.getExpectedCardSetListDTO> sets = cardComponentService.getStudyCardSetsForQuickLearning(token);
+		List<CardResponse.getExpectedCardSetListDTO> sets = cardComponentService.getIntendedLearningSets(token);
 		return ResponseEntity.ok(sets);
+	}
+
+
+	// NOTE : 홈 화면에 위치하는 기능
+	@GetMapping("/study-suggestion/{years}/{month}")
+	@Operation(summary = "이번 달 학습 예정 일자(홈 화면에 위치하는 기능)", description = "연도, 월을 int로 입력하면 학습 예정 날짜 반환")
+	public ResponseEntity<?> getExpectedStudyDate(
+			@RequestHeader("Authorization") String token,
+			@PathVariable int years,
+			@PathVariable int month){
+
+		CardResponse.getExpectedStudyDateDTO studyDateDTO = cardComponentService.getExpectedStudyDate(token, years, month);
+		return ResponseEntity.ok(studyDateDTO);
 	}
 }

@@ -3,6 +3,7 @@ package com.umc.cardify.service;
 import static com.umc.cardify.config.exception.ErrorResponseStatus.*;
 
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Queue;
 
@@ -47,7 +48,22 @@ public class CardModuleService {
 	private final S3Service s3Service;
     private final ObjectMapper objectMapper;
 
-	public boolean existsByNote(Note note){
+	// note : 카드 타입 조회
+	public int getCardType(Long cardId) {
+		int cardType = cardRepository.findCardTypeByCardId(cardId);
+		return cardType;
+	}
+
+	// note : 카드 난이도 조회
+	public int getCardDifficulty(Long cardId, int cardType) {
+		if (cardType == 0) {
+			return cardRepository.findCardDifficultyByCardId(cardId);
+		} else {
+			return imageCardRepository.findImageCardDifficultyByCardId(cardId);
+		}
+	}
+
+    public boolean existsByNote(Note note){
 
 		return studyCardSetRepository.existsByNote(note);
 	}
@@ -103,12 +119,14 @@ public class CardModuleService {
 		saveOverlays(node.getAttrs().getOverlays(), savedImageCard);
 	}
 
+	// NOTE : 이미지 카드 최초 생성 시 다음 학습시간은 즉시 학습으로 지정
 	private ImageCard buildImageCard(String imgUrl, Attr attrs) {
 		return ImageCard.builder()
 			.imageUrl(imgUrl)
 			.height(attrs.getBaseImageHeight())
 			.width(attrs.getBaseImageWidth())
 			.countLearn(0L)
+			.learnNextTime(Timestamp.valueOf(LocalDateTime.now())) // 즉시 학습
 			.build();
 	}
 
@@ -182,6 +200,7 @@ public class CardModuleService {
 		}
 	}
 
+	// NOTE : 카드 생성 시, 즉시 '카드 학습 시간' 생성
 	public Card createCard(Note note, String contents, String questionFront, String questionBack, String answer, CardType cardType) {
 		return Card.builder()
 			.note(note)
@@ -190,6 +209,7 @@ public class CardModuleService {
 			.contentsBack(questionBack)
 			.answer(answer)
 			.countLearn(0L)
+			.learnNextTime(Timestamp.valueOf(LocalDateTime.now())) // 생성된 시간으로 다음 학습 시간이 생성됨
 			.type(cardType.getValue())
 			.build();
 	}
@@ -212,8 +232,22 @@ public class CardModuleService {
 			.build());
 	}
 
+	/**
+	 * 2025.11.16 추가 by 임수빈
+	 * studyCardSet에 allCardCount 저장하기 위한 로직
+	 * createCard - createNewStudyCard 이후에 addCardToStudyCardSet에서 실행도어야 allCardsCount가 업데이트됨
+	 *
+	 * @param studyCardSet
+	 */
+	public void updateCardCount(StudyCardSet studyCardSet) {
+		int count = cardRepository.countByNoteId(studyCardSet.getNote().getNoteId());
+		studyCardSet.setAllCardsCount(count);
+		studyCardSetRepository.save(studyCardSet);
+	}
+
 	public void addCardToStudyCardSet(Card card, Note note) {
 		StudyCardSet studyCardSet = findStudyCardSetByNote(note);
+		updateCardCount(studyCardSet);
 		card.setStudyCardSet(studyCardSet);
 		studyCardSetRepository.save(studyCardSet);
 	}
@@ -271,5 +305,15 @@ public class CardModuleService {
 		imageCardRepository.save(imageCard);
 	}
 
+	// note : 카드 난이도에 따른 학습 시간 반환 메소드에 사용됨
+	public int getCardCountLearn(Long cardId, int cardType) {
+		if (cardType == 0) {
+			Card card = getCardById(cardId);
+			return card.getCountLearn() == null ? 0 : card.getCountLearn().intValue();
+		} else {
+			ImageCard imageCard = getImageCardById(cardId);
+			return imageCard.getCountLearn() == null ? 0 : imageCard.getCountLearn().intValue();
+		}
+	}
 }
 

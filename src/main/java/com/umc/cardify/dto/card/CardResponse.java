@@ -1,5 +1,6 @@
 package com.umc.cardify.dto.card;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -7,12 +8,10 @@ import java.util.Map;
 import com.umc.cardify.domain.enums.MarkStatus;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 public class CardResponse {
+
 	@Getter
 	@Schema(title = "CARD_RES_01 : 이미지 카드 조회 DTO")
 	@Builder
@@ -107,26 +106,26 @@ public class CardResponse {
 		@Schema(description = "쉬움 카드 학습 개수")
 		int easyCardsNumber;
 
-		@Schema(description = "알맞음 카드 학습 개수")
+		@Schema(description = "보통 카드 학습 개수")
 		int normalCardsNumber;
 
 		@Schema(description = "어려움 카드 학습 개수")
 		int hardCardsNumber;
 
-		@Schema(description = "패스 카드 학습 개수")
-		int passCardsNumber;
+		@Schema(description = "매우 어려움 카드 학습 개수")
+		int expertCardsNumber;
 
 		@Schema(description = "쉬움 카드 학습 비율")
 		int easyCardsPercent;
 
-		@Schema(description = "쉬움 카드 학습 비율")
+		@Schema(description = "보통 카드 학습 비율")
 		int normalCardsPercent;
 
-		@Schema(description = "쉬움 카드 학습 비율")
+		@Schema(description = "어려움 카드 학습 비율")
 		int hardCardsPercent;
 
-		@Schema(description = "쉬움 카드 학습 비율")
-		int passCardsPercent;
+		@Schema(description = "매우 어려움 카드 학습 비율")
+		int expertCardsPercent;
 	}
 
 	@Getter
@@ -202,9 +201,32 @@ public class CardResponse {
 		String noteName;
 		String color;
 		int cardsDueForStudy;
+		int allCardsCount;
 		int completedCardsCount;
 		double progressRate;
 		LocalDateTime recentStudyDate;
 		LocalDateTime nextStudyDate;
+	}
+
+	@Data
+	@AllArgsConstructor
+	@Schema(title = "CARD_RES_09 : 연간 학습 기여도 리스트 DTO")
+	public static class AnnualResultDTO {
+		@Schema(description = "연간 모든 날짜에 대한 정보 리스트")
+		private List<DailyContribution> contributions;
+		@Schema(description = "최대 연속 일수", example = "2")
+		private int maxStreak;
+	}
+
+	@Data
+	@AllArgsConstructor
+	@Schema(title = "CARD_RES_10 : 일일 기여도 조회 DTO")
+	public static class DailyContribution {
+		@Schema(description = "날짜", example = "2025-01-01")
+		private LocalDate date;
+		@Schema(description = "중복있는 하루 학습 횟수", example = "3")
+		private long count;
+		@Schema(description = "색상", example = "transparent | light | medium | dark")
+		private String color;
 	}
 }
