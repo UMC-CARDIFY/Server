@@ -18,8 +18,11 @@ public class CorsConfig {
         config.setAllowCredentials(true);
         config.setAllowedOrigins(List.of(
                 "https://cardify.co.kr",
+                "https://www.cardify.co.kr",
+                "https://api.cardify.co.kr",
                 "http://localhost:5173",
-                "http://localhost:8080"
+                "http://localhost:8080",
+                "http://3.37.20.234:8080"
         ));
         config.setAllowedMethods(List.of(
                 "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"

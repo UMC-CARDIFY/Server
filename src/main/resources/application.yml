@@ -10,7 +10,7 @@ spring:
     password: ${DB_PASSWORD}
   jpa:
     hibernate:
-      ddl-auto: create
+      ddl-auto: none
       jdbc:
         time_zone: Asia/Seoul
     properties:
@@ -34,7 +34,7 @@ spring:
             client-secret: ${KAKAO_CLIENT_SECRET}
             client-name: Kakao
             authorization-grant-type: authorization_code
-            redirect-uri: "http://3.37.20.234:8080/login/oauth2/code/kakao"
+            redirect-uri: "https://api.cardify.co.kr/login/oauth2/code/kakao"
             scope:
               - profile_nickname
               - account_email
@@ -74,7 +74,9 @@ spring:
           writetimeout: 5000
 app:
   oauth2:
-    redirect-uri: http://3.37.20.234:8080/token-check.html # 프론트엔드 서버 주소
+    redirect-uris:
+      # - http://localhost:5173/          # 개발: 프론트 로컬
+      - https://cardify.co.kr/           # 배포: 프론트 배포 주소
 jwt:
   secret: ${SECRET_KEY}
   refreshTokenValidity: ${REFRESH_TOKEN}

@@ -59,7 +59,7 @@ public class NoteController {
         // 소유권 확인
         folderService.checkOwnership(user, folder);
 
-		Note note = noteService.addNote(folder);
+		Note note = noteService.addNote(folder, request.getName());
 		return ResponseEntity.ok(NoteConverter.toAddNoteResult(note));
 	}
 

@@ -30,10 +30,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.Month;
 import java.time.Year;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -752,6 +749,44 @@ public class SimplePayServiceImpl implements SimplePayService {
       }
     } catch (Exception e) {
       log.error("다음 결제일 업데이트 중 오류 발생: {}", e.getMessage());
+    }
+  }
+
+  @Override
+  public BillingKeyResponse.CheckBillingKeyStatusRes checkBillingKeyStatus(String impUid) {
+    try {
+      // 1. 포트원 API 호출
+      IamportResponse<Payment> paymentResponse = iamportClient.paymentByImpUid(impUid);
+      Payment payment = paymentResponse.getResponse();
+
+      if (payment == null) {
+        throw new PaymentFailedException("결제 정보를 찾을 수 없습니다.");
+      }
+
+      // 2. BillingKeyRequest 정보 조회
+      Optional<BillingKeyRequest> entityOpt =
+          billingKeyRequestRepository.findByMerchantUid(payment.getMerchantUid());
+
+      // 3. BillingKeyRequestInfo 생성 (있을 경우에만)
+      BillingKeyResponse.BillingKeyRequestInfo billingKeyRequestInfo = null;
+      if (entityOpt.isPresent()) {
+        BillingKeyRequest entity = entityOpt.get();
+        billingKeyRequestInfo = BillingKeyResponse.BillingKeyRequestInfo.builder()
+            .id(entity.getId())
+            .merchantUid(entity.getMerchantUid())
+            .customerUid(entity.getCustomerUid())
+            .status(entity.getStatus().name())
+            .build();
+      }
+
+      // 4. 최종 응답 생성
+      return BillingKeyResponse.CheckBillingKeyStatusRes.builder()
+          .payment(payment)
+          .billingKeyRequest(billingKeyRequestInfo)  // null일 수 있음
+          .build();
+    } catch (IamportResponseException | IOException e) {
+      log.error("빌링키 상태 조회 중 오류 발생: impUid={}, error={}", impUid, e.getMessage(), e);
+      throw new RuntimeException("빌링키 상태 조회 중 오류 발생", e);
     }
   }
 
