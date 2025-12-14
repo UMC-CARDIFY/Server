@@ -4,7 +4,7 @@ import lombok.Getter;
 
 @Getter
 public enum Difficulty {
-    NONE(0), HARD(1), NORMAL(2), EASY(3), PASS(4);
+    NONE(0), EXPERT(1), HARD(2), NORMAL(3), EASY(4);
 
     private final int value;
 
@@ -15,10 +15,10 @@ public enum Difficulty {
     public static Difficulty fromValue(int value) {
 		return switch (value) {
 			case 0 -> NONE;
-			case 1 -> HARD;
-			case 2 -> NORMAL;
-			case 3 -> EASY;
-			case 4 -> PASS;
+			case 1 -> EXPERT;
+			case 2 -> HARD;
+			case 3 -> NORMAL;
+			case 4 -> EASY;
 			default -> throw new IllegalArgumentException("Unknown difficulty value: " + value);
 		};
     }
