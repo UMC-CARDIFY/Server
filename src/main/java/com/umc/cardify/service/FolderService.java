@@ -441,49 +441,59 @@ public class FolderService {
                 .build();
     }
 
-    public FolderResponse.FolderMoveResultDTO moveSubFolder(Long userId, Long subFolderId, Long targetParentFolderId) {
+    public FolderResponse.FolderMoveResultDTO moveSubFolder(Long userId, Long moveFolderId, Long targetParentFolderId) {
 
         // 사용자 검증
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_USERID));
 
         // 이동할 하위폴더 검증
-        Folder subFolder = folderRepository.findById(subFolderId)
+        Folder moveFolder = folderRepository.findById(moveFolderId)
                 .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_FOLDERID));
-
-        // 하위폴더인지 확인
-        if (subFolder.getParentFolder() == null) {
-            throw new BadRequestException(ErrorResponseStatus.CANNOT_MOVE_PARENT_FOLDER);
-        }
 
         // 대상 상위폴더 검증
-        Folder targetParentFolder = folderRepository.findById(targetParentFolderId)
-                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_FOLDERID));
+        Folder targetParent = null;
+        if (targetParentFolderId != null) {
+            targetParent = folderRepository.findById(targetParentFolderId)
+                    .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.INVALID_FOLDERID));
+        }
 
-        // 대상이 상위폴더인지 확인
-        if (targetParentFolder.getParentFolder() != null) {
+        boolean isMovingFolderParent = moveFolder.getParentFolder() == null;
+        boolean hasChildren = !moveFolder.getSubFolders().isEmpty();
+
+        if (
+                isMovingFolderParent &&      // 상위폴더인데
+                        hasChildren &&               // 하위폴더를 가지고 있고
+                        targetParent != null         // 다른 상위폴더로 이동하려는 경우
+        ) {
+            throw new BadRequestException(
+                    ErrorResponseStatus.CANNOT_MOVE_PARENT_FOLDER_WITH_CHILDREN
+            );
+        }
+
+        // 자기 자신으로 이동 방지
+        if (targetParent != null && moveFolder.getFolderId().equals(targetParent.getFolderId())) {
+            throw new BadRequestException(ErrorResponseStatus.INVALID_MOVE_TARGET);
+        }
+
+        // 대상이 메인 탭 or 상위폴더인지 확인
+        if (targetParent != null && targetParent.getParentFolder() != null) {
             throw new BadRequestException(ErrorResponseStatus.TARGET_MUST_BE_PARENT_FOLDER);
         }
 
-        // 자기 자신으로 이동하려는 경우 방지
-        if (subFolder.getParentFolder().getFolderId().equals(targetParentFolderId)) {
-            throw new BadRequestException(ErrorResponseStatus.ALREADY_IN_TARGET_FOLDER);
-        }
-
         // 기존 상위폴더 정보 저장
-        String previousParentName = subFolder.getParentFolder().getName();
+        Folder previousParent = moveFolder.getParentFolder();
 
-        // 폴더 이동 실행
-        subFolder.updateParentFolder(targetParentFolder);
-        Folder savedFolder = folderRepository.save(subFolder);
+        moveFolder.updateParentFolder(targetParent);
+        Folder savedFolder = folderRepository.save(moveFolder);
 
         return FolderResponse.FolderMoveResultDTO.builder()
                 .folderId(savedFolder.getFolderId())
                 .folderName(savedFolder.getName())
-                .previousParentFolderId(subFolder.getParentFolder().getFolderId())
-                .previousParentFolderName(previousParentName)
-                .newParentFolderId(targetParentFolder.getFolderId())
-                .newParentFolderName(targetParentFolder.getName())
+                .previousParentFolderId(previousParent != null ? previousParent.getFolderId() : null)
+                .previousParentFolderName(previousParent != null ? previousParent.getName() : null)
+                .newParentFolderId(targetParent != null ? targetParent.getFolderId() : null)
+                .newParentFolderName(targetParent != null ? targetParent.getName() : null)
                 .editDate(savedFolder.getEditDate())
                 .build();
     }

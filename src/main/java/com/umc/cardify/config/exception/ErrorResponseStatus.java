@@ -18,9 +18,10 @@ public enum ErrorResponseStatus {
 	NOTE_CREATED_NOT_ALLOWED(2009, "노트를 생성할 수 없습니다."),
 	INVALID_FOLDERID(2010, "폴더를  찾을 수 없습니다."),
 	SUB_FOLDER_COLOR_CHANGE_NOT_ALLOWED(2011, "하위 폴더는 색상을 변경할 수 없습니다."),
-	CANNOT_MOVE_PARENT_FOLDER(2012, "상위폴더는 이동할 수 없습니다."),
+	CANNOT_MOVE_PARENT_FOLDER_WITH_CHILDREN(2012, "상위폴더 안에 하위폴더가 존재합니다."),
 	TARGET_MUST_BE_PARENT_FOLDER(2013, "상위폴더로만 이동 가능합니다."),
 	ALREADY_IN_TARGET_FOLDER(2014, "해당 폴더로 이동이 불가능합니다."),
+	INVALID_MOVE_TARGET(2015, "자기 자신으로 이동이 불가능합니다."),
 
 	// 3000 : Response 오류
 	RESPONSE_ERROR(3000, "값을 불러오는데 실패하였습니다."),
