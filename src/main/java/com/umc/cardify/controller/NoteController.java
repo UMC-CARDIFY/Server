@@ -127,8 +127,8 @@ public class NoteController {
             throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
 
         if (cardModuleService.existsByNote(note) && mode.equals("standard")) {
-            cardModuleService.deleteAllCardsByNoteId(note.getNoteId());
-            cardModuleService.deleteAllImageCardsByNoteId(note.getNoteId());
+            cardModuleService.deleteAllCardsByNoteId(note);
+            cardModuleService.deleteAllImageCardsByNoteId(note);
         }
 
         note.setName(request.getName());
