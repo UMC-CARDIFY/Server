@@ -189,30 +189,6 @@ public class NoteService {
             throw new BadRequestException(ErrorResponseStatus.DB_UPDATE_ERROR);
         }
 
-/*
-        // 작성 모드 설정 (Controller 내부로 이동 예정)
-        String mode = request.getMode();
-        if(mode == null || mode.isEmpty())
-            mode = "standard";
-        if(!mode.equals("standard") && !mode.equals("light"))
-            throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
-
-        if (cardModuleService.existsByNote(note) && mode.equals("standard")) {
-            cardModuleService.deleteAllCardsByNoteId(note.getNoteId());
-            cardModuleService.deleteAllImageCardsByNoteId(note.getNoteId());
-        }
-
-        note.setName(request.getName());
-
-        if(mode.equals("standard")) {
-            StringBuilder totalText = new StringBuilder();
-
-            Queue<MultipartFile> imageQueue = new LinkedList<>(images != null ? images : Collections.emptyList());
-            noteParsingService.searchCard(node, totalText, note, imageQueue);
-            note.setTotalText(totalText.toString());
-        }
-*/
-
         ContentsNote contentsNote = contentsNoteRepository.findByNote(note)
                 .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
 
