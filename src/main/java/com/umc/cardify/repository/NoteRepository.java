@@ -4,10 +4,12 @@ import com.umc.cardify.domain.Note;
 import com.umc.cardify.domain.Folder;
 import com.umc.cardify.domain.User;
 import com.umc.cardify.domain.enums.MarkStatus;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -79,4 +81,8 @@ public interface NoteRepository extends JpaRepository<Note, Long> {
             "WHERE n.folder = :folder " +
             "GROUP BY n.noteId")
     List<Object[]> findNoteCardCounts(@Param("folder") Folder folder);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT n FROM Note n WHERE n.noteId = :noteId")
+    Optional<Note> findByIdWithLock(@Param("noteId") Long noteId);
 }

@@ -13,6 +13,7 @@ import com.umc.cardify.domain.enums.AuthProvider;
 import com.umc.cardify.dto.folder.FolderRequest;
 import com.umc.cardify.dto.folder.FolderResponse;
 import com.umc.cardify.service.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -29,6 +30,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
+@Slf4j
 @Tag(name = "NoteController", description = "노트 관련 API")
 @RestController
 @RequiredArgsConstructor
@@ -38,8 +40,7 @@ public class NoteController {
 	private final NoteService noteService;
     private final UserService userService;
 
-    private final CardModuleService cardModuleService;
-    private final NoteParsingService noteParsingService;
+    private final NoteFacadeService noteFacadeService;
 
 	private final JwtTokenProvider jwtTokenProvider;
 
@@ -115,33 +116,10 @@ public class NoteController {
 		AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
 
         User user = userService.getUser(email, provider);
-        Note note = noteService.getNoteById(request.getNoteId());
 
-        noteService.checkOwnership(user, note);
+		Boolean isSuccess = noteFacadeService.writeNoteFacade(
+                user, request.getMode(), request.getNoteId(), request.getName(), request.getContents(), images);
 
-        // 작성 모드 설정
-        String mode = request.getMode();
-        if(mode == null || mode.isEmpty())
-            mode = "standard";
-        if(!mode.equals("standard") && !mode.equals("light"))
-            throw new BadRequestException(ErrorResponseStatus.REQUEST_ERROR);
-
-        if (cardModuleService.existsByNote(note) && mode.equals("standard")) {
-            cardModuleService.deleteAllCardsByNoteId(note);
-            cardModuleService.deleteAllImageCardsByNoteId(note);
-        }
-
-        note.setName(request.getName());
-
-        if(mode.equals("standard")) {
-            StringBuilder totalText = new StringBuilder();
-
-            Queue<MultipartFile> imageQueue = new LinkedList<>(images != null ? images : Collections.emptyList());
-            noteParsingService.parsingNode(request.getContents(), totalText, note, imageQueue);
-            note.setTotalText(totalText.toString());
-        }
-
-		Boolean isSuccess = noteService.writeNote(note, request.getContents(), images);
 		return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(isSuccess));
 	}
 

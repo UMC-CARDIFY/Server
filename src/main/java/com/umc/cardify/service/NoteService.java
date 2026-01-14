@@ -13,6 +13,7 @@ import com.umc.cardify.dto.note.NoteComparator;
 import com.umc.cardify.dto.note.NoteRequest;
 import com.umc.cardify.dto.note.NoteResponse;
 import com.umc.cardify.repository.*;
+import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.weaver.ast.Not;
@@ -20,6 +21,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Recover;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -63,6 +68,16 @@ public class NoteService {
      */
     public Note getNoteById(long noteId) {
         return noteRepository.findById(noteId)
+                .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
+    }
+
+    /**
+     * 노트 아이디 조회 매서드 (비관적 락)
+     * @param noteId 검색할 노트 아이디
+     * @return 검색된 노트 객체 (존재하지 않는 아이디일 시, 에러 전달)
+     */
+    public Note getNoteByIdWithLock(Long noteId){
+        return noteRepository.findByIdWithLock(noteId)
                 .orElseThrow(() -> new BadRequestException(ErrorResponseStatus.NOT_FOUND_ERROR));
     }
 
@@ -182,7 +197,6 @@ public class NoteService {
      * @param images 노트 내 삽입할 이미지 리스트
      * @return 매서드 성공 여부
      */
-    @Transactional
     public Boolean writeNote(Note note, Node node, List<MultipartFile> images) {
         if (!note.getIsEdit()) {
             log.warn("IsEdit is : {}", false);
