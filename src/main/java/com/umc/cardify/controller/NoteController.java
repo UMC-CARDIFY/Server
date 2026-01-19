@@ -118,7 +118,7 @@ public class NoteController {
         User user = userService.getUser(email, provider);
 
 		Boolean isSuccess = noteFacadeService.writeNoteFacade(
-                user, request.getMode(), request.getNoteId(), request.getName(), request.getContents(), images);
+                user, request.getMode(), request.getNoteId(), request.getName(), request.getContents(), request.getVersion(), images);
 
 		return ResponseEntity.ok(NoteConverter.isSuccessNoteResult(isSuccess));
 	}

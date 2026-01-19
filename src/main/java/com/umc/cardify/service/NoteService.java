@@ -62,6 +62,16 @@ public class NoteService {
     }
 
     /**
+     * 노트 버전 확인 매서드 (불일치시 에러 전달)
+     * @param note 대상 노트
+     * @param version 요청 버전
+     */
+    public void checkVersion(Note note, Long version){
+        if (!Objects.equals(note.getVersion(), version))
+            throw new BadRequestException(ErrorResponseStatus.INCORRECT_VERSION);
+    }
+
+    /**
      * 노트 아이디 조회 매서드
      * @param noteId 검색할 노트 아이디
      * @return 검색된 노트 객체 (존재하지 않는 아이디일 시, 에러 전달)

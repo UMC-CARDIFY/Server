@@ -29,10 +29,11 @@ public class NoteFacadeService {
     private final NoteService noteService;
 
     @Transactional
-    public boolean writeNoteFacade(User user, String mode, Long noteId, String name, Node node, List<MultipartFile> images){
+    public boolean writeNoteFacade(User user, String mode, Long noteId, String name, Node node, Long version, List<MultipartFile> images){
         Note note = noteService.getNoteByIdWithLock(noteId);
 
         noteService.checkOwnership(user, note);
+        noteService.checkVersion(note, version);
 
         if(mode == null || mode.isEmpty())
             mode = "standard";
@@ -44,8 +45,6 @@ public class NoteFacadeService {
             cardModuleService.deleteAllImageCardsByNoteId(note);
         }
 
-        note.setName(name);
-
         if(mode.equals("standard")) {
             StringBuilder totalText = new StringBuilder();
 
@@ -54,7 +53,10 @@ public class NoteFacadeService {
             note.setTotalText(totalText.toString());
         }
 
-       return noteService.writeNote(note, node, images);
+        note.setName(name);
+        note.setVersion((version + 1) % Long.MAX_VALUE);
+
+        return noteService.writeNote(note, node, images);
     }
 
     public void parsingNode(Node node, StringBuilder input, Note note, Queue<MultipartFile> imageQueue) {
@@ -70,9 +72,7 @@ public class NoteFacadeService {
     }
 
     private void processTextNode(Node node, StringBuilder input) {
-        String nodeText = node.getText();
-        if (!nodeText.endsWith("."))
-            nodeText += ".";
+        String nodeText = node.getText() + "↵";
         input.append(nodeText);
     }
 }
