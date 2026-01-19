@@ -166,6 +166,7 @@ public class NoteConverter {
 
         return NoteResponse.getNoteDTO.builder()
                 .noteId(note.getNoteId())
+                .version(note.getVersion())
                 .noteName(note.getName())
                 .markState(note.getMarkState().equals(MarkStatus.ACTIVE))
                 .noteContent(contentsNote.getContents())
