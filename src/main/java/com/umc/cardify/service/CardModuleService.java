@@ -73,13 +73,13 @@ public class CardModuleService {
 	}
 
     @Transactional
-	public void deleteAllCardsByNoteId(Long noteId) {
-		cardRepository.deleteCardsByNoteId(noteId);
+	public void deleteAllCardsByNoteId(Note note) {
+        List<Card> cardList = cardRepository.findAllByNote(note);
+        cardRepository.deleteAll(cardList);
 	}
 
     @Transactional
-	public void deleteAllImageCardsByNoteId(Long noteId) {
-		Note note = noteRepository.findById(noteId).orElseThrow(() -> new DatabaseException(NOT_FOUND_ERROR));
+	public void deleteAllImageCardsByNoteId(Note note) {
 		StudyCardSet studyCardSet = studyCardSetRepository.findByNote(note)
 			.orElseThrow(() -> new DatabaseException(NOT_FOUND_ERROR));
 		imageCardRepository.deleteAllByStudyCardSet(studyCardSet);

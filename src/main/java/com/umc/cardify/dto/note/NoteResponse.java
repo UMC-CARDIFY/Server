@@ -179,6 +179,7 @@ public class NoteResponse {
     @Schema(title = "NOTE_RES_09 : 노트 조회 응답 DTO")
     public static class getNoteDTO{
         Long noteId;
+        Long version;
         String noteName;
         Object noteContent;
         Boolean markState;

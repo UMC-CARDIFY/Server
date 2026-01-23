@@ -24,6 +24,8 @@ public class NoteRequest {
         @NotNull
         Long noteId;
         @NotNull
+        Long version;
+        @NotNull
         String name;
         @Schema(description = "노트 작성 모드(standard, light)(default = standard)")
         String mode;

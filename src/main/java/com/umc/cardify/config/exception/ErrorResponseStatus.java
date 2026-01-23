@@ -16,13 +16,14 @@ public enum ErrorResponseStatus {
 	SUBFOLDER_CREATION_NOT_ALLOWED(2007, "하위 폴더를 생성할 수 없습니다."),
 	FOLDER_CREATED_NOT_ALLOWED(2008, "폴더를 생성할 수 없습니다."),
 	NOTE_CREATED_NOT_ALLOWED(2009, "노트를 생성할 수 없습니다."),
-	INVALID_FOLDERID(2010, "폴더를  찾을 수 없습니다."),
+	INVALID_FOLDERID(2010, "폴더를 찾을 수 없습니다."),
 	SUB_FOLDER_COLOR_CHANGE_NOT_ALLOWED(2011, "하위 폴더는 색상을 변경할 수 없습니다."),
 	CANNOT_MOVE_PARENT_FOLDER(2012, "상위폴더는 이동할 수 없습니다."),
 	TARGET_MUST_BE_PARENT_FOLDER(2013, "상위폴더로만 이동 가능합니다."),
 	ALREADY_IN_TARGET_FOLDER(2014, "해당 폴더로 이동이 불가능합니다."),
+    INCORRECT_VERSION(2015, "올바르지 않은 버전입니다."),
 
-	// 3000 : Response 오류
+    // 3000 : Response 오류
 	RESPONSE_ERROR(3000, "값을 불러오는데 실패하였습니다."),
 
 	// 4000 : Database, Server 오류
