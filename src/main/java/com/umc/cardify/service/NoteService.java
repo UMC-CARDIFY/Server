@@ -261,12 +261,72 @@ public class NoteService {
      * @param search 검색어
      * @return 검색 결과 DTO
      */
-    public NoteResponse.SearchNoteAllDTO searchNoteAll(User user, String search) {
-        //문단 구분점인 .을 입력시 빈 리스트 반환
+    // 1. 초기 메서드 (N+1)
+    public NoteResponse.SearchNoteAllDTO searchNoteAllV1(User user, String search) {
         if (search.trim().equals("."))
             return null;
 
-        //Folder + Note를 한 번에 조회 (N+1 해결)
+        List<Folder> folderList = folderRepository.findByUser(user);
+        List<NoteResponse.SearchNoteToUserDTO> noteToUserDTO = new ArrayList<>(folderList.stream()
+                .map(folder -> {
+                    List<NoteResponse.SearchNoteResDTO> folderToNote = noteRepository.findByFolder(folder).stream()
+                            .filter(note -> note.getName().contains(search) | note.getTotalText().contains(search))
+                            .map(note -> noteConverter.toSearchNoteResult(note, search))
+                            .toList();
+                    if (!folderToNote.isEmpty())
+                        return noteConverter.toSearchNoteUser(folder, folderToNote);
+                    return null;
+                }).toList());
+        noteToUserDTO.remove(null);
+
+        List<NoteResponse.SearchNoteToLibDTO> noteToLibDTO = libraryRepository.findAll().stream()
+                .filter(library -> library.getNote().getName().contains(search) | library.getNote().getTotalText().contains(search))
+                .map(library -> NoteResponse.SearchNoteToLibDTO.builder()
+                        .libraryId(library.getLibraryId())
+                        .note(noteConverter.toSearchNoteResult(library.getNote(), search))
+                        .build())
+                .toList();
+
+        return NoteResponse.SearchNoteAllDTO.builder()
+                .searchTxt(search).noteToUserList(noteToUserDTO).noteToLibList(noteToLibDTO)
+                .build();
+    }
+
+    // 2. Fetch Join (N+1 해결)
+    public NoteResponse.SearchNoteAllDTO searchNoteAllV2(User user, String search) {
+        if (search.trim().equals("."))
+            return null;
+
+        List<NoteResponse.SearchNoteToUserDTO> noteToUserDTO = new ArrayList<>(
+                noteRepository.findByUserAndSearchFetchJoin(user, search).stream()
+                        .collect(Collectors.groupingBy(Note::getFolder))
+                        .entrySet().stream()
+                        .map(entry -> noteConverter.toSearchNoteUser(
+                                entry.getKey(),
+                                entry.getValue().stream()
+                                        .map(note -> noteConverter.toSearchNoteResult(note, search))
+                                        .toList()))
+                        .toList());
+        noteToUserDTO.remove(null);
+
+        List<NoteResponse.SearchNoteToLibDTO> noteToLibDTO = libraryRepository.findAll().stream()
+                .filter(library -> library.getNote().getName().contains(search) | library.getNote().getTotalText().contains(search))
+                .map(library -> NoteResponse.SearchNoteToLibDTO.builder()
+                        .libraryId(library.getLibraryId())
+                        .note(noteConverter.toSearchNoteResult(library.getNote(), search))
+                        .build())
+                .toList();
+
+        return NoteResponse.SearchNoteAllDTO.builder()
+                .searchTxt(search).noteToUserList(noteToUserDTO).noteToLibList(noteToLibDTO)
+                .build();
+    }
+
+    // 3. Fetch Join + Full-Text Index
+    public NoteResponse.SearchNoteAllDTO searchNoteAllV3(User user, String search) {
+        if (search.trim().equals("."))
+            return null;
+
         List<NoteResponse.SearchNoteToUserDTO> noteToUserDTO = new ArrayList<>(
                 noteRepository.findByUserAndSearch(user.getUserId(), search + '*').stream()
                         .collect(Collectors.groupingBy(Note::getFolder))
@@ -279,7 +339,6 @@ public class NoteService {
                         .toList());
         noteToUserDTO.remove(null);
 
-        //Library내 검색어가 포함된 노트 조회
         List<NoteResponse.SearchNoteToLibDTO> noteToLibDTO = libraryRepository.findAll().stream()
                 .filter(library -> library.getNote().getName().contains(search) | library.getNote().getTotalText().contains(search))
                 .map(library -> NoteResponse.SearchNoteToLibDTO.builder()
