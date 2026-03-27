@@ -9,15 +9,9 @@ spring:
     username: ${DB_USER}
     password: ${DB_PASSWORD}
     hikari:
-      maximum-pool-size: 20                    # 최대 커넥션 수
+      maximum-pool-size: 30                    # 최대 커넥션 수
       minimum-idle: 5                          # 최소 유휴 커넥션 수
-      connection-timeout: 20000                # 커넥션 타임아웃 (20초)
-      idle-timeout: 300000                     # 유휴 타임아웃 (5분)
-      max-lifetime: 1200000                    # 커넥션 최대 생명 시간 (20분)
-      validation-timeout: 5000                 # 커넥션 검증 타임아웃
-      leak-detection-threshold: 60000          # 커넥션 누수 감지 (1분)
-      pool-name: HikariPool-1
-      register-mbeans: true
+
   jpa:
     hibernate:
       ddl-auto: none

@@ -268,7 +268,7 @@ public class NoteService {
 
         //Folder + Note를 한 번에 조회 (N+1 해결)
         List<NoteResponse.SearchNoteToUserDTO> noteToUserDTO = new ArrayList<>(
-                noteRepository.findByUserAndSearch(user, search).stream()
+                noteRepository.findByUserAndSearch(user.getUserId(), search + '*').stream()
                         .collect(Collectors.groupingBy(Note::getFolder))
                         .entrySet().stream()
                         .map(entry -> noteConverter.toSearchNoteUser(
