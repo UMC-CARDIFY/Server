@@ -85,4 +85,8 @@ public interface NoteRepository extends JpaRepository<Note, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT n FROM Note n WHERE n.noteId = :noteId")
     Optional<Note> findByIdWithLock(@Param("noteId") Long noteId);
+
+    @Query("SELECT n FROM Note n JOIN FETCH n.folder f WHERE f.user = :user " +
+            "AND (n.name LIKE %:search% OR n.totalText LIKE %:search%)")
+    List<Note> findByUserAndSearch(@Param("user") User user, @Param("search") String search);
 }

@@ -266,20 +266,19 @@ public class NoteService {
         if (search.trim().equals("."))
             return null;
 
-        //User가 갖고 있는 Folder 조회
-        List<Folder> folderList = folderRepository.findByUser(user);
-        //Folder내 검색어가 포함된 노트 조회
-        List<NoteResponse.SearchNoteToUserDTO> noteToUserDTO = new ArrayList<>(folderList.stream()
-                .map(folder -> {
-                    List<NoteResponse.SearchNoteResDTO> folderToNote = noteRepository.findByFolder(folder).stream()
-                            .filter(note -> note.getName().contains(search) | note.getTotalText().contains(search))
-                            .map(note -> noteConverter.toSearchNoteResult(note, search))
-                            .toList();
-                    if (!folderToNote.isEmpty())
-                        return noteConverter.toSearchNoteUser(folder, folderToNote);
-                    return null;
-                }).toList());
+        //Folder + Note를 한 번에 조회 (N+1 해결)
+        List<NoteResponse.SearchNoteToUserDTO> noteToUserDTO = new ArrayList<>(
+                noteRepository.findByUserAndSearch(user, search).stream()
+                        .collect(Collectors.groupingBy(Note::getFolder))
+                        .entrySet().stream()
+                        .map(entry -> noteConverter.toSearchNoteUser(
+                                entry.getKey(),
+                                entry.getValue().stream()
+                                        .map(note -> noteConverter.toSearchNoteResult(note, search))
+                                        .toList()))
+                        .toList());
         noteToUserDTO.remove(null);
+
         //Library내 검색어가 포함된 노트 조회
         List<NoteResponse.SearchNoteToLibDTO> noteToLibDTO = libraryRepository.findAll().stream()
                 .filter(library -> library.getNote().getName().contains(search) | library.getNote().getTotalText().contains(search))
