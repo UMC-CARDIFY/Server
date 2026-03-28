@@ -85,4 +85,17 @@ public interface NoteRepository extends JpaRepository<Note, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT n FROM Note n WHERE n.noteId = :noteId")
     Optional<Note> findByIdWithLock(@Param("noteId") Long noteId);
+
+    // 2. Fetch Join (N+1 해결)
+    @Query("SELECT n FROM Note n JOIN FETCH n.folder f WHERE f.user = :user " +
+            "AND (n.name LIKE %:search% OR n.totalText LIKE %:search%)")
+    List<Note> findByUserAndSearchFetchJoin(@Param("user") User user, @Param("search") String search);
+
+    // 3. Fetch Join + Full-Text Index
+    @Query(value = "SELECT n.* FROM note n " +
+            "JOIN folder f ON n.folder_id = f.folder_id " +
+            "WHERE f.user_id = :userId " +
+            "AND MATCH(n.name, n.total_text) AGAINST (:search IN BOOLEAN MODE)",
+            nativeQuery = true)
+    List<Note> findByUserAndSearch(@Param("userId") Long userId, @Param("search") String search);
 }
