@@ -261,38 +261,7 @@ public class NoteService {
      * @param search 검색어
      * @return 검색 결과 DTO
      */
-    // 1. 초기 메서드 (N+1)
-    public NoteResponse.SearchNoteAllDTO searchNoteAllV1(User user, String search) {
-        if (search.trim().equals("."))
-            return null;
-
-        List<Folder> folderList = folderRepository.findByUser(user);
-        List<NoteResponse.SearchNoteToUserDTO> noteToUserDTO = new ArrayList<>(folderList.stream()
-                .map(folder -> {
-                    List<NoteResponse.SearchNoteResDTO> folderToNote = noteRepository.findByFolder(folder).stream()
-                            .filter(note -> note.getName().contains(search) | note.getTotalText().contains(search))
-                            .map(note -> noteConverter.toSearchNoteResult(note, search))
-                            .toList();
-                    if (!folderToNote.isEmpty())
-                        return noteConverter.toSearchNoteUser(folder, folderToNote);
-                    return null;
-                }).toList());
-        noteToUserDTO.remove(null);
-
-        List<NoteResponse.SearchNoteToLibDTO> noteToLibDTO = libraryRepository.findAll().stream()
-                .filter(library -> library.getNote().getName().contains(search) | library.getNote().getTotalText().contains(search))
-                .map(library -> NoteResponse.SearchNoteToLibDTO.builder()
-                        .libraryId(library.getLibraryId())
-                        .note(noteConverter.toSearchNoteResult(library.getNote(), search))
-                        .build())
-                .toList();
-
-        return NoteResponse.SearchNoteAllDTO.builder()
-                .searchTxt(search).noteToUserList(noteToUserDTO).noteToLibList(noteToLibDTO)
-                .build();
-    }
-
-    // 2. Fetch Join (N+1 해결)
+    // 2. Fetch Join (현재 적용 매서드)
     public NoteResponse.SearchNoteAllDTO searchNoteAllV2(User user, String search) {
         if (search.trim().equals("."))
             return null;
@@ -322,6 +291,7 @@ public class NoteService {
                 .build();
     }
 
+    // TODO: DB에 인덱스 생성 SQL 입력 후 연결
     // 3. Fetch Join + Full-Text Index
     public NoteResponse.SearchNoteAllDTO searchNoteAllV3(User user, String search) {
         if (search.trim().equals("."))

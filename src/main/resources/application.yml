@@ -8,9 +8,6 @@ spring:
     driverClassName: com.mysql.cj.jdbc.Driver
     username: ${DB_USER}
     password: ${DB_PASSWORD}
-    hikari:
-      maximum-pool-size: 30                    # 최대 커넥션 수
-      minimum-idle: 5                          # 최소 유휴 커넥션 수
 
   jpa:
     hibernate:
