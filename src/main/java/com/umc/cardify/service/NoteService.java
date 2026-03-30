@@ -13,18 +13,14 @@ import com.umc.cardify.dto.note.NoteComparator;
 import com.umc.cardify.dto.note.NoteRequest;
 import com.umc.cardify.dto.note.NoteResponse;
 import com.umc.cardify.repository.*;
-import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.aspectj.weaver.ast.Not;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.orm.ObjectOptimisticLockingFailureException;
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.Recover;
-import org.springframework.retry.annotation.Retryable;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -48,8 +44,17 @@ public class NoteService {
 
     private final NoteConverter noteConverter;
     private final ObjectMapper objectMapper;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     private static final int PREVIEW_LIMIT = 300;
+
+    private void evictUserSearchCache(Long userId) {
+        String pattern = "searchNote::" + userId + ":*";
+        var keys = redisTemplate.keys(pattern);
+        if (keys != null && !keys.isEmpty()) {
+            redisTemplate.delete(keys);
+        }
+    }
 
     /**
      * 노트 소유 확인 매서드 (불일치시 에러 전달)
@@ -97,6 +102,8 @@ public class NoteService {
      * @return 추가된 노트 객체
      */
     public Note addNote(Folder folder, String name) {
+        evictUserSearchCache(folder.getUser().getUserId());
+
         Note newNote = NoteConverter.toAddNote(folder, name);
         noteRepository.save(newNote);
 
@@ -137,6 +144,7 @@ public class NoteService {
      */
     @Transactional
     public Boolean deleteNote(Note note_del) {
+        evictUserSearchCache(note_del.getFolder().getUser().getUserId());
         noteRepository.delete(note_del);
         return true;
     }
@@ -208,6 +216,8 @@ public class NoteService {
      * @return 매서드 성공 여부
      */
     public Boolean writeNote(Note note, Node node, List<MultipartFile> images) {
+        evictUserSearchCache(note.getFolder().getUser().getUserId());
+
         if (!note.getIsEdit()) {
             log.warn("IsEdit is : {}", false);
             throw new BadRequestException(ErrorResponseStatus.DB_UPDATE_ERROR);
@@ -262,6 +272,8 @@ public class NoteService {
      * @return 검색 결과 DTO
      */
     // 2. Fetch Join (현재 적용 매서드)
+    @Cacheable(value = "searchNote", key = "#user.userId + ':' + #search",
+            unless = "#result == null || #result.noteToUserList.size() < 1000")
     public NoteResponse.SearchNoteAllDTO searchNoteAllV2(User user, String search) {
         if (search.trim().equals("."))
             return null;
@@ -293,6 +305,8 @@ public class NoteService {
 
     // TODO: DB에 인덱스 생성 SQL 입력 후 연결
     // 3. Fetch Join + Full-Text Index
+    @Cacheable(value = "searchNote", key = "#user.userId + ':' + #search",
+            unless = "#result == null || #result.noteToUserList.size() < 100")
     public NoteResponse.SearchNoteAllDTO searchNoteAllV3(User user, String search) {
         if (search.trim().equals("."))
             return null;
