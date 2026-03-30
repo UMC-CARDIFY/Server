@@ -141,7 +141,7 @@ public class NoteController {
 		AuthProvider provider = jwtTokenProvider.getProviderFromToken(token.replace("Bearer ", "")); // 토큰에 제공자 정보도 포함
         User user = userService.getUser(email, provider);
 
-		NoteResponse.SearchNoteAllDTO dto = noteService.searchNoteAllV2(user, search);
+		NoteResponse.SearchNoteAllDTO dto = noteService.searchNoteAllV3(user, search);
 		noteService.addSearchHistory(user, search);
 
 		return ResponseEntity.ok(dto);
